@@ -1,0 +1,211 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="3.5" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>9.0.21022</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{9843B558-B6C8-46B4-9578-6766E08F8CAC}</ProjectGuid>
+    <OutputType>library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>IronPlot</RootNamespace>
+    <AssemblyName>IronPlot</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>..\bin.VS08\</OutputPath>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\bin.VS08\Lib\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="ILNumerics.Net, Version=1.4.11.30092, Culture=neutral, PublicKeyToken=100fa3190fad684e, processorArchitecture=x86">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\ILNumerics\RequiredLibraries.VS08\ILNumerics.Net.dll</HintPath>
+    </Reference>
+    <Reference Include="ReachFramework">
+      <RequiredTargetFramework>3.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="SlimDX, Version=2.0.10.43, Culture=neutral, PublicKeyToken=b1b0c32fd1ffe4f9, processorArchitecture=x86">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>RequiredLibraries\VS08\SlimDX.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Printing">
+      <RequiredTargetFramework>3.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml.Linq">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Data.DataSetExtensions">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+    <Reference Include="UIAutomationProvider">
+      <RequiredTargetFramework>3.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="WindowsBase">
+      <RequiredTargetFramework>3.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="PresentationCore">
+      <RequiredTargetFramework>3.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="PresentationFramework">
+      <RequiredTargetFramework>3.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="XamlToys, Version=1.0.2881.31355, Culture=neutral, PublicKeyToken=785f4aec9c0b7104, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>RequiredLibraries\VS08\XamlToys.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="Plot2D\ColourBar.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Plot2D\Plot2D.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Plot3D\Plot3D.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Themes\Generic.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Plot2D\Axes2D.cs" />
+    <Compile Include="Plot2D\Axis2D.cs" />
+    <Compile Include="Plot2D\Axis2DCollection.cs" />
+    <Compile Include="Plot2D\ColourBar.xaml.cs">
+      <DependentUpon>ColourBar.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Plot2D\ColourBarPanel.cs" />
+    <Compile Include="Plot2D\Direct2D\Direct2DControl.cs" />
+    <Compile Include="Plot2D\Direct2D\Direct2DImage.cs" />
+    <Compile Include="Plot2D\Direct2D\DirectPath.cs" />
+    <Compile Include="Plot2D\Direct2D\DirectPathScatter.cs" />
+    <Compile Include="Plot2D\GridLines.cs" />
+    <Compile Include="Plot2D\IBoundable.cs" />
+    <Compile Include="Plot2D\Lines.cs" />
+    <Compile Include="Plot2D\Plot2D.xaml.cs">
+      <DependentUpon>Plot2D.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Plot2D\PlotPath.cs" />
+    <Compile Include="Plot2D\VisualLine.cs" />
+    <Compile Include="Plot2D\Plot2DCurve.cs" />
+    <Compile Include="Plot2D\Plot2DImage.cs" />
+    <Compile Include="Plot2D\Plot2DItem.cs" />
+    <Compile Include="Plot2D\PlotPanel.cs" />
+    <Compile Include="Plot2D\PlotPanelChilden.cs" />
+    <Compile Include="Plot2D\PlotPanelInteraction.cs" />
+    <Compile Include="Plot2D\PlotPanelAnnotations.cs" />
+    <Compile Include="Plot2D\UniqueObservableCollection.cs" />
+    <Compile Include="Plot3D\3DPrimitives\IResolutionDependent.cs" />
+    <Compile Include="Plot3D\3DPrimitives\LinesModel3D.cs" />
+    <Compile Include="Plot3D\3DPrimitives\SurfaceModel3D.cs" />
+    <Compile Include="Plot3D\3DPrimitives\SurfaceModel3DMesh.cs" />
+    <Compile Include="Plot3D\Axes3D.cs" />
+    <Compile Include="Plot3D\Axis3D.cs" />
+    <Compile Include="Plot3D\Axis3DCollection.cs" />
+    <Compile Include="Plot3D\Bounds3D.cs" />
+    <Compile Include="Plot3D\Extensions.cs" />
+    <Compile Include="Plot3D\Model3D.cs" />
+    <Compile Include="Plot3D\Model3DCollection.cs" />
+    <Compile Include="Plot3D\Plot3D.xaml.cs">
+      <DependentUpon>Plot3D.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Plot3D\ServiceContainer.cs" />
+    <Compile Include="Plot3D\Trackball.cs" />
+    <Compile Include="Plot3D\VertexPositionColor.cs" />
+    <Compile Include="Plot3D\VertexPositionNormalColor.cs" />
+    <Compile Include="Plot3D\Viewport3D.cs" />
+    <Compile Include="Plot3D\ViewportImage.cs" />
+    <Compile Include="PlotCommon\ArrayConverter.cs" />
+    <Compile Include="PlotCommon\Axis.cs" />
+    <Compile Include="PlotCommon\AxisLabel.cs" />
+    <Compile Include="PlotCommon\ColourMap.cs" />
+    <Compile Include="PlotCommon\Curve.cs" />
+    <Compile Include="PlotCommon\CurveIDirect2D.cs" />
+    <Compile Include="PlotCommon\CurveInterpolate.cs" />
+    <Compile Include="PlotCommon\DirectXSupport\DirectImage.cs" />
+    <Compile Include="PlotCommon\DirectXSupport\SlimDXGraphicsDeviceService10.cs" />
+    <Compile Include="PlotCommon\DirectXSupport\SlimDXGraphicsDeviceService9.cs" />
+    <Compile Include="PlotCommon\DirectXSupport\SlimDXLayer2D.cs" />
+    <Compile Include="PlotCommon\EMFSupport\EMFCopy.cs" />
+    <Compile Include="PlotCommon\EMFSupport\Helper.cs" />
+    <Compile Include="PlotCommon\EMFSupport\NativeMethods.cs" />
+    <Compile Include="PlotCommon\EMFSupport\WpfWin32Window.cs" />
+    <Compile Include="PlotCommon\EnumerableFunctions.cs" />
+    <Compile Include="PlotCommon\Image.cs" />
+    <Compile Include="PlotCommon\Label.cs" />
+    <Compile Include="PlotCommon\LabelProperties.cs" />
+    <Compile Include="PlotCommon\Legend.cs" />
+    <Compile Include="PlotCommon\LegendItem.cs" />
+    <Compile Include="PlotCommon\MathsExtensions.cs" />
+    <Compile Include="PlotCommon\MathsHelper.cs" />
+    <Compile Include="PlotCommon\ObservableCollectionListAdapter.cs" />
+    <Compile Include="PlotCommon\PlotContext.cs" />
+    <Compile Include="PlotCommon\Plotting.cs" />
+    <Compile Include="PlotCommon\Slice.cs" />
+    <Compile Include="PlotCommon\Title.cs" />
+    <Compile Include="PlotCommon\VisualHost.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Plot3D\3DPrimitives\Line.fx" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <AppDesigner Include="Properties\" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

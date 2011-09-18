@@ -1,0 +1,56 @@
+﻿<UserControl x:Class="IronPlot.ColourBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="300" d:DesignWidth="300">
+    <!-- 
+	Copyright (c) 2010 Joe Moorhouse
+    -->
+    <UserControl.Resources>
+        <ControlTemplate x:Key="colourBarVerticalSlider" TargetType="{x:Type Slider}">
+            <Border SnapsToDevicePixels="true"
+            BorderBrush="{TemplateBinding BorderBrush}"
+            BorderThickness="{TemplateBinding BorderThickness}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto" MinWidth="{TemplateBinding MinWidth}"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Rectangle x:Name="PART_SelectionRange"/>
+
+                    <Track x:Name="PART_Track" Grid.Column="1">
+                        <Track.Thumb>
+                            <!-- <Thumb Style="{StaticResource colourBarThumb}" />-->
+                            <Thumb x:Name="Thumb" Foreground="{TemplateBinding Foreground}">
+                                <Thumb.Template>
+                                    <ControlTemplate TargetType="Thumb">
+                                        <Path Data="M3,2 L1,3 L1.5,2 L1,1 z" Stretch="Fill" Fill="{TemplateBinding Foreground}" Stroke="Black" Width="20" Height="20"/>
+                                    </ControlTemplate>
+                                </Thumb.Template>
+                            </Thumb>
+                        </Track.Thumb>
+                    </Track>
+                </Grid>
+            </Border>
+        </ControlTemplate>
+        <Style TargetType="Thumb" x:Key="colourBarThumb">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Path Data="M3,1 L2,1.5 L1,1 L2,3 z" Stretch="Fill" Fill="Blue" Stroke="Black"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Width" Value="20"/>
+            <Setter Property="Height" Value="20"/>
+        </Style>
+    </UserControl.Resources>
+    <Grid Name="grid">
+    </Grid>
+</UserControl>
+
+    

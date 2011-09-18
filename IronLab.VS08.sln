@@ -1,0 +1,47 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PythonConsoleControl.VS08", "IronPythonConsole\PythonConsoleControl\PythonConsoleControl.VS08.csproj", "{D38AC984-2912-41A6-98A2-A4E4A398862E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IronPythonConsole.VS08", "IronPythonConsole\IronPythonConsole\IronPythonConsole.VS08.csproj", "{DDB28D57-7696-4AA6-BBC7-6A436EBAB0B8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IronPlot.VS08", "IronPlot\IronPlot.VS08.csproj", "{9843B558-B6C8-46B4-9578-6766E08F8CAC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PlotSample.VS08", "PlotSample\PlotSample.VS08.csproj", "{3B78C624-4017-4934-886B-DCFB4BC97D5E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		ILLibrary Release only|Any CPU = ILLibrary Release only|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D38AC984-2912-41A6-98A2-A4E4A398862E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D38AC984-2912-41A6-98A2-A4E4A398862E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D38AC984-2912-41A6-98A2-A4E4A398862E}.ILLibrary Release only|Any CPU.ActiveCfg = Release|Any CPU
+		{D38AC984-2912-41A6-98A2-A4E4A398862E}.ILLibrary Release only|Any CPU.Build.0 = Release|Any CPU
+		{D38AC984-2912-41A6-98A2-A4E4A398862E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D38AC984-2912-41A6-98A2-A4E4A398862E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DDB28D57-7696-4AA6-BBC7-6A436EBAB0B8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DDB28D57-7696-4AA6-BBC7-6A436EBAB0B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DDB28D57-7696-4AA6-BBC7-6A436EBAB0B8}.ILLibrary Release only|Any CPU.ActiveCfg = Release|Any CPU
+		{DDB28D57-7696-4AA6-BBC7-6A436EBAB0B8}.ILLibrary Release only|Any CPU.Build.0 = Release|Any CPU
+		{DDB28D57-7696-4AA6-BBC7-6A436EBAB0B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DDB28D57-7696-4AA6-BBC7-6A436EBAB0B8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9843B558-B6C8-46B4-9578-6766E08F8CAC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9843B558-B6C8-46B4-9578-6766E08F8CAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9843B558-B6C8-46B4-9578-6766E08F8CAC}.ILLibrary Release only|Any CPU.ActiveCfg = Release|Any CPU
+		{9843B558-B6C8-46B4-9578-6766E08F8CAC}.ILLibrary Release only|Any CPU.Build.0 = Release|Any CPU
+		{9843B558-B6C8-46B4-9578-6766E08F8CAC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9843B558-B6C8-46B4-9578-6766E08F8CAC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3B78C624-4017-4934-886B-DCFB4BC97D5E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3B78C624-4017-4934-886B-DCFB4BC97D5E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3B78C624-4017-4934-886B-DCFB4BC97D5E}.ILLibrary Release only|Any CPU.ActiveCfg = Release|Any CPU
+		{3B78C624-4017-4934-886B-DCFB4BC97D5E}.ILLibrary Release only|Any CPU.Build.0 = Release|Any CPU
+		{3B78C624-4017-4934-886B-DCFB4BC97D5E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3B78C624-4017-4934-886B-DCFB4BC97D5E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
