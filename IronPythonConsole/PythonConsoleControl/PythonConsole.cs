@@ -123,6 +123,11 @@ namespace PythonConsoleControl
             }
         }
 
+        public void SetDispatcherWindow(Window dispatcherWindow)
+        {
+            this.dispatcherWindow = dispatcherWindow;
+        }
+
         public void Dispose()
         {
             disposedEvent.Set();

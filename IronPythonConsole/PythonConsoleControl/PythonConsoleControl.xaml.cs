@@ -57,6 +57,38 @@ namespace PythonConsoleControl
             }
         }
 
+        /// <summary>
+        /// Performs the specified action on the console host but only once the console
+        /// has initialized.
+        /// </summary>
+        public void WithHost(Action<PythonConsoleHost> hostAction)
+        {
+            this.hostAction = hostAction;
+            Host.ConsoleCreated += new ConsoleCreatedEventHandler(Host_ConsoleCreated);
+        }
+
+        Action<PythonConsoleHost> hostAction;
+
+        void Host_ConsoleCreated(object sender, EventArgs e)
+        {
+            Console.ConsoleInitialized += new ConsoleInitializedEventHandler(Console_ConsoleInitialized);
+        }
+
+        void Console_ConsoleInitialized(object sender, EventArgs e)
+        {
+            hostAction.Invoke(Host);
+        }
+
+        public PythonConsole Console
+        {
+            get { return pad.Console; }
+        }
+
+        public PythonConsoleHost Host
+        {
+            get { return pad.Host; }
+        }
+
         public PythonConsolePad Pad
         {
             get { return pad; }
