@@ -55,11 +55,6 @@ namespace IronPlot
             colourMapUpdateTimer.Tick += OnColourMapUpdateTimerElapsed;
             host.canvas.Children.Add(Rectangle);
         }
-
-        internal override void OnViewedRegionChanged()
-        {
-            // No filtering: this is taken car of by WPF itself
-        }
         
         // a FalseColourImage creates a UInt16[]
         // The UInt16[] contains indexed pixels that are mapped to colours 
@@ -202,13 +197,13 @@ namespace IronPlot
         {
             double max = underlyingILArrayData.MaxValue;
             double min = underlyingILArrayData.MinValue;
-            double scale = (nIndices - 1) / (max - min);
+            double Scale = (nIndices - 1) / (max - min);
             int count = width * height;
             int index = 0;
             UInt16[] indices = new UInt16[count];
             foreach (double value in underlyingILArrayData)
             {
-                indices[index] = (UInt16)((value - min) * scale);
+                indices[index] = (UInt16)((value - min) * Scale);
                 index++;
             }
             return indices;
@@ -257,13 +252,13 @@ namespace IronPlot
         {
             double max = data.Max();
             double min = data.Min();
-            double scale = (nIndices - 1) / (max - min);
+            double Scale = (nIndices - 1) / (max - min);
             int count = width * height;
             int index = 0;
             UInt16[] indices = new UInt16[count];
             foreach (double value in data)
             {
-                indices[index] = (UInt16)((value - min) * scale);
+                indices[index] = (UInt16)((value - min) * Scale);
                 index++;
             }
             return indices;
@@ -273,13 +268,13 @@ namespace IronPlot
         {
             double max = underlyingData.Max();
             double min = underlyingData.Min();
-            double scale = (nIndices - 1) / (max - min);
+            double Scale = (nIndices - 1) / (max - min);
             int count = width * height; 
             int index = 0;
             UInt16[] indices = new UInt16[count];
             foreach (double value in underlyingData)
             {
-                indices[index] = (UInt16)((value - min) * scale);
+                indices[index] = (UInt16)((value - min) * Scale);
                 index++;
             }
             return indices;

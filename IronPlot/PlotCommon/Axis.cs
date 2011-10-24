@@ -20,14 +20,43 @@ using ILNumerics.BuiltInFunctions;
 namespace IronPlot
 {
     public enum AxisType { Number, Date }
-    // The axis class deals with annotation of axes
-    // We need one for the horizontal and one for the vertical axes (even if each consists of two lines)
-    public class Axis : DependencyObject
+
+    public struct Range
     {
-        public double[] Ticks;
-        public double[] Coefficient;
-        public int[] Exponent;
-        public int[] RequiredDPs;
+        public double Min;
+        public double Max;
+
+        public Range(double min, double max)
+        {
+            Min = min;
+            Max = max;
+        }
+
+        public double Length
+        {
+            get { return Max - Min; }
+        }
+
+        public Range Union(Range otherRange)
+        {
+            return new Range(Math.Min(this.Min, otherRange.Min), Math.Max(this.Max, otherRange.Max));
+        }
+    }
+
+    /// <summary>
+    /// An Axis class is a Canvas on which the axis and annotations
+    /// are presented (one Canvas per Axis). The Canvas typically spans the entire plot region. 
+    /// This general approach is suitable for axes of 3D and 2D plots.
+    /// </summary>
+    public abstract class Axis : ContentControl
+    {
+        protected Canvas canvas;
+        
+        internal double[] Ticks;
+        internal double[] Coefficient;
+        internal int[] Exponent;
+        internal int[] RequiredDPs;
+        
         protected string[] labels;
         protected double[] cachedTicksOverride;
         protected double[] cachedCoefficientOverride;
@@ -104,10 +133,11 @@ namespace IronPlot
             get { return (bool)GetValue(TicksVisibleProperty); }
         }
 
-        //protected static void OnAxisTypeChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
-        //{
-        //    ((Axis)obj).
-        //}
+        public Axis()
+        {
+            canvas = new Canvas();
+            this.Content = canvas;
+        }
 
         protected static void OnNumberOfTicksChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
@@ -187,7 +217,6 @@ namespace IronPlot
                 tempTick += interval;
                 RequiredDPs[i] = Math.Abs(intervalExp - tempExp);
                 //
-                //requiredDPs = Math.Max(requiredDPs, Math.Abs(tempExp - intervalExp));
                 if (tempExp > intervalExp)
                 {
                     tempCoeff += intervalCoeff / Math.Pow(10, (tempExp - intervalExp));
@@ -305,16 +334,8 @@ namespace IronPlot
             }
         }
 
-        public virtual double Min
-        {
-            set { }
-            get { return 0; }
-        }
+        public abstract double Min { get; set; }
 
-        public virtual double Max
-        {
-            set { }
-            get { return 10; }
-        }
+        public abstract double Max { get; set; }
     }
 }

@@ -29,13 +29,43 @@ namespace IronPlot
         protected Rect bounds;
         protected PlotPanel host;
 
-        protected void OnHostChanged(Plot2D oldHost)
+        protected XAxis xAxis;
+        public XAxis XAxis
         {
-            // Here the derived class should add its components to the host's PlotPanel canvas, and bind any 
-            // transforms.
-            // It should also remove its components from the old host.
+            get { return xAxis; }
+            set
+            {
+                if (host == null) xAxis = value;
+                else if (host.axes.XAxes.Contains(value)) xAxis = value;
+                else throw new Exception("Axis does not belong to plot.");
+            }
         }
 
+        protected YAxis yAxis;
+        public YAxis YAxis
+        {
+            get { return yAxis; }
+            set
+            {
+                if (host == null) yAxis = value;
+                else if (host.axes.YAxes.Contains(value)) yAxis = value;
+                else throw new Exception("Axis does not belong to plot.");
+            }
+        }
+
+        public Plot2D Plot
+        {
+            get
+            {
+                DependencyObject parent = host;
+                while ((parent != null) && !(parent is Plot2D))
+                {
+                    parent = LogicalTreeHelper.GetParent(parent);
+                }
+                return (parent as Plot2D);
+            }
+        }
+    
         public virtual Rect TightBounds
         {
             get { return bounds; }
@@ -55,21 +85,18 @@ namespace IronPlot
             }
         }
 
-        public Plot2D Plot
-        {
-            get
-            {
-                DependencyObject parent = host;
-                while ((parent != null) && !(parent is Plot2D))
-                {
-                    parent = LogicalTreeHelper.GetParent(parent);
-                }
-                return (parent as Plot2D);
-            }
-        }
-
         protected virtual void OnHostChanged(PlotPanel host)
         {
+            // Update axis to default if null or it it does not belong to the new plot.
+            if ((xAxis == null) || (!host.axes.XAxes.Contains(xAxis)))
+            {
+                xAxis = host.axes.XAxes.Bottom;
+            }
+
+            if ((yAxis == null) || (!host.axes.YAxes.Contains(yAxis)))
+            {
+                yAxis = host.axes.YAxes.Left;
+            }
         }
 
         internal virtual void OnViewedRegionChanged()

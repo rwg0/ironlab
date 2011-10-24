@@ -49,7 +49,32 @@ namespace IronPlot
                     child.Host = this;
                 }
             }
-            ViewedRegion = GetBoundsFromChildren();
+            var allAxes = axes.XAxes.Concat(axes.YAxes);
+            foreach (Axis2D axis in allAxes)
+            {
+                Range axisRange = GetRangeFromChildren(axis);
+                axis.Min = axisRange.Min; axis.Max = axisRange.Max;
+            }
+        }
+
+        protected Range GetRangeFromChildren(Axis2D axis)
+        {
+            Range range = new Range(0, 10);
+            Plot2DItem child;
+            bool rangeUpdated = false;
+            for (int i = 0; i < plotItems.Count; ++i)
+            {
+                child = plotItems[i];
+                if ((child.XAxis != axis) && (child.YAxis != axis)) continue;
+                Rect bounds = child.PaddedBounds;
+                if (rangeUpdated == false)
+                {
+                    range = (axis is XAxis) ? new Range(bounds.Left, bounds.Right) : new Range(bounds.Top, bounds.Bottom);
+                    rangeUpdated = true;
+                }
+                else range = range.Union((axis is XAxis) ? new Range(bounds.Left, bounds.Right) : new Range(bounds.Top, bounds.Bottom));
+            }
+            return range;
         }
 
         protected Rect GetBoundsFromChildren()

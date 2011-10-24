@@ -312,8 +312,8 @@ namespace IronPlot.Plotting3D
 
         protected void trackball_OnTrackBallZoom(Object sender, EventArgs e)
         {
-            double scale = ((Trackball)sender).Scale;
-            d3dImageViewport.CameraPosition = Vector3.Multiply(d3dImageViewport.CameraPosition, (float)scale);
+            double Scale = ((Trackball)sender).Scale;
+            d3dImageViewport.CameraPosition = Vector3.Multiply(d3dImageViewport.CameraPosition, (float)Scale);
         }
 
         private double lastPhi = -10;

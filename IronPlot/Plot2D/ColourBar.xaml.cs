@@ -37,22 +37,22 @@ namespace IronPlot
         {
             set
             {
-                colourBarPanel.YMin = value;
+                colourBarPanel.axes.YAxes[0].Min = value;
                 Rect newBounds = image.Bounds;
                 image.Bounds = new Rect(newBounds.Left, value, newBounds.Width, newBounds.Height);
             }
-            get { return colourBarPanel.YMin; }
+            get { return colourBarPanel.axes.YAxes[0].Min; }
         }
 
         internal double Max
         {
             set
             {
-                colourBarPanel.YMax = value;
+                colourBarPanel.axes.YAxes[0].Max = value;
                 Rect newBounds = image.Bounds;
                 image.Bounds = new Rect(newBounds.Left, newBounds.Top, newBounds.Width, value - newBounds.Top);
             }
-            get { return colourBarPanel.YMax; }
+            get { return colourBarPanel.axes.YAxes[0].Max; }
         }
 
         public static readonly RoutedEvent ColourMapChangedEvent =
@@ -80,7 +80,7 @@ namespace IronPlot
             colourBarPanel.plotItems.Add(image);
             image.ColourMap = colourMap;
             colourBarPanel.Margin = new Thickness(5, 0, 0, 0);
-            colourBarPanel.axes.XAxes.GridLines.Visibility = Visibility.Collapsed;
+            //colourBarPanel.axes.XAxes.GridLines.Visibility = Visibility.Collapsed;
             this.grid.Children.Add(colourBarPanel);
             colourMapUpdateTimer = new DispatcherTimer();
             colourMapUpdateTimer.Interval = new TimeSpan(1000); // 1/10 s

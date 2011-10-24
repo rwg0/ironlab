@@ -20,44 +20,139 @@ namespace IronPlot
     /// </summary>
     public struct AxisMargin
     {
-        public double MinMargin;
-        public double MaxMargin;
+        public double LowerMargin;
+        public double UpperMargin;
 
-        public AxisMargin(double minMargin, double maxMargin)
+        public double Total()
         {
-            this.MinMargin = minMargin;
-            this.MaxMargin = maxMargin;
+            return LowerMargin + UpperMargin;
+        }
+
+        public AxisMargin(double lowerMargin, double upperMargin)
+        {
+            this.LowerMargin = lowerMargin;
+            this.UpperMargin = upperMargin;
         }
     }
-    
-    // An Axis2D objects (as well as an Axes2D) are bound to a particular PlotPanel.
-    public class Axis2D : Axis
+
+    public struct Transform1D
     {
-        // Canvas object which contains annotation.
-        protected Canvas canvas;
-        //
-        // PlotPanel object that contains canvas
-        internal PlotPanel plotPanel;
-        //
-        internal AxisMargin axisMargin;
-        internal double scale;
-        internal double offset;
-        internal double axisMax; // The upper canvas point corresponding to axis and labels combined.
-        // Note there is no lower point since this is always 0
-        // canvasCoord = graphCoord * scale - offset
-        // There is deliberately redundant information here: offset may be inferred from scale and startPoint.
+        public double Scale;
+        public double Offset;
+
+        public Transform1D(double scale, double offset)
+        {
+            Scale = scale; Offset = offset;
+        }
+
+        public double Transform(double input) { return Scale * input - Offset; }
+
+        public double InverseTransform(double input) { return (input + Offset) / Scale; }
+
+        public Transform1D Inverse() { return new Transform1D(1 / Scale, -Offset / Scale); }
+    }
+
+    /// <summary>
+    /// An Axis2D is an Axis that contains TextBlock annotation and the axis lines (a Shape).
+    /// The ticks can appear both sides of the plot.
+    /// </summary>
+    public abstract class Axis2D : Axis
+    {
+        public static readonly DependencyProperty RangeProperty =
+            DependencyProperty.Register("RangeProperty",
+            typeof(Range), typeof(Axis2D),
+            new PropertyMetadata(new Range(0, 10), OnRangeChanged));
+
+        public override double Min
+        {
+            set {
+                Range newRange = (Range)GetValue(RangeProperty);
+                newRange.Min = value;
+                SetValue(RangeProperty, newRange); 
+            }
+            get { return ((Range)GetValue(RangeProperty)).Min; }
+        }
+
+        public override double Max
+        {
+            set
+            {
+                Range newRange = (Range)GetValue(RangeProperty);
+                newRange.Max = value;
+                SetValue(RangeProperty, newRange);
+            }
+            get { return ((Range)GetValue(RangeProperty)).Max; }
+        }
+
+        protected Path axisLine = new Path() { Stroke = Brushes.Black };
+        /// <summary>
+        /// Path representing the axis line.
+        /// </summary>
+        public Path AxisLine { get { return axisLine; } }
+
+        // PlotPanel object
+        internal PlotPanel PlotPanel;
+
+        internal List<TextBlock> tickLabels;
+        /// <summary>
+        /// List of the axis labels.
+        /// </summary>
+        public List<TextBlock> TickLabels { get { return tickLabels; } }
+
+        protected TextBlock axisLabel = new TextBlock();
+        public TextBlock AxisLabel { get { return axisLabel; } }
+     
+        protected StreamGeometry axisLineGeometry = new StreamGeometry();
+
+        internal double AxisThickness = 0;
+
+        protected Path axisTicks = new Path() { Stroke = Brushes.Black };
+        protected StreamGeometry axisTicksGeometry = new StreamGeometry();
+        /// <summary>
+        /// Path representing the axis ticks.
+        /// </summary>
+        public Path AxisTicks { get { return axisTicks; } }
+
+        // Whether this is one of the innermost axes, or an additional axis.
+        internal bool IsInnermost = true; 
+
+        internal AxisMargin AxisMargin;
+
+        // The transform applied to graph coordinates before conversion to canvas coordinates.
+        internal Func<double, double> GraphTransform = value => value;
+
+        // The transform applied to canvas coordinates after conversion to graph coordinates, as final step.
+        internal Func<double, double> CanvasTransform = value => value;
+        
+        internal double Scale;
+        internal double Offset;
+        internal double AxisTotalLengthConstrained; // The axis length including labels allowed by constraints.
+        // The actual AxisTotalLength may exceed this, possibly causing the axis to be clipped.
+        internal double AxisTotalLength; // The axis length including labels.
+        // canvasCoord = transformedGraphCoord * Scale - Offset
+        // There is deliberately redundant information here: Offset may be inferred from Scale and startPoint.
         // Object that supplies the Max and Min of the Axis.
+
+        // transformedGraphCoord is the graph coordinate with any transform applied. This is a 
+        // log10 transform for log axes and a multiplication be -1 for reversed axes.
 
         // Assume that any change to the axis (number and length of ticks, change to labels) requires
         // another layout pass of the PlotPanel.
-        // In addition, certain changes require re-derivtion of ticks and labls:
-        // Change of tick number, change of max and min
+        // In addition, certain changes require re-derivation of ticks and labels:
+        // change of tick number, change of max and min
         
         // Height of a one-line label
         protected double singleLineHeight;
 
         // The desired length of the axis; -1 indicates a lack of desire.
         internal double desiredLength = -1.0;
+
+        protected static void OnRangeChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
+        {
+            Axis2D axis2DLocal = ((Axis2D)obj);
+            axis2DLocal.DeriveTicks();
+            if (axis2DLocal.PlotPanel != null) axis2DLocal.PlotPanel.InvalidateMeasure();
+        }
 
         internal static void OnAxisTypeChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
@@ -72,18 +167,22 @@ namespace IronPlot
 
         protected virtual void UpdateTicksAndLabels()
         {
-            plotPanel.InvalidateMeasure();
+            if (PlotPanel != null) PlotPanel.InvalidateMeasure();
         }
 
-        public Axis2D(PlotPanel plotPanel) 
+        public Axis2D() : base()
         {
-            axisLabels = new List<TextBlock>();
-            this.plotPanel = plotPanel;
-            this.canvas = plotPanel.axesCanvas;
+            this.Background = null;
+            axisLabel.Visibility = Visibility.Collapsed;
+            tickLabels = new List<TextBlock>();
+            canvas.Children.Add(axisLine);
+            canvas.Children.Add(axisTicks);
+            canvas.Children.Add(axisLabel);
+            axisLine.Data = axisLineGeometry;
+            axisTicks.Data = axisTicksGeometry;
+            DeriveTicks();
         }
         
-        protected List<TextBlock> axisLabels;
-
         static Axis2D()
         {
             Axis2D.AxisTypeProperty.OverrideMetadata(typeof(Axis2D), new PropertyMetadata(Axis2D.OnAxisTypeChanged));
@@ -93,24 +192,36 @@ namespace IronPlot
             Axis2D.NumberOfTicksProperty.OverrideMetadata(typeof(Axis2D), new PropertyMetadata(10, OnTicksPropertyChanged));
         }
 
+        protected override System.Windows.Size MeasureOverride(System.Windows.Size constraint)
+        {
+            System.Windows.Size size = base.MeasureOverride(constraint);
+            // The parent of an Axis2D is always a PlotPanel. We need to trigger a Measure pass
+            // in the parent.
+            return size;
+        }
+
+        protected override System.Windows.Size ArrangeOverride(System.Windows.Size arrangeSize)
+        {
+            Size finalSize = base.ArrangeOverride(arrangeSize);
+            return finalSize;
+        }
+
         internal static void OnLabelsVisibleChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
             if ((bool)e.NewValue == (bool)e.OldValue) return;
             if ((bool)e.NewValue == false)
             {
-                foreach (TextBlock textBlock in ((Axis2D)obj).axisLabels)
+                foreach (TextBlock textBlock in ((Axis2D)obj).tickLabels)
                 {
                     textBlock.Visibility = Visibility.Collapsed;
                 }
-                //((Axis2D)obj).axisLabel.Visibility = Visibility.Collapsed;
             }
             if ((bool)e.NewValue == true)
             {
-                foreach (TextBlock textBlock in ((Axis2D)obj).axisLabels)
+                foreach (TextBlock textBlock in ((Axis2D)obj).tickLabels)
                 {
                     textBlock.Visibility = Visibility.Visible;
                 }
-                //((Axis2D)obj).axisLabel.Visibility = Visibility.Visible;
             }
         }
 
@@ -127,14 +238,14 @@ namespace IronPlot
             {
                 // Reuse the text blocks wherever possible (we do not want to keep adding and taking away TextBlocks
                 // from the canvas)
-                if (i > (axisLabels.Count - 1))
+                if (i > (tickLabels.Count - 1))
                 {
                     currentTextBlock = new TextBlock();
                     if (LabelsVisible == false) currentTextBlock.Visibility = Visibility.Collapsed;
                     canvas.Children.Add(currentTextBlock);
-                    axisLabels.Add(currentTextBlock);
+                    tickLabels.Add(currentTextBlock);
                 }
-                else currentTextBlock = axisLabels[i];
+                else currentTextBlock = tickLabels[i];
                 if (i == 0)
                 {
                     currentTextBlock.Text = "0123456789";
@@ -148,116 +259,155 @@ namespace IronPlot
         }
 
         // Calculate thickness of axis (size in direction penpendicular to axis vector).
-        internal double AxisThickness()
+        internal double CalculateAxisThickness()
         {
             double maxThickness = 0;
             for (int i = 0; i < Ticks.Length; ++i)
             {
-                if (axisLabels[i].Text != "") maxThickness = Math.Max(maxThickness, LimitingLabelDimensionForThickness(i));
+                if (tickLabels[i].Text != "") maxThickness = Math.Max(maxThickness, LimitingTickLabelSizeForThickness(i));
             }
-            return maxThickness + Math.Max(TickLength, 0);
+            AxisThickness = maxThickness + Math.Max(TickLength, 0) + LimitingAxisLabelSizeForThickness();
+            return AxisThickness;
         }
 
-        protected virtual double LimitingLabelDimensionForLength(int index)
+        internal virtual double LimitingTickLabelSizeForLength(int index)
         {
-            return axisLabels[index].DesiredSize.Width;
+            return tickLabels[index].DesiredSize.Width;
         }
 
-        protected virtual double LimitingLabelDimensionForThickness(int index)
+        protected virtual double LimitingTickLabelSizeForThickness(int index)
         {
-            return axisLabels[index].DesiredSize.Height;
+            return tickLabels[index].DesiredSize.Height;
+        }
+
+        protected virtual double LimitingAxisLabelSizeForLength()
+        {
+            return axisLabel.DesiredSize.Width;
+        }
+
+        protected virtual double LimitingAxisLabelSizeForThickness()
+        {
+            return axisLabel.DesiredSize.Height;
         }
 
         /// <summary>
-        /// Updates scale and offset by reducing the axis length on the canvas if necessary
-        /// to avoid labels extending beyond canvas.
-        /// Takes account of any length override that might be present.
+        /// Expands the AxisMargin if required, keeping AxisTotalLength constant, in order to fit 
+        /// labels in.
+        /// Also updates Scale and Offset.
         /// </summary>
-        /// <param name="maxCanvas">The length of the canvas along the axis.</param>
-        /// <param name="axisMargin">The margin required at the low and high (in Canvas space) ends of the axis.</param>
-        internal void SetAxisLengthFromLabels(double maxCanvas, AxisMargin axisMargin)
+        internal void ExpandMarginsAsRequired()
         {
-            bool overridden = (desiredLength != -1);
-            this.axisMargin = axisMargin;
-            double minCanvas = 0;
             double max = this.Max;
             double min = this.Min;
             double range = max - min;
             if (range == 0) range = 1;
-            double axisLength = maxCanvas - minCanvas - axisMargin.MinMargin - axisMargin.MaxMargin;
+            double axisLength = AxisTotalLength - AxisMargin.Total();
             if (axisLength < 1.0)
             {
                 // We will need to grow axisCanvas.
-                maxCanvas = maxCanvas + (1.0 - axisLength);
+                AxisTotalLength = AxisTotalLength + (1.0 - axisLength);
                 axisLength = 1.0;
             }
-            if (overridden) scale = desiredLength / range; 
-                else scale = Math.Max(axisLength, 1.0) / range;
-            offset = scale * min - (minCanvas + axisMargin.MinMargin); // 
+            else Scale = Math.Max(axisLength, 1.0) / range;
+            Offset = Scale * min - (AxisMargin.LowerMargin); // 
             double limitingMinGraph = min;
             double limitingMaxGraph = max;
-            double limitingMinThickness = axisMargin.MinMargin * 2;
-            double limitingMaxThickness = axisMargin.MaxMargin * 2;
+            double limitingMinThickness = AxisMargin.LowerMargin * 2;
+            double limitingMaxThickness = AxisMargin.UpperMargin * 2;
             bool newLimit = false;
             double partialAxisLength = 0;
             for (int i = 0; i < Ticks.Length; ++i)
             {
-                if (axisLabels[i].Text == "") continue;
-                if ((scale * Ticks[i] - offset - LimitingLabelDimensionForLength(i) / 2) < (minCanvas - 0.1))
+                if (tickLabels[i].Text == "") continue;
+                if ((Scale * Ticks[i] - Offset - LimitingTickLabelSizeForLength(i) / 2) < - 0.1)
                 {
                     limitingMinGraph = Ticks[i];
-                    limitingMinThickness = LimitingLabelDimensionForLength(i);
+                    limitingMinThickness = LimitingTickLabelSizeForLength(i);
                     newLimit = true;
                 }
-                if ((scale * Ticks[i] - offset + LimitingLabelDimensionForLength(i) / 2) > (maxCanvas + 0.1))
+                if ((Scale * Ticks[i] - Offset + LimitingTickLabelSizeForLength(i) / 2) > (AxisTotalLength + 0.1))
                 {
                     limitingMaxGraph = Ticks[i];
-                    limitingMaxThickness = LimitingLabelDimensionForLength(i);
+                    limitingMaxThickness = LimitingTickLabelSizeForLength(i);
                     newLimit = true;
                 }
                 if (newLimit)
                 {
                     newLimit = false;
-                    i = 0; // Go back to the beginning because changing the scale could cause
+                    i = 0; // Go back to the beginning because changing the Scale could cause
                     // another label to be the limiting label.
-                    double availableLimitDistance = (maxCanvas - minCanvas - (limitingMinThickness + limitingMaxThickness) / 2);
-                    double currentLimitDistance = scale * (limitingMaxGraph - limitingMinGraph);
-                    if (!(overridden && (availableLimitDistance < currentLimitDistance)))
+                    double availableLimitDistance = (AxisTotalLength - (limitingMinThickness + limitingMaxThickness) / 2);
+                    double currentLimitDistance = Scale * (limitingMaxGraph - limitingMinGraph);
+                    if (availableLimitDistance < currentLimitDistance)
                     {
-                        // can not retain scale
-                        partialAxisLength = maxCanvas - minCanvas - (limitingMinThickness + limitingMaxThickness) / 2;
+                        // can not retain Scale
+                        partialAxisLength = AxisTotalLength - (limitingMinThickness + limitingMaxThickness) / 2;
                         double limitLength = limitingMaxGraph - limitingMinGraph;
                         if (limitLength <= 0) limitLength = range;
                         if (partialAxisLength < 1.0)
                         {
-                            maxCanvas = maxCanvas + (1.0 - partialAxisLength);
+                            AxisTotalLength = AxisTotalLength + (1.0 - partialAxisLength);
                             partialAxisLength = 1.0;
                         }
-                        scale = partialAxisLength / limitLength;
+                        Scale = partialAxisLength / limitLength;
                     }
-                    offset = scale * limitingMinGraph - (minCanvas + limitingMinThickness / 2);
-                    //if (partialAxisLength == 1.0) break;
+                    Offset = Scale * limitingMinGraph - (limitingMinThickness / 2);
                 }
             }
-            this.axisMax = scale * limitingMaxGraph - offset + limitingMaxThickness / 2;
-            this.axisMargin = new AxisMargin(scale * min - offset - minCanvas, axisMax - scale * max + offset);
+            this.AxisTotalLength = Scale * limitingMaxGraph - Offset + limitingMaxThickness / 2;
+            this.AxisMargin = new AxisMargin(Scale * min - Offset, AxisTotalLength - Scale * max + Offset);
         }
 
-        internal void OverrideAxisScaling(double scale, double offset, AxisMargin axisMargin)
+        internal void OverrideAxisScaling(double Scale, double Offset, AxisMargin AxisMargin)
         {
-            this.scale = scale;
-            this.offset = offset;
-            this.axisMargin = axisMargin;
+            this.Scale = Scale;
+            this.Offset = Offset;
+            this.AxisMargin = AxisMargin;
         }
 
-        // The axis scale has been reduced to make the axes equal.
+        /// <summary>
+        /// Keep margins the same, but reduce axis length.
+        /// </summary>
+        /// <param name="newScale"></param>
+        internal void RescaleAxis(double newScale)
+        {
+            double axisLength = newScale * (Max - Min);
+            Scale = newScale;
+            Offset = Scale * Min - AxisMargin.LowerMargin;
+            AxisTotalLength = axisLength + AxisMargin.Total();
+        }
+
+        /// <summary>
+        /// Change margins and scale, keeping total length constant.
+        /// </summary>
+        /// <param name="newScale"></param>
+        internal void RescaleAxis(double newScale, AxisMargin newMargin)
+        {
+            AxisMargin = newMargin;
+            Scale = newScale;
+            Offset = Scale * Min - AxisMargin.LowerMargin;
+        }
+
+        /// <summary>
+        /// Reset AxisMargin, keeping TotalLength the same.
+        /// </summary>
+        /// <param name="newScale"></param>
+        internal void ResetAxisMargin(AxisMargin newMargin)
+        {
+            AxisMargin = newMargin;
+            double axisLength = AxisTotalLength - newMargin.Total();
+            Scale = axisLength / (Max - Min);
+            Offset = Scale * Min - AxisMargin.LowerMargin;
+        }
+
+        // The axis Scale has been reduced to make the axes equal.
         // The axis is reduced, keeping the axis minimum point in the same position.
         internal void ScaleAxis(double newScale, double maxCanvas)
         {
             double axisLength = newScale * (Max - Min);
-            scale = newScale;
-            offset = scale * Min - axisMargin.MinMargin;
-            axisMax = axisLength + axisMargin.MinMargin + axisMargin.MaxMargin;
+            Scale = newScale;
+            Offset = Scale * Min - AxisMargin.LowerMargin;
+            AxisTotalLength = axisLength + AxisMargin.LowerMargin + AxisMargin.UpperMargin;
         }
 
         internal virtual Point TickStartPosition(int i)
@@ -265,214 +415,22 @@ namespace IronPlot
             return new Point();
         }
 
-        // Updates offset from current scale and min position.
-        // This is for dragging interations where only offset changes.
+        // Updates Offset from current Scale and min position.
+        // This is for dragging interations where only Offset changes.
         internal void UpdateOffset()
         {
-            offset = scale * this.Min - axisMargin.MinMargin;
+            Offset = Scale * this.Min - AxisMargin.LowerMargin;
         }
-    }
 
-    public enum XAxisPosition { Top, Bottom };
-
-    public class XAxis : Axis2D
-    {
-        internal double yPosition = 0;
-
-        internal static DependencyProperty XAxisPositionProperty =
-            DependencyProperty.Register("XAxisPositionProperty",
-            typeof(XAxisPosition), typeof(XAxis), new PropertyMetadata(XAxisPosition.Bottom));
-
-        public XAxis(PlotPanel plotPanel) : base(plotPanel) { }
-        
-        public override double Min
+        internal virtual void RenderAxis()
         {
-            set
-            {
-                plotPanel.XMin = value;
-            }
-            get { return plotPanel.XMin; }
+            // Do nothing at this level.
         }
 
-        public override double Max
-        {
-            set
-            {
-                plotPanel.XMax = value;
-            }
-            get { return plotPanel.XMax; }
-        }
+        internal abstract Transform1D GraphToAxesCanvasTransform();
+        internal abstract Transform1D GraphToCanvasTransform();
 
-        internal override void PositionLabels(bool cullOverlapping)
-        {
-            TextBlock currentTextBlock;
-            int missOut = 0, missOutMax = 0;
-            double currentRight, lastRight = Double.NegativeInfinity;
-            // Go through ticks in order of increasing Canvas coordinate.
-            for (int i = 0; i < Ticks.Length; ++i)
-            {
-                // Miss out labels if these would overlap.
-                currentTextBlock = axisLabels[i];
-                currentRight = scale * Ticks[i] - offset + currentTextBlock.DesiredSize.Width / 2.0;
-                currentTextBlock.SetValue(Canvas.LeftProperty, currentRight - currentTextBlock.DesiredSize.Width);
-                if ((XAxisPosition)GetValue(XAxisPositionProperty) == XAxisPosition.Bottom)
-                {
-                    currentTextBlock.SetValue(Canvas.TopProperty, yPosition + Math.Max(TickLength, 0.0));
-                }
-                else
-                {
-                    currentTextBlock.SetValue(Canvas.TopProperty, yPosition - Math.Max(TickLength, 0.0) - currentTextBlock.DesiredSize.Height);
-                }
-                if ((currentRight - currentTextBlock.DesiredSize.Width * 1.25) < lastRight)
-                {
-                    ++missOut;
-                }
-                else
-                {
-                    lastRight = currentRight;
-                    missOutMax = Math.Max(missOut, missOutMax);
-                    missOut = 0;
-                }
-            }
-            missOutMax = Math.Max(missOutMax, missOut);
-            missOut = 0;
-            if (cullOverlapping)
-            {
-                for (int i = 0; i < Ticks.Length; ++i)
-                {
-                    if ((missOut < missOutMax) && (i > 0))
-                    {
-                        missOut += 1;
-                        axisLabels[i].Text = "";
-                    }
-                    else missOut = 0;
-                }
-            }
-            // Cycle through any now redundant TextBlocks and make invisible.
-            for (int i = Ticks.Length; i < axisLabels.Count; ++i)
-            {
-                axisLabels[i].Text = "";
-            }
-        }
-
-        protected override double LimitingLabelDimensionForLength(int index)
-        {
-            return axisLabels[index].DesiredSize.Width;
-        }
-
-        protected override double LimitingLabelDimensionForThickness(int index)
-        {
-            return axisLabels[index].DesiredSize.Height;
-        }
-
-        internal override Point TickStartPosition(int i)
-        {
-            return new Point(Ticks[i] * scale - offset, yPosition);
-        }
-    }
-
-    public enum YAxisPosition { Left, Right };
-
-    public class YAxis : Axis2D
-    {
-        internal double xPosition = 0;
-
-        public static readonly DependencyProperty YAxisPositionProperty =
-            DependencyProperty.Register("YAxisPositionProperty",
-            typeof(YAxisPosition), typeof(YAxis),
-            new PropertyMetadata(YAxisPosition.Left));
-
-        public YAxis(PlotPanel plotPanel) : base(plotPanel) { }
-        
-        internal override void PositionLabels(bool cullOverlapping)
-        {
-            TextBlock currentTextBlock;
-            int missOut = 0, missOutMax = 0;
-            double currentTop, lastTop = Double.PositiveInfinity;
-            double verticalOffset;
-            // Go through ticks in order of decreasing Canvas coordinate
-            for (int i = 0; i < Ticks.Length; ++i)
-            {
-                // Miss out labels if these would overlap.
-                currentTextBlock = axisLabels[i];
-                verticalOffset = currentTextBlock.DesiredSize.Height - singleLineHeight / 2; 
-                currentTop = axisMax - (scale * Ticks[i] - offset) - verticalOffset;
-                currentTextBlock.SetValue(Canvas.TopProperty, currentTop);
-
-                if ((YAxisPosition)GetValue(YAxisPositionProperty) == YAxisPosition.Left)
-                {     
-                    currentTextBlock.TextAlignment = TextAlignment.Right;
-                    currentTextBlock.SetValue(Canvas.LeftProperty, xPosition - currentTextBlock.DesiredSize.Width - Math.Max(TickLength, 0.0) - 3);
-                }
-                else
-                {
-                    currentTextBlock.TextAlignment = TextAlignment.Left;
-                    currentTextBlock.SetValue(Canvas.LeftProperty, xPosition + Math.Max(TickLength, 0.0) + 3);
-                }
-                
-                if ((currentTop + currentTextBlock.DesiredSize.Height) > lastTop)
-                {
-                    ++missOut;
-                }
-                else
-                {
-                    lastTop = currentTop;
-                    missOutMax = Math.Max(missOut, missOutMax);
-                    missOut = 0;
-                }
-            }
-            missOutMax = Math.Max(missOutMax, missOut);
-            missOut = 0;
-            if (cullOverlapping)
-            {
-                for (int i = 0; i < Ticks.Length; ++i)
-                {
-                    if ((missOut < missOutMax) && (i > 0))
-                    {
-                        missOut += 1;
-                        axisLabels[i].Text = "";
-                    }
-                    else missOut = 0;
-                }
-            }
-            // Cycle through any now redundant TextBlocks and make invisible.
-            for (int i = Ticks.Length; i < axisLabels.Count; ++i)
-            {
-                axisLabels[i].Text = "";
-            }
-        }
-        
-        protected override double LimitingLabelDimensionForLength(int index)
-        {
-            return axisLabels[index].DesiredSize.Height;
-        }
-
-        protected override double LimitingLabelDimensionForThickness(int index)
-        {
-            return axisLabels[index].DesiredSize.Width + 3.0;
-        }
-        
-        public override double Min
-        {
-            set
-            {
-                plotPanel.YMin = value;
-            }
-            get { return plotPanel.YMin; }
-        }
-
-        public override double Max
-        {
-            set
-            {
-                plotPanel.YMax = value;
-            }
-            get { return plotPanel.YMax; }
-        }
-
-        internal override Point TickStartPosition(int i)
-        {
-            return new Point(xPosition, axisMax - Ticks[i] * scale + offset);
-        }
+        internal abstract double GraphToCanvas(double canvas);
+        internal abstract double CanvasToGraph(double graph);
     }
 }

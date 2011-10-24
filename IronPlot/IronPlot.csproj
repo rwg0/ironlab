@@ -68,6 +68,7 @@
     <Reference Include="SlimDX, Version=4.0.11.43, Culture=neutral, PublicKeyToken=b1b0c32fd1ffe4f9, processorArchitecture=x86">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>RequiredLibraries\SlimDX.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
@@ -154,6 +155,8 @@
     <Compile Include="Plot2D\PlotPanelInteraction.cs" />
     <Compile Include="Plot2D\PlotPanelAnnotations.cs" />
     <Compile Include="Plot2D\UniqueObservableCollection.cs" />
+    <Compile Include="Plot2D\XAxis.cs" />
+    <Compile Include="Plot2D\YAxis.cs" />
     <Compile Include="Plot3D\3DPrimitives\IResolutionDependent.cs" />
     <Compile Include="Plot3D\3DPrimitives\LinesModel3D.cs" />
     <Compile Include="Plot3D\3DPrimitives\SurfaceModel3D.cs" />

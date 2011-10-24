@@ -204,6 +204,7 @@ namespace IronPlot
         
         protected override void OnHostChanged(PlotPanel host)
         {
+            base.OnHostChanged(host);
             if (this.host != null)
             {
                 try
@@ -221,8 +222,6 @@ namespace IronPlot
             else this.host = host;
             if (this.host != null)
             {
-                this.graphToCanvas = host.graphToCanvas;
-                this.canvasToGraph = host.canvasToGraph;
                 AddElements();
                 // Add binding:
                 bindingDirect2D = new Binding("UseDirect2DProperty") { Source = host, Mode = BindingMode.OneWay };
@@ -324,13 +323,11 @@ namespace IronPlot
             plot2DCurveLocal.AddElements();
         }
 
-        internal override void OnViewedRegionChanged()
-        {
-        }
-
         internal override void BeforeArrange()
         {
-            Curve.FilterMinMax(canvasToGraph, host.ViewedRegion);
+            graphToCanvas.Matrix = new Matrix(xAxis.Scale, 0, 0, -yAxis.Scale, -xAxis.Offset - xAxis.AxisMargin.LowerMargin, yAxis.Offset + yAxis.AxisTotalLength - yAxis.AxisMargin.UpperMargin);
+            canvasToGraph = (MatrixTransform)(graphToCanvas.Inverse); 
+            Curve.FilterMinMax(canvasToGraph, new Rect(new Point(xAxis.Min, yAxis.Min), new Point(xAxis.Max, yAxis.Max)));
             if (host.UseDirect2D == true)
             {
                 lineD2D.Geometry = curve.ToDirect2DPathGeometry(lineD2D.Factory, graphToCanvas);

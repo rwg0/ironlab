@@ -68,21 +68,6 @@ namespace IronPlot
         // Offset of combination of legends, axes and canvas in available area:
         double offsetX = 0, offsetY = 0;
 
-        // Viewed region in graph coordinates
-        internal static readonly DependencyProperty ViewedRegionProperty =
-            DependencyProperty.Register("ViewedRegionProperty",
-            typeof(Rect), typeof(PlotPanel),
-            new PropertyMetadata(new Rect(0, 0, 10, 10), OnViewedRegionChanged));
-
-        internal Rect ViewedRegion
-        {
-            set
-            {
-                SetValue(ViewedRegionProperty, value);
-            }
-            get { return (Rect)GetValue(ViewedRegionProperty); }
-        }
-
         public static readonly DependencyProperty EqualAxesProperty =
             DependencyProperty.Register("EqualAxesProperty",
             typeof(bool), typeof(PlotPanel),
@@ -93,50 +78,6 @@ namespace IronPlot
             typeof(bool), typeof(PlotPanel),
             new PropertyMetadata(false, OnUseDirect2DChanged));
 
-        internal double XMin
-        {
-            set
-            {
-                Rect viewedRegion = (Rect)GetValue(ViewedRegionProperty);
-                viewedRegion = new Rect(new Point(value, viewedRegion.Bottom), new Point(viewedRegion.Right, viewedRegion.Top));
-                SetValue(ViewedRegionProperty, viewedRegion);
-            }
-            get { return ((Rect)GetValue(ViewedRegionProperty)).Left; }
-        }
-
-        internal double XMax
-        {
-            set
-            {
-                Rect viewedRegion = (Rect)GetValue(ViewedRegionProperty);
-                viewedRegion = new Rect(new Point(viewedRegion.Left, viewedRegion.Bottom), new Point(value, viewedRegion.Top));
-                SetValue(ViewedRegionProperty, viewedRegion);
-            }
-            get { return ((Rect)GetValue(ViewedRegionProperty)).Right; }
-        }
-
-        internal double YMin
-        {
-            set
-            {
-                Rect viewedRegion = (Rect)GetValue(ViewedRegionProperty);
-                viewedRegion = new Rect(new Point(viewedRegion.Left, viewedRegion.Bottom), new Point(viewedRegion.Right, value));
-                SetValue(ViewedRegionProperty, viewedRegion);
-            }
-            get { return ((Rect)GetValue(ViewedRegionProperty)).Top; }
-        }
-
-        internal double YMax
-        {
-            set
-            {
-                Rect viewedRegion = (Rect)GetValue(ViewedRegionProperty);
-                viewedRegion = new Rect(new Point(viewedRegion.Left, value), new Point(viewedRegion.Right, viewedRegion.Top));
-                SetValue(ViewedRegionProperty, viewedRegion);
-            }
-            get { return ((Rect)GetValue(ViewedRegionProperty)).Bottom; }
-        }
-
         internal bool UseDirect2D
         {
             set
@@ -144,17 +85,6 @@ namespace IronPlot
                 SetValue(UseDirect2DProperty, value);
             }
             get { return (bool)GetValue(UseDirect2DProperty); }
-        }
-
-        protected static void OnViewedRegionChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
-        {
-            PlotPanel plotPanelLocal = ((PlotPanel)obj);
-            plotPanelLocal.axes.UpdateTicks();
-            foreach (Plot2DItem child in plotPanelLocal.plotItems)
-            {
-                child.OnViewedRegionChanged();
-            }
-            plotPanelLocal.InvalidateMeasure();
         }
 
         protected static void OnEqualAxesChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
@@ -197,14 +127,11 @@ namespace IronPlot
             this.HorizontalAlignment = HorizontalAlignment.Center;
             this.VerticalAlignment = VerticalAlignment.Center;
             this.Children.Add(canvas);
-            this.Children.Add(axesCanvas);
             this.Children.Add(backgroundCanvas);
             canvas.ClipToBounds = true;
             axesCanvas.ClipToBounds = false;
             backgroundCanvas.SetValue(Grid.ZIndexProperty, 50);
             canvas.SetValue(Grid.ZIndexProperty, 100);
-            axesCanvas.Background = null;
-            axesCanvas.SetValue(Grid.ZIndexProperty, 200);
             // Create transform objects; these are updated during Arrange
             graphToCanvas = new MatrixTransform();
             canvasToGraph = new MatrixTransform();
@@ -220,10 +147,12 @@ namespace IronPlot
 
             axes = new Axes2D(this);
             axesCanvas.Children.Add(axes);
-            backgroundCanvas.Children.Add(axes.XAxes.GridLines);
-            backgroundCanvas.Children.Add(axes.YAxes.GridLines);
-            axes.XAxes.GridLines.SetValue(Canvas.ZIndexProperty, 50);
-            axes.YAxes.GridLines.SetValue(Canvas.ZIndexProperty, 50);
+            //backgroundCanvas.Children.Add(axes.XAxes.GridLines);
+            //backgroundCanvas.Children.Add(axes.YAxes.GridLines);
+            //axes.XAxes.GridLines.SetValue(Canvas.ZIndexProperty, 50);
+            //axes.YAxes.GridLines.SetValue(Canvas.ZIndexProperty, 50);
+            //
+            AddAxes();
             //
             this.CreateLegends();
             if (!(this is ColourBarPanel)) this.AddInteractionEvents();
@@ -232,12 +161,34 @@ namespace IronPlot
             marginChangeTimer = new DispatcherTimer(TimeSpan.FromSeconds(0.0), DispatcherPriority.Normal, marginChangeTimer_Tick, this.Dispatcher);
         }
 
+        /// <summary>
+        /// Visually, the axes comprise an Axes2D and the indiviual Axis2D objects.
+        /// There is one of the former, many of the latter. This method must be called
+        /// every time a new Axis2D is added or removed.
+        /// </summary>
+        internal void AddAxes()
+        {
+            if (!Children.Contains(axesCanvas))
+            {
+                Children.Add(axesCanvas);
+                axesCanvas.Background = null;
+                axesCanvas.SetValue(Grid.ZIndexProperty, 200);
+            }
+            IEnumerable<Axis2D> allAxis2D = axes.XAxes.Concat(axes.YAxes);
+            foreach (Axis2D axis2D in allAxis2D)
+            {
+                if (!Children.Contains(axis2D))
+                {
+                    Children.Add(axis2D);
+                    axis2D.SetValue(Grid.ZIndexProperty, 201);
+                }
+            }
+        }
+
         protected override Size MeasureOverride(Size availableSize)
         {
-            axes.xAxisBottom.UpdateAndMeasureLabels();
-            axes.xAxisTop.UpdateAndMeasureLabels();
-            axes.yAxisLeft.UpdateAndMeasureLabels();
-            axes.yAxisRight.UpdateAndMeasureLabels();
+            var allAxes = axes.XAxes.Concat(axes.YAxes);
+            foreach (Axis2D axis in allAxes) axis.UpdateAndMeasureLabels();
             annotationsLeft.Measure(availableSize);
             annotationsRight.Measure(availableSize);
             annotationsTop.Measure(availableSize);
@@ -255,6 +206,15 @@ namespace IronPlot
             return availableSize;
         }
 
+        protected void ArrangeAxes(Size availableSize)
+        {
+
+        }
+
+        /// <summary>
+        /// Render the Axes according to the room available.
+        /// </summary>
+        /// <param name="availableSize"></param>
         protected void MeasureAxes(Size availableSize)
         {
             // Allow legends their widths.
@@ -296,11 +256,16 @@ namespace IronPlot
             bool axesEqual = (bool)this.GetValue(EqualAxesProperty);
             // Calculates the axes positions, positions labels
             // and updates the graphToAxesCanvas transform.
+            Size requiredSize;
+            Rect canvasLocationWithinAxes;
             if (dragging)
                 axes.UpdateAxisPositionsOffsetOnly(available, out canvasLocation, out axesCanvasLocation);
             else
-                axes.UpdateAxisPositionsFull(available, axesEqual, minimumAxesMargin, out canvasLocation, out axesCanvasLocation);
-            //
+            {
+                axes.MeasureAxesFull(new Size(available.Width, available.Height), out canvasLocationWithinAxes, out requiredSize);
+                canvasLocation = canvasLocationWithinAxes;
+                axesCanvasLocation = new Rect(new Point(0, 0), requiredSize);
+            }
         }
 
         protected override Size ArrangeOverride(Size finalSize)
@@ -328,6 +293,11 @@ namespace IronPlot
             //canvas.InvalidateVisual();
             BeforeArrange();
             axesCanvas.Arrange(axesCanvasLocation);
+            //
+            // We also arrange each Axis in the same location.
+            foreach (Axis2D axis in axes.XAxes) axis.Arrange(axesCanvasLocation);
+            foreach (Axis2D axis in axes.YAxes) axis.Arrange(axesCanvasLocation);
+
             backgroundCanvas.Arrange(canvasLocation);
             canvas.Arrange(canvasLocation);
             if (direct2DControl != null) direct2DControl.Arrange(canvasLocation);
@@ -361,9 +331,10 @@ namespace IronPlot
             }
             // Finally redraw axes lines
             axes.InvalidateMeasure();
-            axes.XAxes.GridLines.InvalidateMeasure();
-            axes.YAxes.GridLines.InvalidateMeasure();
-            axes.XAxes.GridLines.InvalidateMeasure(); return finalSize;
+            //axes.XAxes.GridLines.InvalidateMeasure();
+            //axes.YAxes.GridLines.InvalidateMeasure();
+            //canvasToGraph.axes.XAxes.GridLines.InvalidateMeasure(); 
+            return finalSize;
         }
 
         // Called just before arrange. Uses include giving children a chance to
