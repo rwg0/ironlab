@@ -59,7 +59,7 @@ namespace IronPlot
 
         protected Range GetRangeFromChildren(Axis2D axis)
         {
-            Range range = new Range(0, 10);
+            Range range = new Range(0.1, 100);
             Plot2DItem child;
             bool rangeUpdated = false;
             for (int i = 0; i < plotItems.Count; ++i)

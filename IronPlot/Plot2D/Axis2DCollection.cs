@@ -35,9 +35,6 @@ namespace IronPlot
         // The panel to which the axes belong.
         PlotPanel panel;   
 
-        private GridLines gridLines;
-        public GridLines GridLines { get { return gridLines; } }
-
         public Axis2DCollection(PlotPanel panel)
             : base()
         {
@@ -49,8 +46,9 @@ namespace IronPlot
             base.InsertItem(index, newItem);
             newItem.PlotPanel = panel;
             panel.Children.Add(newItem);
+            panel.BackgroundCanvas.Children.Add(newItem.GridLines);
             newItem.SetValue(Grid.ZIndexProperty, 201);
-            //if (gridLines == null) gridLines = new GridLines(this);
+            panel.AddAxisInteractionEvents(new List<Axis2D> { newItem });
         }
 
         protected override void SetItem(int index, Axis2D newItem)
@@ -61,6 +59,9 @@ namespace IronPlot
         protected override void RemoveItem(int index)
         {
             base.RemoveItem(index);
+            panel.RemoveAxisInteractionEvents(new List<Axis2D> { this[index] });
+            panel.Children.Remove(this[index]);
+            panel.BackgroundCanvas.Children.Remove(this[index].GridLines);
         }
     }
 }

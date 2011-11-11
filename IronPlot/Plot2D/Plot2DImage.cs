@@ -30,42 +30,9 @@ namespace IronPlot
 {    
     public class FalseColourImage : Plot2DItem
     {
-
-        protected override void OnHostChanged(PlotPanel host)
-        {
-            if (this.host != null)
-            {
-                try
-                {
-                    host.canvas.Children.Remove(Rectangle);
-                }
-                catch (Exception) 
-                { 
-                    // Just swallow any exception 
-                }
-            }
-            this.host = host;
-            imageRectangle.RenderTransform = host.graphToCanvas;
-            if (colourBar != null)
-            {
-                host.annotationsRight.Children.Add(colourBar);
-                colourBar.VerticalAlignment = VerticalAlignment.Stretch;
-                colourBar.ColourMapChanged += new RoutedEventHandler(OnColourMapChanged);
-            }
-            colourMapUpdateTimer.Tick += OnColourMapUpdateTimerElapsed;
-            host.canvas.Children.Add(Rectangle);
-        }
-        
-        // a FalseColourImage creates a UInt16[]
-        // The UInt16[] contains indexed pixels that are mapped to colours 
-        // via the colourMap
         ColourBar colourBar = null;
-
         IEnumerable<double> underlyingData;
-        bool useILArray = false;
-#if ILNumerics
-        ILArray<double> underlyingILArrayData;
-#endif
+
         int width;
         int height;
 
@@ -80,6 +47,47 @@ namespace IronPlot
         DispatcherTimer colourMapUpdateTimer;
         IntPtr backBuffer;
         private delegate void AfterUpdateCallback();
+
+        internal override void BeforeArrange()
+        {
+            // Ensure that transform is updated with the latest axes values. 
+            imageRectangle.RenderTransform = Axis2D.GraphToCanvasLinear(xAxis, yAxis); 
+        }
+
+        protected override void OnHostChanged(PlotPanel host)
+        {
+            base.OnHostChanged(host);
+            if (this.host != null)
+            {
+                try
+                {
+                    host.canvas.Children.Remove(Rectangle);
+                }
+                catch (Exception) 
+                { 
+                    // Just swallow any exception 
+                }
+            }
+            this.host = host;
+            //imageRectangle.RenderTransform = host.graphToCanvas;
+            if (colourBar != null)
+            {
+                host.annotationsRight.Children.Add(colourBar);
+                colourBar.VerticalAlignment = VerticalAlignment.Stretch;
+                colourBar.ColourMapChanged += new RoutedEventHandler(OnColourMapChanged);
+            }
+            colourMapUpdateTimer.Tick += OnColourMapUpdateTimerElapsed;
+            host.canvas.Children.Add(Rectangle);
+        }
+        
+        // a FalseColourImage creates a UInt16[]
+        // The UInt16[] contains indexed pixels that are mapped to colours 
+        // via the colourMap
+        bool useILArray = false;
+#if ILNumerics
+        ILArray<double> underlyingILArrayData;
+#endif
+
 
         public Path Rectangle
         {

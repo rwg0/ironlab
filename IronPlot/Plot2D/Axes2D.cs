@@ -41,8 +41,6 @@ namespace IronPlot
 
         Size minCanvasSize = new Size();
         Size maxCanvasSize = new Size(10000, 10000);
-
-        protected MatrixTransform graphToCanvas;
         
         // Axes geometry and context
         protected StreamGeometry axesGeometry;
@@ -65,7 +63,6 @@ namespace IronPlot
         {
             axesGeometry = new StreamGeometry();
             this.canvas = plotPanel.axesCanvas;
-            this.graphToCanvas = plotPanel.graphToAxesCanvas;
             xAxisBottom = new XAxis();
             xAxisBottom.SetValue(XAxis.XAxisPositionProperty, XAxisPosition.Bottom);
             xAxisTop = new XAxis();
@@ -98,6 +95,7 @@ namespace IronPlot
         {
             get 
             {
+                MatrixTransform graphToCanvas = new MatrixTransform(xAxisBottom.Scale, 0, 0, -yAxisLeft.Scale, -xAxisBottom.Offset, yAxisLeft.Offset + yAxisLeft.AxisTotalLength);
                 axesGeometryContext = axesGeometry.Open();
                 Lines lines = new Lines();
                 Point canvasTopLeft = new Point(0, 0);
@@ -117,6 +115,7 @@ namespace IronPlot
                 contextPoint.Y = contextPoint.Y - canvasHeight; axesGeometryContext.LineTo(contextPoint, true, false);
                 //
                 RenderEachAxis();
+                //
                 axesGeometryContext.Close();
                 return axesGeometry;
             }
@@ -159,7 +158,7 @@ namespace IronPlot
             int limitingUpperTickIndex = 0;
             double limitingUpperSemiWidth = margin.UpperMargin;
             double offsetLower = 0;
-            double deltaLower = alignedAxes[0].Max - alignedAxes[0].Min;
+            double deltaLower = alignedAxes[0].MaxTransformed - alignedAxes[0].MinTransformed;
             double deltaUpper = deltaLower;
             double axisTotalLength = alignedAxes[0].AxisTotalLength;
             double offsetUpper = 0;
@@ -180,29 +179,29 @@ namespace IronPlot
                 {
                     Axis2D currentAxis = alignedAxes[i];
                     tickPair[0] = tickIndex;
-                    tickPair[1] = currentAxis.Ticks.Length - 1 - tickIndex;
-                    if ((currentAxis.Ticks.Length - 1 - tickIndex) < tickIndex) continue;
+                    tickPair[1] = currentAxis.TicksTransformed.Length - 1 - tickIndex;
+                    if ((currentAxis.TicksTransformed.Length - 1 - tickIndex) < tickIndex) continue;
                     for (int j = 0; j <= 1; ++j)
                     {
                         int index = tickPair[j];
                         if (currentAxis.tickLabels[index].Text == "") continue;
-                        if ((currentAxis.Scale * currentAxis.Ticks[index] - currentAxis.Offset - currentAxis.LimitingTickLabelSizeForLength(index) / 2) < -0.1)
+                        if ((currentAxis.Scale * currentAxis.TicksTransformed[index] - currentAxis.Offset - currentAxis.LimitingTickLabelSizeForLength(index) / 2) < -0.1)
                         {
                             // need to rescale axes
                             limitingLowerAxis = currentAxis;
                             limitingLowerTickIndex = index;
                             limitingLowerSemiWidth = currentAxis.LimitingTickLabelSizeForLength(index) / 2;
-                            offsetLower = currentAxis.Ticks[index] - currentAxis.Min;
-                            deltaLower = currentAxis.Max - currentAxis.Min;
+                            offsetLower = currentAxis.TicksTransformed[index] - currentAxis.MinTransformed;
+                            deltaLower = currentAxis.MaxTransformed - currentAxis.MinTransformed;
                         }
-                        else if ((currentAxis.Scale * currentAxis.Ticks[index] - currentAxis.Offset + currentAxis.LimitingTickLabelSizeForLength(index) / 2) > (currentAxis.AxisTotalLength + 0.1))
+                        else if ((currentAxis.Scale * currentAxis.TicksTransformed[index] - currentAxis.Offset + currentAxis.LimitingTickLabelSizeForLength(index) / 2) > (currentAxis.AxisTotalLength + 0.1))
                         {
                             // need to rescale axes
                             limitingUpperAxis = currentAxis;
                             limitingUpperTickIndex = index;
                             limitingUpperSemiWidth = currentAxis.LimitingTickLabelSizeForLength(index) / 2;
-                            offsetUpper = currentAxis.Max - currentAxis.Ticks[index];
-                            deltaUpper = currentAxis.Max - currentAxis.Min;
+                            offsetUpper = currentAxis.MaxTransformed - currentAxis.TicksTransformed[index];
+                            deltaUpper = currentAxis.MaxTransformed - currentAxis.MinTransformed;
                         }
                         else continue;
                         reset = true;
@@ -227,7 +226,7 @@ namespace IronPlot
                         }
                         // otherwise, axis is unfixed.
                         margin = new AxisMargin(limitingLowerSemiWidth - offsetLower * newScale, limitingUpperSemiWidth - offsetUpperPrime * newScale);
-                        foreach (Axis2D axis in alignedAxes) axis.RescaleAxis(newScale * deltaLower / (axis.Max - axis.Min), margin);
+                        foreach (Axis2D axis in alignedAxes) axis.RescaleAxis(newScale * deltaLower / (axis.MaxTransformed - axis.MinTransformed), margin);
                         break;
                     }
                     if (reset == true) break;
@@ -240,7 +239,7 @@ namespace IronPlot
         /// <summary>
         /// Given the available size for the plot area and axes, determine the
         /// required size and the position of the plot region within this region.
-        /// Also sets the axes scales and positions.
+        /// Also sets the axes scales and positions and positions labels.
         /// </summary>
         /// <param name="availableSize"></param>
         /// <param name="canvasPosition"></param>
@@ -261,6 +260,10 @@ namespace IronPlot
             var yAxesLeft = yAxes.Where(axis => (axis as YAxis).Position == YAxisPosition.Left);
             var yAxesRight = yAxes.Where(axis => (axis as YAxis).Position == YAxisPosition.Right);
             var allAxes = xAxes.Concat(yAxes);
+            if (xAxesBottom.First() != null) xAxesBottom.First().IsInnermost = true;
+            if (xAxesTop.First() != null) xAxesTop.First().IsInnermost = true;
+            if (yAxesLeft.First() != null) yAxesLeft.First().IsInnermost = true;
+            if (yAxesRight.First() != null) yAxesRight.First().IsInnermost = true;
             while (iter <= 1)
             {
                 // Step 1: calculate axis thicknesses
@@ -326,7 +329,6 @@ namespace IronPlot
 
                 iter++;
             }
-            graphToCanvas.Matrix = new Matrix(XAxes.Bottom.Scale, 0, 0, -YAxes.Left.Scale, -XAxes.Bottom.Offset, YAxes.Left.Offset + YAxes.Left.AxisTotalLength);
             requiredSize = new Size(xAxes[0].AxisTotalLength, yAxes[0].AxisTotalLength);
             canvasPosition = new Rect(new Point(xAxes[0].AxisMargin.LowerMargin, yAxes[0].AxisMargin.UpperMargin),
                 new Point(requiredSize.Width - xAxes[0].AxisMargin.UpperMargin, requiredSize.Height - yAxes[0].AxisMargin.LowerMargin));
@@ -340,7 +342,6 @@ namespace IronPlot
                 axis.UpdateOffset();
                 axis.PositionLabels(true);
             }
-            graphToCanvas.Matrix = new Matrix(xAxisBottom.Scale, 0, 0, -yAxisLeft.Scale, -xAxisBottom.Offset, yAxisLeft.Offset + yAxisLeft.AxisTotalLength);
             axesCanvasPosition = new Rect(0, 0,
                 xAxisBottom.AxisTotalLength,
                 yAxisLeft.AxisTotalLength);

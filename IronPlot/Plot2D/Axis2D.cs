@@ -84,45 +84,38 @@ namespace IronPlot
             get { return ((Range)GetValue(RangeProperty)).Max; }
         }
 
+        internal List<TextBlock> tickLabels;
+
         protected Path axisLine = new Path() { Stroke = Brushes.Black };
         /// <summary>
         /// Path representing the axis line.
         /// </summary>
         public Path AxisLine { get { return axisLine; } }
-
-        // PlotPanel object
-        internal PlotPanel PlotPanel;
-
-        internal List<TextBlock> tickLabels;
-        /// <summary>
-        /// List of the axis labels.
-        /// </summary>
-        public List<TextBlock> TickLabels { get { return tickLabels; } }
-
-        protected TextBlock axisLabel = new TextBlock();
-        public TextBlock AxisLabel { get { return axisLabel; } }
-     
         protected StreamGeometry axisLineGeometry = new StreamGeometry();
 
-        internal double AxisThickness = 0;
+        protected Label axisLabel = new Label();
+        public Label AxisLabel { get { return axisLabel; } }
 
         protected Path axisTicks = new Path() { Stroke = Brushes.Black };
-        protected StreamGeometry axisTicksGeometry = new StreamGeometry();
         /// <summary>
         /// Path representing the axis ticks.
         /// </summary>
         public Path AxisTicks { get { return axisTicks; } }
+        protected StreamGeometry axisTicksGeometry = new StreamGeometry();
+
+        protected Rectangle interactionPad = new Rectangle();
+        public Rectangle InteractionPad { get { return interactionPad; } }
+
+        protected GridLines gridLines;
+        public GridLines GridLines { get { return gridLines; } }
+
+        // PlotPanel object to which the axis belongs.
+        internal PlotPanel PlotPanel;
 
         // Whether this is one of the innermost axes, or an additional axis.
-        internal bool IsInnermost = true; 
-
+        internal bool IsInnermost = false;
+        internal double AxisThickness = 0;
         internal AxisMargin AxisMargin;
-
-        // The transform applied to graph coordinates before conversion to canvas coordinates.
-        internal Func<double, double> GraphTransform = value => value;
-
-        // The transform applied to canvas coordinates after conversion to graph coordinates, as final step.
-        internal Func<double, double> CanvasTransform = value => value;
         
         internal double Scale;
         internal double Offset;
@@ -132,9 +125,6 @@ namespace IronPlot
         // canvasCoord = transformedGraphCoord * Scale - Offset
         // There is deliberately redundant information here: Offset may be inferred from Scale and startPoint.
         // Object that supplies the Max and Min of the Axis.
-
-        // transformedGraphCoord is the graph coordinate with any transform applied. This is a 
-        // log10 transform for log axes and a multiplication be -1 for reversed axes.
 
         // Assume that any change to the axis (number and length of ticks, change to labels) requires
         // another layout pass of the PlotPanel.
@@ -150,13 +140,16 @@ namespace IronPlot
         protected static void OnRangeChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
             Axis2D axis2DLocal = ((Axis2D)obj);
+            Range desiredRange = (Range)e.NewValue;
+            if (Double.IsNegativeInfinity(desiredRange.Min) || Double.IsNaN(desiredRange.Min)
+                || Double.IsPositiveInfinity(desiredRange.Max) || Double.IsNaN(desiredRange.Max))
+            {
+                axis2DLocal.SetValue(RangeProperty, e.OldValue);
+            }
             axis2DLocal.DeriveTicks();
+            axis2DLocal.MinTransformed = axis2DLocal.GraphTransform(axis2DLocal.Min);
+            axis2DLocal.MaxTransformed = axis2DLocal.GraphTransform(axis2DLocal.Max);
             if (axis2DLocal.PlotPanel != null) axis2DLocal.PlotPanel.InvalidateMeasure();
-        }
-
-        internal static void OnAxisTypeChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
-        {
-            ((Axis2D)obj).UpdateTicksAndLabels();
         }
 
         protected static void OnTicksPropertyChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
@@ -165,19 +158,24 @@ namespace IronPlot
             ((Axis2D)obj).UpdateTicksAndLabels();
         }
 
-        protected virtual void UpdateTicksAndLabels()
+        protected override void UpdateTicksAndLabels()
         {
             if (PlotPanel != null) PlotPanel.InvalidateMeasure();
         }
 
         public Axis2D() : base()
         {
+            MinTransformed = GraphTransform(Min); MaxTransformed = GraphTransform(Max);
             this.Background = null;
             axisLabel.Visibility = Visibility.Collapsed;
             tickLabels = new List<TextBlock>();
-            canvas.Children.Add(axisLine);
-            canvas.Children.Add(axisTicks);
-            canvas.Children.Add(axisLabel);
+            gridLines = new GridLines(this);
+            canvas.Children.Add(axisLine); axisLine.SetValue(Canvas.ZIndexProperty, 100);
+            canvas.Children.Add(axisTicks); axisTicks.SetValue(Canvas.ZIndexProperty, 100);
+            canvas.Children.Add(axisLabel); axisLabel.SetValue(Canvas.ZIndexProperty, 100);
+            canvas.Children.Add(interactionPad); interactionPad.SetValue(Canvas.ZIndexProperty, 50);
+            Brush padFill = new SolidColorBrush() { Color = Brushes.Aquamarine.Color, Opacity = 0.0 };
+            interactionPad.Fill = padFill;
             axisLine.Data = axisLineGeometry;
             axisTicks.Data = axisTicksGeometry;
             DeriveTicks();
@@ -185,7 +183,6 @@ namespace IronPlot
         
         static Axis2D()
         {
-            Axis2D.AxisTypeProperty.OverrideMetadata(typeof(Axis2D), new PropertyMetadata(Axis2D.OnAxisTypeChanged));
             Axis2D.LabelsVisibleProperty.OverrideMetadata(typeof(Axis2D), new PropertyMetadata(true, Axis2D.OnLabelsVisibleChanged));
             Axis2D.TickLengthProperty.OverrideMetadata(typeof(Axis2D), new PropertyMetadata(5.0, OnTicksPropertyChanged));
             Axis2D.TicksVisibleProperty.OverrideMetadata(typeof(Axis2D), new PropertyMetadata(true, OnTicksPropertyChanged));
@@ -242,6 +239,7 @@ namespace IronPlot
                 {
                     currentTextBlock = new TextBlock();
                     if (LabelsVisible == false) currentTextBlock.Visibility = Visibility.Collapsed;
+                    currentTextBlock.SetValue(Canvas.ZIndexProperty, 100);
                     canvas.Children.Add(currentTextBlock);
                     tickLabels.Add(currentTextBlock);
                 }
@@ -256,6 +254,7 @@ namespace IronPlot
                 currentTextBlock.TextAlignment = TextAlignment.Center;
                 currentTextBlock.Measure(new Size(Double.PositiveInfinity, double.PositiveInfinity));
             }
+            axisLabel.Measure(new Size(Double.PositiveInfinity, double.PositiveInfinity));
         }
 
         // Calculate thickness of axis (size in direction penpendicular to axis vector).
@@ -290,74 +289,6 @@ namespace IronPlot
             return axisLabel.DesiredSize.Height;
         }
 
-        /// <summary>
-        /// Expands the AxisMargin if required, keeping AxisTotalLength constant, in order to fit 
-        /// labels in.
-        /// Also updates Scale and Offset.
-        /// </summary>
-        internal void ExpandMarginsAsRequired()
-        {
-            double max = this.Max;
-            double min = this.Min;
-            double range = max - min;
-            if (range == 0) range = 1;
-            double axisLength = AxisTotalLength - AxisMargin.Total();
-            if (axisLength < 1.0)
-            {
-                // We will need to grow axisCanvas.
-                AxisTotalLength = AxisTotalLength + (1.0 - axisLength);
-                axisLength = 1.0;
-            }
-            else Scale = Math.Max(axisLength, 1.0) / range;
-            Offset = Scale * min - (AxisMargin.LowerMargin); // 
-            double limitingMinGraph = min;
-            double limitingMaxGraph = max;
-            double limitingMinThickness = AxisMargin.LowerMargin * 2;
-            double limitingMaxThickness = AxisMargin.UpperMargin * 2;
-            bool newLimit = false;
-            double partialAxisLength = 0;
-            for (int i = 0; i < Ticks.Length; ++i)
-            {
-                if (tickLabels[i].Text == "") continue;
-                if ((Scale * Ticks[i] - Offset - LimitingTickLabelSizeForLength(i) / 2) < - 0.1)
-                {
-                    limitingMinGraph = Ticks[i];
-                    limitingMinThickness = LimitingTickLabelSizeForLength(i);
-                    newLimit = true;
-                }
-                if ((Scale * Ticks[i] - Offset + LimitingTickLabelSizeForLength(i) / 2) > (AxisTotalLength + 0.1))
-                {
-                    limitingMaxGraph = Ticks[i];
-                    limitingMaxThickness = LimitingTickLabelSizeForLength(i);
-                    newLimit = true;
-                }
-                if (newLimit)
-                {
-                    newLimit = false;
-                    i = 0; // Go back to the beginning because changing the Scale could cause
-                    // another label to be the limiting label.
-                    double availableLimitDistance = (AxisTotalLength - (limitingMinThickness + limitingMaxThickness) / 2);
-                    double currentLimitDistance = Scale * (limitingMaxGraph - limitingMinGraph);
-                    if (availableLimitDistance < currentLimitDistance)
-                    {
-                        // can not retain Scale
-                        partialAxisLength = AxisTotalLength - (limitingMinThickness + limitingMaxThickness) / 2;
-                        double limitLength = limitingMaxGraph - limitingMinGraph;
-                        if (limitLength <= 0) limitLength = range;
-                        if (partialAxisLength < 1.0)
-                        {
-                            AxisTotalLength = AxisTotalLength + (1.0 - partialAxisLength);
-                            partialAxisLength = 1.0;
-                        }
-                        Scale = partialAxisLength / limitLength;
-                    }
-                    Offset = Scale * limitingMinGraph - (limitingMinThickness / 2);
-                }
-            }
-            this.AxisTotalLength = Scale * limitingMaxGraph - Offset + limitingMaxThickness / 2;
-            this.AxisMargin = new AxisMargin(Scale * min - Offset, AxisTotalLength - Scale * max + Offset);
-        }
-
         internal void OverrideAxisScaling(double Scale, double Offset, AxisMargin AxisMargin)
         {
             this.Scale = Scale;
@@ -371,9 +302,9 @@ namespace IronPlot
         /// <param name="newScale"></param>
         internal void RescaleAxis(double newScale)
         {
-            double axisLength = newScale * (Max - Min);
+            double axisLength = newScale * (MaxTransformed - MinTransformed);
             Scale = newScale;
-            Offset = Scale * Min - AxisMargin.LowerMargin;
+            Offset = Scale * MinTransformed - AxisMargin.LowerMargin;
             AxisTotalLength = axisLength + AxisMargin.Total();
         }
 
@@ -385,7 +316,7 @@ namespace IronPlot
         {
             AxisMargin = newMargin;
             Scale = newScale;
-            Offset = Scale * Min - AxisMargin.LowerMargin;
+            Offset = Scale * MinTransformed - AxisMargin.LowerMargin;
         }
 
         /// <summary>
@@ -396,17 +327,17 @@ namespace IronPlot
         {
             AxisMargin = newMargin;
             double axisLength = AxisTotalLength - newMargin.Total();
-            Scale = axisLength / (Max - Min);
-            Offset = Scale * Min - AxisMargin.LowerMargin;
+            Scale = axisLength / (MaxTransformed - MinTransformed);
+            Offset = Scale * MinTransformed - AxisMargin.LowerMargin;
         }
 
         // The axis Scale has been reduced to make the axes equal.
         // The axis is reduced, keeping the axis minimum point in the same position.
         internal void ScaleAxis(double newScale, double maxCanvas)
         {
-            double axisLength = newScale * (Max - Min);
+            double axisLength = newScale * (MaxTransformed - MinTransformed);
             Scale = newScale;
-            Offset = Scale * Min - AxisMargin.LowerMargin;
+            Offset = Scale * MinTransformed - AxisMargin.LowerMargin;
             AxisTotalLength = axisLength + AxisMargin.LowerMargin + AxisMargin.UpperMargin;
         }
 
@@ -419,12 +350,13 @@ namespace IronPlot
         // This is for dragging interations where only Offset changes.
         internal void UpdateOffset()
         {
-            Offset = Scale * this.Min - AxisMargin.LowerMargin;
+            Offset = Scale * this.MinTransformed - AxisMargin.LowerMargin;
         }
 
         internal virtual void RenderAxis()
         {
-            // Do nothing at this level.
+            // Derived classes should render axes. Also cause GridLines to be re-rendered.
+            gridLines.InvalidateMeasure();
         }
 
         internal abstract Transform1D GraphToAxesCanvasTransform();
@@ -432,5 +364,10 @@ namespace IronPlot
 
         internal abstract double GraphToCanvas(double canvas);
         internal abstract double CanvasToGraph(double graph);
+
+        public static MatrixTransform GraphToCanvasLinear(XAxis xAxis, YAxis yAxis)
+        {
+            return new MatrixTransform(xAxis.Scale, 0, 0, -yAxis.Scale, -xAxis.Offset - xAxis.AxisMargin.LowerMargin, yAxis.Offset + yAxis.AxisTotalLength - yAxis.AxisMargin.UpperMargin);
+        }
     }
 }

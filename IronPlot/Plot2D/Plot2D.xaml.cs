@@ -77,8 +77,8 @@ namespace IronPlot
 
         public Brush BackgroundPlot
         {
-            get { return PlotPanel.backgroundCanvas.Background; }
-            set { PlotPanel.backgroundCanvas.Background = value; }
+            get { return PlotPanel.BackgroundCanvas.Background; }
+            set { PlotPanel.BackgroundCanvas.Background = value; }
         }
 
         protected void CommonConstructor()

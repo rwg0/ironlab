@@ -27,7 +27,10 @@ namespace IronPlot
 
         public YAxisPosition Position { get { return (YAxisPosition)GetValue(YAxisPositionProperty); } }
 
-        public YAxis() : base() { }
+        public YAxis() : base() 
+        {
+            axisLabel.LayoutTransform = new RotateTransform(-90);
+        }
 
         internal override void PositionLabels(bool cullOverlapping)
         {
@@ -36,12 +39,12 @@ namespace IronPlot
             double currentTop, lastTop = Double.PositiveInfinity;
             double verticalOffset;
             // Go through ticks in order of decreasing Canvas coordinate
-            for (int i = 0; i < Ticks.Length; ++i)
+            for (int i = 0; i < TicksTransformed.Length; ++i)
             {
                 // Miss out labels if these would overlap.
                 currentTextBlock = tickLabels[i];
                 verticalOffset = currentTextBlock.DesiredSize.Height - singleLineHeight / 2;
-                currentTop = AxisTotalLength - (Scale * Ticks[i] - Offset) - verticalOffset;
+                currentTop = AxisTotalLength - (Scale * TicksTransformed[i] - Offset) - verticalOffset;
                 currentTextBlock.SetValue(Canvas.TopProperty, currentTop);
 
                 if ((YAxisPosition)GetValue(YAxisPositionProperty) == YAxisPosition.Left)
@@ -70,7 +73,7 @@ namespace IronPlot
             missOut = 0;
             if (cullOverlapping)
             {
-                for (int i = 0; i < Ticks.Length; ++i)
+                for (int i = 0; i < TicksTransformed.Length; ++i)
                 {
                     if ((missOut < missOutMax) && (i > 0))
                     {
@@ -81,10 +84,16 @@ namespace IronPlot
                 }
             }
             // Cycle through any now redundant TextBlocks and make invisible.
-            for (int i = Ticks.Length; i < tickLabels.Count; ++i)
+            for (int i = TicksTransformed.Length; i < tickLabels.Count; ++i)
             {
                 tickLabels[i].Text = "";
             }
+            // Finally, position axisLabel.
+            if ((YAxisPosition)GetValue(YAxisPositionProperty) == YAxisPosition.Left)
+                axisLabel.SetValue(Canvas.LeftProperty, xPosition - AxisThickness);
+            else axisLabel.SetValue(Canvas.LeftProperty, xPosition + AxisThickness - axisLabel.DesiredSize.Width);
+            double yPosition = AxisTotalLength - (Scale * 0.5 * (MaxTransformed + MinTransformed) - Offset) - axisLabel.DesiredSize.Height / 2.0;
+            axisLabel.SetValue(Canvas.TopProperty, yPosition);
         }
 
         internal override double LimitingTickLabelSizeForLength(int index)
@@ -109,18 +118,22 @@ namespace IronPlot
 
         internal override Point TickStartPosition(int i)
         {
-            return new Point(xPosition, AxisTotalLength - Ticks[i] * Scale + Offset);
+            return new Point(xPosition, AxisTotalLength - TicksTransformed[i] * Scale + Offset);
         }
 
         internal override void RenderAxis()
         {
+            base.RenderAxis();
             YAxisPosition position = (YAxisPosition)GetValue(YAxisPositionProperty);
             Point tickPosition;
 
             StreamGeometryContext lineContext = axisLineGeometry.Open();
-            Point axisStart = new Point(xPosition, AxisTotalLength - Min * Scale + Offset - axisLine.StrokeThickness / 2);
-            lineContext.BeginFigure(axisStart, false, false);
-            lineContext.LineTo(new Point(xPosition, AxisTotalLength - Max * Scale + Offset + axisLine.StrokeThickness / 2), true, false);
+            if (!IsInnermost)
+            {
+                Point axisStart = new Point(xPosition, AxisTotalLength - MinTransformed * Scale + Offset - axisLine.StrokeThickness / 2);
+                lineContext.BeginFigure(axisStart, false, false);
+                lineContext.LineTo(new Point(xPosition, AxisTotalLength - MaxTransformed * Scale + Offset + axisLine.StrokeThickness / 2), true, false);
+            }
             lineContext.Close();
 
             if (TicksVisible)
@@ -145,6 +158,12 @@ namespace IronPlot
                 }
                 context.Close();
             }
+            interactionPad.Height = AxisTotalLength - AxisMargin.Total();
+            interactionPad.Width = AxisThickness;
+            if (position == YAxisPosition.Left) interactionPad.SetValue(Canvas.LeftProperty, xPosition - AxisThickness);
+            else interactionPad.SetValue(Canvas.LeftProperty, xPosition);
+            double yPosition = AxisTotalLength - MaxTransformed * Scale + Offset;
+            interactionPad.SetValue(Canvas.TopProperty, yPosition);
         }
 
         internal override Transform1D GraphToAxesCanvasTransform()
@@ -164,7 +183,7 @@ namespace IronPlot
 
         internal override double CanvasToGraph(double graph)
         {
-            return CanvasTransform(- graph / Scale + (Offset + AxisTotalLength - AxisMargin.UpperMargin) / Scale);
+            return CanvasTransform(-graph / Scale + (Offset + AxisTotalLength - AxisMargin.UpperMargin) / Scale);
         }
     }
 }

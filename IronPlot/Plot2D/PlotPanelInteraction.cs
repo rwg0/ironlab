@@ -20,8 +20,8 @@ namespace IronPlot
     {
         // Mouse interaction
         private Point mouseDragStartPoint;
-        Range[] xAxesDragStartRanges;
-        Range[] yAxesDragStartRanges;
+        List<Axis2D> axesBeingDragged;
+        List<Range> axesDragStartRanges;
 
         // Selection Window
         private bool selectionStarted = false;
@@ -33,25 +33,31 @@ namespace IronPlot
 
         protected void AddInteractionEvents()
         {
-            canvas.MouseLeftButtonUp += new MouseButtonEventHandler(canvas_LeftClickEnd);
-            canvas.MouseLeftButtonDown += new MouseButtonEventHandler(canvas_LeftClickStart);
+            canvas.MouseLeftButtonUp += new MouseButtonEventHandler(LeftClickEnd);
+            canvas.MouseLeftButtonDown += new MouseButtonEventHandler(LeftClickStart);
             canvas.MouseRightButtonUp += new MouseButtonEventHandler(canvas_RightClickEnd);
             canvas.MouseRightButtonDown += new MouseButtonEventHandler(canvas_RightClickStart);
-            canvas.MouseMove += new MouseEventHandler(canvas_MouseMove);
-            canvas.MouseWheel += new MouseWheelEventHandler(canvas_MouseWheel);
+            canvas.MouseMove += new MouseEventHandler(element_MouseMove);
+            canvas.MouseWheel += new MouseWheelEventHandler(element_MouseWheel);
             var allAxes = axes.XAxes.Concat(axes.YAxes);
-            RefreshAxisInteractionEvents(new List<Axis2D>(), allAxes); 
         }
 
-        protected void RefreshAxisInteractionEvents(IEnumerable<Axis2D> oldAxes, IEnumerable<Axis2D> newAxes)
+        internal void RemoveAxisInteractionEvents(IEnumerable<Axis2D> axes)
         {
-            foreach (Axis2D axis in oldAxes) axis.MouseLeftButtonDown -= new MouseButtonEventHandler(axis_MouseLeftButtonDown); 
-            foreach (Axis2D axis in newAxes) axis.MouseLeftButtonDown += new MouseButtonEventHandler(axis_MouseLeftButtonDown); 
+            if (this is ColourBarPanel) return;
+            foreach (Axis2D axis in axes) axis.MouseLeftButtonDown -= new MouseButtonEventHandler(LeftClickStart);
+            foreach (Axis2D axis in axes) axis.MouseMove -= new MouseEventHandler(element_MouseMove);
+            foreach (Axis2D axis in axes) axis.MouseLeftButtonUp -= new MouseButtonEventHandler(LeftClickEnd);
+            foreach (Axis2D axis in axes) axis.MouseWheel -= new MouseWheelEventHandler(element_MouseWheel);
         }
 
-        void axis_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        internal void AddAxisInteractionEvents(IEnumerable<Axis2D> axes)
         {
-            
+            if (this is ColourBarPanel) return;
+            foreach (Axis2D axis in axes) axis.MouseLeftButtonDown += new MouseButtonEventHandler(LeftClickStart);
+            foreach (Axis2D axis in axes) axis.MouseMove += new MouseEventHandler(element_MouseMove);
+            foreach (Axis2D axis in axes) axis.MouseLeftButtonUp += new MouseButtonEventHandler(LeftClickEnd);
+            foreach (Axis2D axis in axes) axis.MouseWheel += new MouseWheelEventHandler(element_MouseWheel);
         }
 
         protected void AddSelectionRectangle()
@@ -71,13 +77,17 @@ namespace IronPlot
             selection.SetValue(Canvas.ZIndexProperty, 1000);
         }
 
-        protected void canvas_LeftClickStart(object sender, MouseButtonEventArgs e)
+        protected void LeftClickStart(object sender, MouseButtonEventArgs e)
         {
+            // either whole canvas or single axis
+            bool isSingleAxis = (sender is Axis2D);
             if (e.ClickCount > 1)
             {
                 dragging = false;
                 this.Cursor = Cursors.Arrow;
-                var allAxes = axes.XAxes.Concat(axes.YAxes);
+                List<Axis2D> allAxes;
+                if (isSingleAxis) allAxes = new List<Axis2D> { sender as Axis2D };
+                else allAxes = axes.XAxes.Concat(axes.YAxes).ToList();
                 foreach (Axis2D axis in allAxes)
                 {
                     Range axisRange = GetRangeFromChildren(axis);
@@ -86,19 +96,59 @@ namespace IronPlot
             }
             else
             {
-                mouseDragStartPoint = e.GetPosition(this);
-
-                xAxesDragStartRanges = new Range[axes.XAxes.Count];
-                for (int i = 0; i < xAxesDragStartRanges.Length; ++i)
-                    xAxesDragStartRanges[i] = new Range(axes.XAxes[i].Min, axes.XAxes[i].Max);
-                yAxesDragStartRanges = new Range[axes.YAxes.Count];
-                for (int i = 0; i < yAxesDragStartRanges.Length; ++i)
-                    yAxesDragStartRanges[i] = new Range(axes.YAxes[i].Min, axes.YAxes[i].Max);
-
-                this.Cursor = Cursors.ScrollAll;
-                dragging = true;
+                if (isSingleAxis) axesBeingDragged = new List<Axis2D> { sender as Axis2D };
+                else axesBeingDragged = axes.XAxes.Concat(axes.YAxes).ToList();
+                StartDrag(e);
             }
             canvas.CaptureMouse();
+        }
+
+        protected void StartDrag(MouseButtonEventArgs e)
+        {
+            mouseDragStartPoint = e.GetPosition(this);
+            axesDragStartRanges = new List<Range>();
+            foreach (Axis2D axis in axesBeingDragged)
+            {
+                axesDragStartRanges.Add(new Range(axis.Min, axis.Max));
+            }
+            this.Cursor = Cursors.ScrollAll;
+            dragging = true;
+        }
+
+        protected void MoveDrag(MouseEventArgs e)
+        {
+            // Get the new mouse position. 
+            Point mouseDragCurrentPoint = e.GetPosition(this);
+
+            Point delta = new Point(
+                (mouseDragCurrentPoint.X - mouseDragStartPoint.X),
+                (mouseDragCurrentPoint.Y - mouseDragStartPoint.Y));
+
+            int index = 0;
+            foreach (Axis2D axis in axesBeingDragged)
+            {
+                double offset;
+                if (axis is XAxis)
+                    offset = -delta.X / axis.Scale;
+                else offset = delta.Y / axis.Scale;
+                axis.SetValue(Axis2D.RangeProperty, new Range(
+                    axis.Min = axis.CanvasTransform(axis.GraphTransform(axesDragStartRanges[index].Min) + offset),
+                    axis.Max = axis.CanvasTransform(axis.GraphTransform(axesDragStartRanges[index].Max) + offset)));
+                index++;
+            }
+        }
+
+        protected void EndDrag(object sender)
+        {
+            UIElement element = (UIElement)sender;
+            if (element.IsMouseCaptured)
+            {
+                this.Cursor = Cursors.Arrow;
+                dragging = false;
+                marginChangeTimer.Interval = TimeSpan.FromSeconds(0.2);
+                marginChangeTimer.Start();
+            }
+            element.ReleaseMouseCapture();
         }
 
         protected void canvas_RightClickStart(object sender, MouseButtonEventArgs e)
@@ -110,16 +160,9 @@ namespace IronPlot
             canvas.CaptureMouse();
         }
 
-        protected void canvas_LeftClickEnd(object sender, MouseButtonEventArgs e)
+        protected void LeftClickEnd(object sender, MouseButtonEventArgs e)
         {
-            if (canvas.IsMouseCaptured)
-            {
-                this.Cursor = Cursors.Arrow;
-                dragging = false;
-                marginChangeTimer.Interval = TimeSpan.FromSeconds(0.2);
-                marginChangeTimer.Start();
-            }
-            canvas.ReleaseMouseCapture();
+            EndDrag(sender);
         }
 
         protected void canvas_RightClickEnd(object sender, MouseButtonEventArgs e)
@@ -139,13 +182,15 @@ namespace IronPlot
                     }
                     foreach (Axis2D axis in axes.XAxes)
                     {
-                        axis.Min = Math.Min(axis.CanvasToGraph(selectionStart.X), axis.CanvasToGraph(selectionEnd.X));
-                        axis.Max = Math.Max(axis.CanvasToGraph(selectionStart.X), axis.CanvasToGraph(selectionEnd.X));
+                        axis.SetValue(Axis2D.RangeProperty, new Range(
+                            Math.Min(axis.CanvasToGraph(selectionStart.X), axis.CanvasToGraph(selectionEnd.X)),
+                            Math.Max(axis.CanvasToGraph(selectionStart.X), axis.CanvasToGraph(selectionEnd.X))));
                     }
                     foreach (Axis2D axis in axes.YAxes)
                     {
-                        axis.Min = Math.Min(axis.CanvasToGraph(selectionStart.Y), axis.CanvasToGraph(selectionEnd.Y));
-                        axis.Max = Math.Max(axis.CanvasToGraph(selectionStart.Y), axis.CanvasToGraph(selectionEnd.Y));
+                        axis.SetValue(Axis2D.RangeProperty, new Range(
+                            Math.Min(axis.CanvasToGraph(selectionStart.Y), axis.CanvasToGraph(selectionEnd.Y)),
+                            Math.Max(axis.CanvasToGraph(selectionStart.Y), axis.CanvasToGraph(selectionEnd.Y))));
                     }
                     selectionStarted = false;
                 }
@@ -154,54 +199,34 @@ namespace IronPlot
             e.Handled = true;
         }
 
-        protected void canvas_MouseWheel(object sender, MouseWheelEventArgs e)
+        protected void element_MouseWheel(object sender, MouseWheelEventArgs e)
         {
+            bool isSingleAxis = (sender is Axis2D);
             double delta = e.Delta / 120;
             Point canvasPosition = e.GetPosition(canvas);
-            Point graphPosition = canvasToGraph.Transform(canvasPosition);
             double factor = Math.Pow(1.4, delta);
-            // 
-            var allAxes = axes.XAxes.Concat(axes.YAxes);
-            foreach (Axis2D axis in allAxes)
+            //
+            List<Axis2D> zoomAxes;
+            if (isSingleAxis) zoomAxes = new List<Axis2D>() { sender as Axis2D };
+            else zoomAxes = axes.XAxes.Concat(axes.YAxes).ToList();
+            foreach (Axis2D axis in zoomAxes)
             {
                 double axisMid;
                 if (axis is XAxis) axisMid = axis.GraphTransform(axis.CanvasToGraph(canvasPosition.X));
                 else axisMid = axis.GraphTransform(axis.CanvasToGraph(canvasPosition.Y));
                 double axisMin = axis.GraphTransform(axis.Min);
                 double axisMax = axis.GraphTransform(axis.Max);
-                axis.Min = axis.CanvasTransform(axisMid + (axisMin - axisMid) / factor);
-                axis.Max = axis.CanvasTransform(axisMid + (axisMax - axisMid) / factor);
+                axis.SetValue(Axis2D.RangeProperty, new Range(axis.CanvasTransform(axisMid + (axisMin - axisMid) / factor), axis.CanvasTransform(axisMid + (axisMax - axisMid) / factor)));
             }
         }
 
-        protected void canvas_MouseMove(object sender, MouseEventArgs e)
+        protected void element_MouseMove(object sender, MouseEventArgs e)
         {
             if (canvas.IsMouseCaptured)
             {
                 if (dragging)
                 {
-                    // Get the new mouse position. 
-                    Point mouseDragCurrentPoint = e.GetPosition(this);
-
-                    Point delta = new Point(
-                        (mouseDragCurrentPoint.X - mouseDragStartPoint.X),
-                        (mouseDragCurrentPoint.Y - mouseDragStartPoint.Y));
-
-                    for (int i = 0; i < xAxesDragStartRanges.Length; ++i)
-                    {
-                        Axis2D axis = axes.XAxes[i];
-                        double offset = -delta.X / axis.Scale;
-                        axis.Min = axis.CanvasTransform(axis.GraphTransform(xAxesDragStartRanges[i].Min) + offset);
-                        axis.Max = axis.CanvasTransform(axis.GraphTransform(xAxesDragStartRanges[i].Max) + offset);
-                    }
-
-                    for (int i = 0; i < yAxesDragStartRanges.Length; ++i)
-                    {
-                        Axis2D axis = axes.YAxes[i];
-                        double offset = delta.Y / axis.Scale;
-                        axis.Min = axis.CanvasTransform(axis.GraphTransform(yAxesDragStartRanges[i].Min) + offset);
-                        axis.Max = axis.CanvasTransform(axis.GraphTransform(yAxesDragStartRanges[i].Max) + offset);
-                    }
+                    MoveDrag(e);
                 }
                 if (selectionStarted)
                 {

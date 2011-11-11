@@ -51,17 +51,16 @@ namespace IronPlot.Plotting3D
 
         static Axis3D()
         {
-            Axis.AxisTypeProperty.OverrideMetadata(typeof(Axis3D), new PropertyMetadata(AxisType.Number, Axis3D.OnAxisTypeChanged));
             Axis.LabelsVisibleProperty.OverrideMetadata(typeof(Axis3D), new PropertyMetadata(true, Axis3D.OnLabelsVisibleChanged));
             Axis.TicksVisibleProperty.OverrideMetadata(typeof(Axis3D), new PropertyMetadata(true, Axis3D.OnTicksVisibleChanged));
             Axis.NumberOfTicksProperty.OverrideMetadata(typeof(Axis3D), new PropertyMetadata(10, Axis3D.OnNumberOfTicksChanged));
             Axis.TickLengthProperty.OverrideMetadata(typeof(Axis3D), new PropertyMetadata(0.05, Axis3D.OnTickLengthChanged));
         }
 
-        internal static void OnAxisTypeChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
+        protected override void UpdateTicksAndLabels()
         {
-            ((Axis3D)obj).UpdateLabels();
-            ((Axis3D)obj).UpdateLabelPositions(true);
+            UpdateLabels();
+            UpdateLabelPositions(true);
         }
 
         internal static void OnLabelsVisibleChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)

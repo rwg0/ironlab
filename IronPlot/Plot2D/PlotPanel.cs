@@ -28,7 +28,7 @@ namespace IronPlot
         internal Canvas canvas;
         internal Canvas axesCanvas;
         // Also a background Canvas
-        internal Canvas backgroundCanvas;
+        internal Canvas BackgroundCanvas;
         // This is present because a Direct2D surface can also be added and it is desirable to make the
         // canvas above transparent in this case. 
 
@@ -48,11 +48,6 @@ namespace IronPlot
 
         internal Thickness minimumAxesMargin = new Thickness(0);
 
-        // Transforms:
-        internal MatrixTransform graphToCanvas;
-        internal MatrixTransform graphToAxesCanvas;
-        internal MatrixTransform canvasToGraph;
-
         protected DispatcherTimer marginChangeTimer;
 
         // Arrangement
@@ -61,6 +56,7 @@ namespace IronPlot
         bool showAnnotationsRight = false;
         bool showAnnotationsTop = false;
         bool showAnnotationsBottom = false;
+        
         // The location of canvas and axes; axes canvas always starts at point (0,0):
         protected Rect axesCanvasLocation, canvasLocation;
         // Width and height of legends, axes and canvas combined: 
@@ -120,69 +116,37 @@ namespace IronPlot
         public PlotPanel()
         {
             // Add Canvas objects
-            this.Background = Brushes.White;
+            this.Background = Brushes.White; this.HorizontalAlignment = HorizontalAlignment.Center; this.VerticalAlignment = VerticalAlignment.Center;
             canvas = new Canvas();
             axesCanvas = new Canvas();
-            backgroundCanvas = new Canvas();
-            this.HorizontalAlignment = HorizontalAlignment.Center;
-            this.VerticalAlignment = VerticalAlignment.Center;
+            BackgroundCanvas = new Canvas();
             this.Children.Add(canvas);
-            this.Children.Add(backgroundCanvas);
+            this.Children.Add(axesCanvas);
+            this.Children.Add(BackgroundCanvas);
+            //
             canvas.ClipToBounds = true;
             axesCanvas.ClipToBounds = false;
-            backgroundCanvas.SetValue(Grid.ZIndexProperty, 50);
             canvas.SetValue(Grid.ZIndexProperty, 100);
-            // Create transform objects; these are updated during Arrange
-            graphToCanvas = new MatrixTransform();
-            canvasToGraph = new MatrixTransform();
-            graphToAxesCanvas = new MatrixTransform();
+            axesCanvas.SetValue(Grid.ZIndexProperty, 200);
+            BackgroundCanvas.SetValue(Grid.ZIndexProperty, 50);
+
             // Add Axes to axesCanvas
             LinearGradientBrush background = new LinearGradientBrush();
             background.StartPoint = new Point(0, 0); background.EndPoint = new Point(1, 1);
             background.GradientStops.Add(new GradientStop(Colors.White, 0.0));
             background.GradientStops.Add(new GradientStop(Colors.LightGray, 1.0));
             canvas.Background = Brushes.Transparent;
-            backgroundCanvas.Background = background;
+            BackgroundCanvas.Background = background;
             direct2DControl = null;
 
             axes = new Axes2D(this);
             axesCanvas.Children.Add(axes);
-            //backgroundCanvas.Children.Add(axes.XAxes.GridLines);
-            //backgroundCanvas.Children.Add(axes.YAxes.GridLines);
-            //axes.XAxes.GridLines.SetValue(Canvas.ZIndexProperty, 50);
-            //axes.YAxes.GridLines.SetValue(Canvas.ZIndexProperty, 50);
-            //
-            AddAxes();
             //
             this.CreateLegends();
             if (!(this is ColourBarPanel)) this.AddInteractionEvents();
             this.AddSelectionRectangle();
             this.InitialiseChildenCollection();
             marginChangeTimer = new DispatcherTimer(TimeSpan.FromSeconds(0.0), DispatcherPriority.Normal, marginChangeTimer_Tick, this.Dispatcher);
-        }
-
-        /// <summary>
-        /// Visually, the axes comprise an Axes2D and the indiviual Axis2D objects.
-        /// There is one of the former, many of the latter. This method must be called
-        /// every time a new Axis2D is added or removed.
-        /// </summary>
-        internal void AddAxes()
-        {
-            if (!Children.Contains(axesCanvas))
-            {
-                Children.Add(axesCanvas);
-                axesCanvas.Background = null;
-                axesCanvas.SetValue(Grid.ZIndexProperty, 200);
-            }
-            IEnumerable<Axis2D> allAxis2D = axes.XAxes.Concat(axes.YAxes);
-            foreach (Axis2D axis2D in allAxis2D)
-            {
-                if (!Children.Contains(axis2D))
-                {
-                    Children.Add(axis2D);
-                    axis2D.SetValue(Grid.ZIndexProperty, 201);
-                }
-            }
         }
 
         protected override Size MeasureOverride(Size availableSize)
@@ -199,7 +163,7 @@ namespace IronPlot
             MeasureAxes(availableSize);
             //
             canvas.Measure(new Size(canvasLocation.Width, canvasLocation.Height));
-            backgroundCanvas.Measure(new Size(canvasLocation.Width, canvasLocation.Height));
+            BackgroundCanvas.Measure(new Size(canvasLocation.Width, canvasLocation.Height));
             availableSize.Height = axesCanvasLocation.Height + annotationsTop.DesiredSize.Height + annotationsBottom.DesiredSize.Height;
             availableSize.Width = axesCanvasLocation.Width + annotationsLeft.DesiredSize.Width + annotationsRight.DesiredSize.Width;
 
@@ -270,12 +234,7 @@ namespace IronPlot
 
         protected override Size ArrangeOverride(Size finalSize)
         {
-            //MeasureAxes(finalSize);
-            graphToCanvas.Matrix = new Matrix(graphToAxesCanvas.Matrix.M11, 0, 0, graphToAxesCanvas.Matrix.M22,
-                graphToAxesCanvas.Matrix.OffsetX - canvasLocation.Left, graphToAxesCanvas.Matrix.OffsetY - canvasLocation.Top);
-            MatrixTransform inverse = (MatrixTransform)(graphToCanvas.Inverse);
-            if (inverse == null) return finalSize;
-            canvasToGraph.Matrix = inverse.Matrix;        
+            //MeasureAxes(finalSize);     
             canvasLocation = new Rect(canvasLocation.X, canvasLocation.Y, canvasLocation.Width, canvasLocation.Height);
             axesCanvasLocation = new Rect(axesCanvasLocation.X, axesCanvasLocation.Y, axesCanvasLocation.Width, axesCanvasLocation.Height);
             double entireWidth = this.entireWidth;
@@ -298,10 +257,10 @@ namespace IronPlot
             foreach (Axis2D axis in axes.XAxes) axis.Arrange(axesCanvasLocation);
             foreach (Axis2D axis in axes.YAxes) axis.Arrange(axesCanvasLocation);
 
-            backgroundCanvas.Arrange(canvasLocation);
+            BackgroundCanvas.Arrange(canvasLocation);
             canvas.Arrange(canvasLocation);
             if (direct2DControl != null) direct2DControl.Arrange(canvasLocation);
-            backgroundCanvas.InvalidateVisual();
+            BackgroundCanvas.InvalidateVisual();
             canvas.InvalidateVisual();
             // Now arrange canvases
             if (showAnnotationsLeft)
@@ -331,9 +290,6 @@ namespace IronPlot
             }
             // Finally redraw axes lines
             axes.InvalidateMeasure();
-            //axes.XAxes.GridLines.InvalidateMeasure();
-            //axes.YAxes.GridLines.InvalidateMeasure();
-            //canvasToGraph.axes.XAxes.GridLines.InvalidateMeasure(); 
             return finalSize;
         }
 

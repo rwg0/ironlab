@@ -24,7 +24,7 @@ namespace IronPlot
     /// <summary>
     /// Base class for any items that are displayed on a Plot2D
     /// </summary>
-    public class Plot2DItem : DependencyObject
+    public abstract class Plot2DItem : DependencyObject
     {
         protected Rect bounds;
         protected PlotPanel host;
@@ -103,9 +103,7 @@ namespace IronPlot
         {
         }
 
-        internal virtual void BeforeArrange()
-        {
-        }
+        internal abstract void BeforeArrange();
 
         internal virtual void OnRender()
         {
