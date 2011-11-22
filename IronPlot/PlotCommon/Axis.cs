@@ -19,7 +19,7 @@ using ILNumerics.BuiltInFunctions;
 
 namespace IronPlot
 {
-    public enum AxisType { Linear, Log, Date }
+    public enum AxisType { Linear, Log, Date, LinearReversed }
 
     public struct DecomposedNumber
     {
@@ -162,7 +162,7 @@ namespace IronPlot
         public abstract double Min { get; set; }
 
         public abstract double Max { get; set; }
-
+        
         public Axis()
         {
             canvas = new Canvas();
@@ -176,20 +176,28 @@ namespace IronPlot
 
         protected static void OnAxisTypeChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
-            Axis localAxis = (Axis)obj;
-            switch (localAxis.AxisType)
+            ((Axis)obj).OnAxisTypeChanged();
+        }
+
+        protected virtual void OnAxisTypeChanged()
+        {
+            switch (AxisType)
             {
                 case AxisType.Log:
-                    localAxis.GraphTransform = value => Math.Log10(value);
-                    localAxis.CanvasTransform = value => Math.Pow(10.0, value);
+                    GraphTransform = value => Math.Log10(value);
+                    CanvasTransform = value => Math.Pow(10.0, value);
+                    break;
+                case AxisType.LinearReversed:
+                    GraphTransform = value => -value;
+                    CanvasTransform = value => -value;
                     break;
                 default:
-                    localAxis.GraphTransform = value => value;
-                    localAxis.CanvasTransform = value => value;
+                    GraphTransform = value => value;
+                    CanvasTransform = value => value;
                     break;
             }
-            localAxis.DeriveTicks();
-            localAxis.UpdateTicksAndLabels();
+            DeriveTicks();
+            UpdateTicksAndLabels();
         }
 
         public AxisType AxisType
@@ -213,6 +221,14 @@ namespace IronPlot
                     break;
                 case AxisType.Log:
                     DeriveTicksLog();
+                    break;
+                case AxisType.LinearReversed:
+                    DeriveTicksLinear();
+                    double temp = MaxTransformed;
+                    MaxTransformed = MinTransformed;
+                    MinTransformed = temp;
+                    Ticks = Ticks.Reverse().ToArray();
+                    TicksTransformed = TicksTransformed.Reverse().ToArray();
                     break;
             }
         }
@@ -364,12 +380,19 @@ namespace IronPlot
                     else { intervalIntCoefficient = 1; }
                     interval *= intervalIntCoefficient;
                     int modulo = rangeStart % interval;
-                    firstTick = (modulo == 0) ? firstTick : firstTick + (interval - modulo);
+
+                    if (firstTick < 0)
+                        firstTick = (modulo == 0) ? firstTick : firstTick - modulo;
+                    else firstTick = (modulo == 0) ? firstTick : firstTick + (interval - modulo);
+                   
                     modulo = rangeEnd % interval;
-                    lastTick = (modulo == 0) ? lastTick : lastTick - modulo;
+
+                    if (lastTick < 0)
+                        lastTick = (modulo == 0) ? lastTick : lastTick + modulo;
+                    else lastTick = (modulo == 0) ? lastTick : lastTick - modulo;
                 }
 
-                int nTicks = (rangeEnd - rangeStart) / interval + 1;
+                int nTicks = (lastTick - firstTick) / interval + 1;
 
                 TicksTransformed = new double[nTicks];
                 Ticks = new double[nTicks];
@@ -378,7 +401,7 @@ namespace IronPlot
                 RequiredDPs = new int[nTicks];
 
                 int index = 0;
-                for (int i = rangeStart; i <= rangeEnd; i += interval)
+                for (int i = firstTick; i <= lastTick; i += interval)
                 {
                     TicksTransformed[index] = i;
                     Ticks[index] = Math.Pow(10, i);

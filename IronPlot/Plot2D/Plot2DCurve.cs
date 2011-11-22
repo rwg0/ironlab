@@ -223,6 +223,7 @@ namespace IronPlot
             if (this.host != null)
             {
                 AddElements();
+                curve.Transform(xAxis.GraphTransform, yAxis.GraphTransform);
                 // Add binding:
                 bindingDirect2D = new Binding("UseDirect2DProperty") { Source = host, Mode = BindingMode.OneWay };
                 BindingOperations.SetBinding(this, Plot2DCurve.UseDirect2DProperty, bindingDirect2D);
@@ -323,6 +324,12 @@ namespace IronPlot
             plot2DCurveLocal.AddElements();
         }
 
+        internal override void OnAxisTypeChanged()
+        {
+            curve.Transform(xAxis.GraphTransform, yAxis.GraphTransform);
+            SetBounds();
+        }
+
         internal override void BeforeArrange()
         {
             graphToCanvas.Matrix = new Matrix(xAxis.Scale, 0, 0, -yAxis.Scale, -xAxis.Offset - xAxis.AxisMargin.LowerMargin, yAxis.Offset + yAxis.AxisTotalLength - yAxis.AxisMargin.UpperMargin);
@@ -346,19 +353,28 @@ namespace IronPlot
         private void SetBounds()
         {
             bounds = curve.Bounds();
-            //bounds = line.Data.Bounds;
-            //double markersSize = (double)GetValue(MarkersSizeProperty);
-            //bounds = canvasToGraph.TransformBounds(new Rect(new Point(bounds.Left - markersSize, bounds.Top - markersSize), 
-            //    new Point(bounds.Right + markersSize, bounds.Bottom + markersSize))); 
+        }
+
+        public override Rect TightBounds
+        {
+            get
+            {
+                return TransformRect(bounds, xAxis.CanvasTransform, yAxis.CanvasTransform);
+            }
         }
 
         public override Rect PaddedBounds
         {
             get 
-            {
+            {  
                 Rect paddedBounds =  new Rect(bounds.Left - 0.05 * bounds.Width, bounds.Top - 0.05 * bounds.Height, bounds.Width * 1.1, bounds.Height * 1.1);
-                return paddedBounds; 
+                return TransformRect(paddedBounds, xAxis.CanvasTransform, yAxis.CanvasTransform); 
             }
+        }
+
+        private Rect TransformRect(Rect rect, Func<double, double> transformX, Func<double, double> transformY)
+        {
+            return new Rect(new Point(transformX(rect.Left), transformY(rect.Top)), new Point(transformX(rect.Right), transformY(rect.Bottom))); 
         }
 
         public PlotPath Line

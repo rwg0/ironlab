@@ -146,16 +146,41 @@ namespace IronPlot
             {
                 axis2DLocal.SetValue(RangeProperty, e.OldValue);
             }
+            if (axis2DLocal.AxisType == AxisType.Log)
+            {
+                if (desiredRange.Min <= 0 || desiredRange.Max <= 0)
+                    axis2DLocal.SetValue(RangeProperty, e.OldValue); 
+                    //axis2DLocal.SetValue(RangeProperty, new Range(Math.Max(desiredRange.Min, Double.Epsilon), 
+                    //    Math.Max(desiredRange.Max, Double.Epsilon * 100)));  
+            }
             axis2DLocal.DeriveTicks();
-            axis2DLocal.MinTransformed = axis2DLocal.GraphTransform(axis2DLocal.Min);
-            axis2DLocal.MaxTransformed = axis2DLocal.GraphTransform(axis2DLocal.Max);
             if (axis2DLocal.PlotPanel != null) axis2DLocal.PlotPanel.InvalidateMeasure();
+        }
+
+        Binding axisBinding;
+        /// <summary>
+        /// Bind the Max and Min of this axis to another axis.
+        /// </summary>
+        /// <param name="bindingAxis"></param>
+        public void BindToAxis(Axis2D bindingAxis)
+        {
+            axisBinding = new Binding("RangeProperty") { Source = this, Mode = BindingMode.TwoWay };
+            bindingAxis.SetBinding(Axis2D.RangeProperty, axisBinding);
         }
 
         protected static void OnTicksPropertyChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
             ((Axis2D)obj).DeriveTicks();
             ((Axis2D)obj).UpdateTicksAndLabels();
+        }
+
+        protected override void OnAxisTypeChanged()
+        {
+            base.OnAxisTypeChanged();
+            foreach (Plot2DItem item in PlotPanel.PlotItems)
+            {
+                if (item.XAxis == this || item.YAxis == this) item.OnAxisTypeChanged();
+            }
         }
 
         protected override void UpdateTicksAndLabels()

@@ -75,7 +75,7 @@ namespace PlotTest
             xAxisOuter.Min = 6.5e-5;
             xAxisOuter.Max = 7.3e-3;
             xAxisOuter.AxisType = AxisType.Log;
-
+            plot1.Children.Add(new Plot2DCurve(new Curve(new double[] { 0.01, 10 }, new double[] { 5, 6 })) { XAxis = xAxisOuter }); 
 
             // Example false colour plot: 
             double[,] falseColour = new double[128, 128];

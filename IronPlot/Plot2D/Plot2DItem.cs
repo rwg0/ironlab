@@ -108,5 +108,7 @@ namespace IronPlot
         internal virtual void OnRender()
         {
         }
+
+        internal virtual void OnAxisTypeChanged() { }
     }
 }

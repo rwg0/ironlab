@@ -53,13 +53,13 @@ namespace IronPlot
             foreach (Axis2D axis in allAxes)
             {
                 Range axisRange = GetRangeFromChildren(axis);
-                axis.Min = axisRange.Min; axis.Max = axisRange.Max;
+                if (axisRange.Length != 0) axis.SetValue(Axis2D.RangeProperty, axisRange);
             }
         }
 
         protected Range GetRangeFromChildren(Axis2D axis)
         {
-            Range range = new Range(0.1, 100);
+            Range range = new Range(0, 0);
             Plot2DItem child;
             bool rangeUpdated = false;
             for (int i = 0; i < plotItems.Count; ++i)

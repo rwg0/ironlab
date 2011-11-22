@@ -25,6 +25,7 @@ namespace IronPlot
     public partial class Curve
     {
         internal double[] x, y;
+        internal double[] xTransformed, yTransformed;
 
         internal bool[] includeLinePoint; // Whether or not to include the point in the line Geometry.
         internal bool[] includeMarker; // Whether or not to include the marker in the Geometry.
@@ -47,12 +48,13 @@ namespace IronPlot
         {
             this.x = x; this.y = y;
             Validate();
+            Transform(null, null);
             PrepareLineData(x.Length);
         }
 
         public Rect Bounds()
         {
-            return new Rect(new Point(x.Min(), y.Min()), new Point(x.Max(), y.Max()));
+            return new Rect(new Point(xTransformed.Min(), yTransformed.Min()), new Point(xTransformed.Max(), yTransformed.Max()));
         }
 
         private void PrepareLineData(int length)
@@ -76,6 +78,30 @@ namespace IronPlot
             }
         }
 
+        internal void Transform(Func<double, double> graphTransformX, Func<double, double> graphTransformY)
+        {
+            if (graphTransformX == null)
+            {
+                xTransformed = x;
+            }
+            else
+            {
+                int length = x.Length;
+                xTransformed = new double[length];
+                for (int i = 0; i < length; ++i) xTransformed[i] = graphTransformX(x[i]);
+            }
+            if (graphTransformY == null)
+            {
+                yTransformed = y;
+            }
+            else
+            {
+                int length = y.Length;
+                yTransformed = new double[length];
+                for (int i = 0; i < length; ++i) yTransformed[i] = graphTransformY(y[i]);
+            }
+        }
+
         public Curve(IEnumerable<double> x, IEnumerable<double> y)
         {
             int count = Math.Min(x.Count(), y.Count());
@@ -86,6 +112,7 @@ namespace IronPlot
                 this.x[i] = x.ElementAt(i);
                 this.y[i] = y.ElementAt(i);
             }
+            Transform(null, null);
             PrepareLineData(count);
         }
 
@@ -95,12 +122,12 @@ namespace IronPlot
             double[] tempY;
             if (graphToCanvas != null)
             {
-                tempX = this.X.MultiplyBy(graphToCanvas.Matrix.M11).SumWith(graphToCanvas.Matrix.OffsetX);
-                tempY = this.Y.MultiplyBy(graphToCanvas.Matrix.M22).SumWith(graphToCanvas.Matrix.OffsetY);
+                tempX = this.xTransformed.MultiplyBy(graphToCanvas.Matrix.M11).SumWith(graphToCanvas.Matrix.OffsetX);
+                tempY = this.yTransformed.MultiplyBy(graphToCanvas.Matrix.M22).SumWith(graphToCanvas.Matrix.OffsetY);
             }
             else
             {
-                tempX = this.X; tempY = this.Y;
+                tempX = this.xTransformed; tempY = this.yTransformed;
             }
             StreamGeometry streamGeometry = new StreamGeometry();
             StreamGeometryContext context = streamGeometry.Open();
@@ -143,16 +170,16 @@ namespace IronPlot
             PathGeometry pathGeometry = new PathGeometry();
             PathFigure pathFigure = new PathFigure();
             LineSegment lineSegment;
-            double xCanvas = x[0] * xScale + xOffset;
-            double yCanvas = y[0] * yScale + yOffset;
+            double xCanvas = xTransformed[0] * xScale + xOffset;
+            double yCanvas = yTransformed[0] * yScale + yOffset;
             pathFigure.StartPoint = new Point(xCanvas, yCanvas);
             for (int i = 1; i < x.Length; ++i)
             {
                 if (includeLinePoint[i])
                 {
                     lineSegment = new LineSegment();
-                    xCanvas = x[i] * xScale + xOffset;
-                    yCanvas = y[i] * yScale + yOffset;
+                    xCanvas = xTransformed[i] * xScale + xOffset;
+                    yCanvas = yTransformed[i] * yScale + yOffset;
                     lineSegment.Point = new Point(xCanvas, yCanvas);
                     pathFigure.Segments.Add(lineSegment);
                 }
@@ -179,8 +206,8 @@ namespace IronPlot
                     for (int i = 0; i < x.Length; ++i)
                     {
                         if (!includeMarker[i]) continue;
-                        double xCanvas = x[i] * xScale + xOffset;
-                        double yCanvas = y[i] * yScale + yOffset;
+                        double xCanvas = xTransformed[i] * xScale + xOffset;
+                        double yCanvas = yTransformed[i] * yScale + yOffset;
                         markers.Children.Add(MarkerGeometries.RectangleMarker(width, height, new Point(xCanvas, yCanvas)));
                     }
                     break;
@@ -188,8 +215,8 @@ namespace IronPlot
                     for (int i = 0; i < x.Length; ++i)
                     {
                         if (!includeMarker[i]) continue;
-                        double xCanvas = x[i] * xScale + xOffset;
-                        double yCanvas = y[i] * yScale + yOffset;
+                        double xCanvas = xTransformed[i] * xScale + xOffset;
+                        double yCanvas = yTransformed[i] * yScale + yOffset;
                         markers.Children.Add(MarkerGeometries.EllipseMarker(width, height, new Point(xCanvas, yCanvas)));
                     }
                     break;
@@ -197,8 +224,8 @@ namespace IronPlot
                     for (int i = 0; i < x.Length; ++i)
                     {
                         if (!includeMarker[i]) continue;
-                        double xCanvas = x[i] * xScale + xOffset;
-                        double yCanvas = y[i] * yScale + yOffset;
+                        double xCanvas = xTransformed[i] * xScale + xOffset;
+                        double yCanvas = yTransformed[i] * yScale + yOffset;
                         markers.Children.Add(MarkerGeometries.TriangleMarker(width, height, new Point(xCanvas, yCanvas)));
                     }
                     break;
@@ -230,7 +257,7 @@ namespace IronPlot
 
         public void FilterMinMax(MatrixTransform canvasToGraph, Rect viewBounds)
         {
-            if (x.Length <= 2) return;
+            if (xTransformed.Length <= 2) return;
             // We do not need to re-evaluate the set of lines if the view is contained by the cached region
             // and the size of the region is not significantly changed.
             double width = Math.Max(viewBounds.Width, canvasToGraph.Matrix.M11 * 500);
@@ -252,7 +279,7 @@ namespace IronPlot
             {
                 includeLinePoint[j] = false;
                 includeMarker[j] = false;
-                double newX = x[j]; double newY = y[j];
+                double newX = xTransformed[j]; double newY = yTransformed[j];
                 if (newX < xViewMin) pointRegion[j] = 1;
                 else if (newX > xViewMax) pointRegion[j] = 2;
                 else if (newY < yViewMin) pointRegion[j] = 4;
@@ -298,7 +325,7 @@ namespace IronPlot
                     includeLinePoint[i] = true;
                 }
                 // Now do max-min filtration
-                xStart = x[i]; yStart = y[i];
+                xStart = xTransformed[i]; yStart = yTransformed[i];
                 ++i;
                 if (i == nPoints) break;
                 xMax = xStart + deltaX; xMin = xStart - deltaX;
@@ -310,7 +337,7 @@ namespace IronPlot
                 // Do max-min filtration:
                 while (true)
                 {
-                    double newX = x[i]; double newY = y[i];
+                    double newX = xTransformed[i]; double newY = yTransformed[i];
                     if (newX > xMax)
                     {
                         xMax = newX;

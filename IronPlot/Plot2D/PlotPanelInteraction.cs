@@ -91,7 +91,7 @@ namespace IronPlot
                 foreach (Axis2D axis in allAxes)
                 {
                     Range axisRange = GetRangeFromChildren(axis);
-                    axis.SetValue(Axis2D.RangeProperty, axisRange);
+                    if (axisRange.Length != 0) axis.SetValue(Axis2D.RangeProperty, axisRange);
                 }
             }
             else
@@ -132,8 +132,8 @@ namespace IronPlot
                     offset = -delta.X / axis.Scale;
                 else offset = delta.Y / axis.Scale;
                 axis.SetValue(Axis2D.RangeProperty, new Range(
-                    axis.Min = axis.CanvasTransform(axis.GraphTransform(axesDragStartRanges[index].Min) + offset),
-                    axis.Max = axis.CanvasTransform(axis.GraphTransform(axesDragStartRanges[index].Max) + offset)));
+                    axis.CanvasTransform(axis.GraphTransform(axesDragStartRanges[index].Min) + offset),
+                    axis.CanvasTransform(axis.GraphTransform(axesDragStartRanges[index].Max) + offset)));
                 index++;
             }
         }

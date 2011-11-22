@@ -73,6 +73,7 @@ namespace IronPlot
             xAxis = xAxisBottom;
             xAxisTop.LabelsVisible = false;
             xAxisTop.TicksVisible = true;
+            xAxisTop.BindToAxis(xAxisBottom);
             //
             yAxisLeft = new YAxis();
             yAxisLeft.SetValue(YAxis.YAxisPositionProperty, YAxisPosition.Left);
@@ -84,6 +85,7 @@ namespace IronPlot
             yAxis = yAxisLeft;
             yAxisRight.LabelsVisible = false;
             yAxisRight.TicksVisible = true;
+            yAxisRight.BindToAxis(yAxisLeft);
             //
             UpdateTicks();
             this.Stroke = Brushes.Black;
@@ -170,7 +172,7 @@ namespace IronPlot
                 double newTotalLength = plotLength + margin.Total();
                 foreach (Axis2D axis in alignedAxes) axis.AxisTotalLength = newTotalLength;
             }
-
+            int nRescales = 0; // for diagnosic purposes only
             while (tickIndex <= maxTickIndex)
             {
                 bool reset = false;
@@ -208,6 +210,7 @@ namespace IronPlot
                         double offsetUpperPrime = offsetUpper * deltaLower / deltaUpper;
                         
                         // scale for lower-limiting axis
+                        nRescales++;
                         double newScale = (axisTotalLength - limitingLowerSemiWidth - limitingUpperSemiWidth) /
                             (deltaLower - offsetLower - offsetUpperPrime);
                         if (plotLength > minPlotLength)
@@ -233,6 +236,10 @@ namespace IronPlot
                 }
                 if (reset == true) tickIndex = 0;
                 else tickIndex++;
+            }
+            if (nRescales > 2)
+            {
+                Console.WriteLine("Many rescales...");
             }
         }
 
