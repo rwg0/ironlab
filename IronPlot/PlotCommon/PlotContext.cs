@@ -163,11 +163,27 @@ namespace IronPlot
         public static void OpenNextWindow()
         {
             if (PlotContext.windowDictionary.Keys.Max() == null) CurrentWindowIndex = 0;
-                else CurrentWindowIndex = windowDictionary.Keys.Max() + 1;
+            else
+            {
+                // find first unassigned integer
+                int index = 0;
+                while (windowDictionary.Keys.Contains(index)) index++;
+                CurrentWindowIndex = index;
+            }
         }
 
         private static void window_Closed(Object sender, EventArgs e)
         {
+            var entry = windowDictionary.Single(t => t.Value == (Window)sender);
+            windowDictionary.Remove(entry.Key);
+            plotDictionaryLookup.Remove(entry.Value);
+            Window windowToRemove = (Window)sender;
+            if ((windowToRemove.Content != null) && (windowToRemove.Content.GetType() == typeof(TabControl)))
+            {
+                tabItemDictionaryLookup.Remove((TabControl)(windowToRemove.Content));
+                plotDictionaryLookup.Remove((TabControl)(windowToRemove.Content));
+            }
+            plotDictionary = null; tabItemDictionary = null;
             if (PlotContext.currentWindow == (Window)sender)
             {
                 PlotContext.currentWindow = null;
