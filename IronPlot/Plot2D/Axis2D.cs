@@ -149,10 +149,10 @@ namespace IronPlot
             if (axis2DLocal.AxisType == AxisType.Log)
             {
                 if (desiredRange.Min <= 0 || desiredRange.Max <= 0)
-                    axis2DLocal.SetValue(RangeProperty, e.OldValue); 
-                    //axis2DLocal.SetValue(RangeProperty, new Range(Math.Max(desiredRange.Min, Double.Epsilon), 
-                    //    Math.Max(desiredRange.Max, Double.Epsilon * 100)));  
+                    axis2DLocal.SetValue(RangeProperty, e.OldValue);  
             }
+            double length = Math.Abs(desiredRange.Length);
+            if ((Math.Abs(desiredRange.Min) / length > 1e10) || (Math.Abs(desiredRange.Max) / length > 1e10)) axis2DLocal.SetValue(RangeProperty, e.OldValue);    
             axis2DLocal.DeriveTicks();
             if (axis2DLocal.PlotPanel != null) axis2DLocal.PlotPanel.InvalidateMeasure();
         }

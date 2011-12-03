@@ -173,7 +173,8 @@ namespace IronPlot
                 foreach (Axis2D axis in alignedAxes) axis.AxisTotalLength = newTotalLength;
             }
             int nRescales = 0; // for diagnosic purposes only
-            while (tickIndex <= maxTickIndex)
+
+            while ((tickIndex <= maxTickIndex) && (nRescales < 10))
             {
                 bool reset = false;
                 // if a rescaling is required, start again from the beginning.
@@ -237,7 +238,7 @@ namespace IronPlot
                 if (reset == true) tickIndex = 0;
                 else tickIndex++;
             }
-            if (nRescales > 2)
+            if (nRescales == 10)
             {
                 Console.WriteLine("Many rescales...");
             }
