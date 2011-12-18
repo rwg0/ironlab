@@ -68,9 +68,14 @@ namespace PlotTest
             yAxisOuter.AxisLabel.Text = "Added Y Axis";
             plot1.Axes.XAxes.Add(xAxisOuter);
             plot1.Axes.YAxes.Add(yAxisOuter);
+            yAxisOuter.Position = YAxisPosition.Right;
             plot1.Axes.XAxes[0].FontStyle = plot1.Axes.YAxes[0].FontStyle = FontStyles.Oblique;
             //curve3.XAxis = xAxisOuter;
             curve3.YAxis = yAxisOuter;
+            //plot1.Axes.EqualAxes = new AxisPair(plot1.Axes.XAxes.Bottom, plot1.Axes.YAxes.Left);
+            //plot1.Axes.SetAxesEqual();
+            //plot1.Axes.Width = 200;
+            //plot1.Axes.MinAxisMargin = new Thickness(200, 0, 0, 0);
 
             xAxisOuter.Min = 6.5e-5;
             xAxisOuter.Max = 7.3e-3;

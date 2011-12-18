@@ -25,7 +25,7 @@ namespace IronPlot
             typeof(YAxisPosition), typeof(YAxis),
             new PropertyMetadata(YAxisPosition.Left));
 
-        public YAxisPosition Position { get { return (YAxisPosition)GetValue(YAxisPositionProperty); } }
+        public YAxisPosition Position { get { return (YAxisPosition)GetValue(YAxisPositionProperty); } set { SetValue(YAxisPositionProperty, value); } }
 
         public YAxis() : base() 
         {
@@ -34,6 +34,7 @@ namespace IronPlot
 
         internal override void PositionLabels(bool cullOverlapping)
         {
+            if (!LabelsVisible) return;
             TextBlock currentTextBlock;
             int missOut = 0, missOutMax = 0;
             double currentTop, lastTop = Double.PositiveInfinity;
@@ -42,7 +43,7 @@ namespace IronPlot
             for (int i = 0; i < TicksTransformed.Length; ++i)
             {
                 // Miss out labels if these would overlap.
-                currentTextBlock = tickLabels[i];
+                currentTextBlock = TickLabelCache[i].Label;
                 verticalOffset = currentTextBlock.DesiredSize.Height - singleLineHeight / 2;
                 currentTop = AxisTotalLength - (Scale * TicksTransformed[i] - Offset) - verticalOffset;
                 currentTextBlock.SetValue(Canvas.TopProperty, currentTop);
@@ -78,15 +79,15 @@ namespace IronPlot
                     if ((missOut < missOutMax) && (i > 0))
                     {
                         missOut += 1;
-                        tickLabels[i].Text = "";
+                        TickLabelCache[i].IsShown = false;
                     }
                     else missOut = 0;
                 }
             }
             // Cycle through any now redundant TextBlocks and make invisible.
-            for (int i = TicksTransformed.Length; i < tickLabels.Count; ++i)
+            for (int i = TicksTransformed.Length; i < TickLabelCache.Count; ++i)
             {
-                tickLabels[i].Text = "";
+                TickLabelCache[i].Label.Text = ""; TickLabelCache[i].Value = Double.NaN;
             }
             // Finally, position axisLabel.
             if ((YAxisPosition)GetValue(YAxisPositionProperty) == YAxisPosition.Left)
@@ -98,12 +99,12 @@ namespace IronPlot
 
         internal override double LimitingTickLabelSizeForLength(int index)
         {
-            return tickLabels[index].DesiredSize.Height;
+            return TickLabelCache[index].Label.DesiredSize.Height;
         }
 
         protected override double LimitingTickLabelSizeForThickness(int index)
         {
-            return tickLabels[index].DesiredSize.Width + 3.0;
+            return TickLabelCache[index].Label.DesiredSize.Width + 3.0;
         }
 
         protected override double LimitingAxisLabelSizeForLength()

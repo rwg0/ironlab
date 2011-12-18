@@ -84,7 +84,7 @@ namespace IronPlot
             get { return ((Range)GetValue(RangeProperty)).Max; }
         }
 
-        internal List<TextBlock> tickLabels;
+        internal LabelCache TickLabelCache = new LabelCache();
 
         protected Path axisLine = new Path() { Stroke = Brushes.Black };
         /// <summary>
@@ -119,9 +119,14 @@ namespace IronPlot
         
         internal double Scale;
         internal double Offset;
+       
         internal double AxisTotalLengthConstrained; // The axis length including labels allowed by constraints.
         // The actual AxisTotalLength may exceed this, possibly causing the axis to be clipped.
-        internal double AxisTotalLength; // The axis length including labels.
+        
+        /// <summary>
+        /// The axis length including labels.
+        /// </summary>
+        internal double AxisTotalLength; 
         // canvasCoord = transformedGraphCoord * Scale - Offset
         // There is deliberately redundant information here: Offset may be inferred from Scale and startPoint.
         // Object that supplies the Max and Min of the Axis.
@@ -133,9 +138,6 @@ namespace IronPlot
         
         // Height of a one-line label
         protected double singleLineHeight;
-
-        // The desired length of the axis; -1 indicates a lack of desire.
-        internal double desiredLength = -1.0;
 
         protected static void OnRangeChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
@@ -193,7 +195,6 @@ namespace IronPlot
             MinTransformed = GraphTransform(Min); MaxTransformed = GraphTransform(Max);
             this.Background = null;
             axisLabel.Visibility = Visibility.Collapsed;
-            tickLabels = new List<TextBlock>();
             gridLines = new GridLines(this);
             canvas.Children.Add(axisLine); axisLine.SetValue(Canvas.ZIndexProperty, 100);
             canvas.Children.Add(axisTicks); axisTicks.SetValue(Canvas.ZIndexProperty, 100);
@@ -231,19 +232,11 @@ namespace IronPlot
         internal static void OnLabelsVisibleChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
             if ((bool)e.NewValue == (bool)e.OldValue) return;
+            Axis2D axis = ((Axis2D)obj);
             if ((bool)e.NewValue == false)
             {
-                foreach (TextBlock textBlock in ((Axis2D)obj).tickLabels)
-                {
-                    textBlock.Visibility = Visibility.Collapsed;
-                }
-            }
-            if ((bool)e.NewValue == true)
-            {
-                foreach (TextBlock textBlock in ((Axis2D)obj).tickLabels)
-                {
-                    textBlock.Visibility = Visibility.Visible;
-                }
+                foreach (LabelCacheItem item in axis.TickLabelCache) axis.canvas.Children.Remove(item.Label);
+                axis.TickLabelCache.Clear();
             }
         }
 
@@ -252,34 +245,64 @@ namespace IronPlot
             // Do nothing in base Version: no labels.
         }
 
+        internal void SetToShowAllLabels()
+        {
+            for (int i = 0; i < TickLabelCache.Count; ++i)
+                TickLabelCache[i].IsShown = true;
+        }
+
+        internal void SetLabelVisibility()
+        {
+            for (int i = 0; i < TickLabelCache.Count; ++i)
+            {
+                if (!TickLabelCache[i].IsShown)
+                {
+                    if (TickLabelCache[i].Label.Visibility != Visibility.Hidden) TickLabelCache[i].Label.Visibility = Visibility.Hidden;
+                }
+                else
+                {
+                    if (TickLabelCache[i].Label.Visibility != Visibility.Visible) TickLabelCache[i].Label.Visibility = Visibility.Visible;
+                }
+            }
+        }
+
         internal void UpdateAndMeasureLabels()
         {
             // Make sure the labels are up to date
+            if (!LabelsVisible) return;
             TextBlock currentTextBlock;
+            bool isFirstNewItem = true;
             for (int i = 0; i < Ticks.Length; ++i)
             {
                 // Reuse the text blocks wherever possible (we do not want to keep adding and taking away TextBlocks
                 // from the canvas)
-                if (i > (tickLabels.Count - 1))
+                if (i > (TickLabelCache.Count - 1))
                 {
-                    currentTextBlock = new TextBlock();
-                    if (LabelsVisible == false) currentTextBlock.Visibility = Visibility.Collapsed;
+                    LabelCacheItem newItem = new LabelCacheItem();
+                    currentTextBlock = newItem.Label;
                     currentTextBlock.SetValue(Canvas.ZIndexProperty, 100);
+                    currentTextBlock.TextAlignment = TextAlignment.Center;
                     canvas.Children.Add(currentTextBlock);
-                    tickLabels.Add(currentTextBlock);
+                    TickLabelCache.Add(newItem);
                 }
-                else currentTextBlock = tickLabels[i];
-                if (i == 0)
+                else currentTextBlock = TickLabelCache[i].Label;
+                if (TickLabelCache[i].TextRequiresChange(AxisType, Ticks[i]))
                 {
-                    currentTextBlock.Text = "0123456789";
+                    if (isFirstNewItem)
+                    {
+                        isFirstNewItem = false;
+                        currentTextBlock.Text = "0123456789";
+                        currentTextBlock.Measure(new Size(Double.PositiveInfinity, double.PositiveInfinity));
+                        singleLineHeight = currentTextBlock.DesiredSize.Height;
+                    }       
+                    AddTextToBlock(currentTextBlock, i);
+                    currentTextBlock.Visibility = Visibility.Visible;
+                    TickLabelCache[i].AxisType = AxisType; TickLabelCache[i].Value = Ticks[i];
                     currentTextBlock.Measure(new Size(Double.PositiveInfinity, double.PositiveInfinity));
-                    singleLineHeight = currentTextBlock.DesiredSize.Height;
                 }
-                AddTextToBlock(currentTextBlock, i);
-                currentTextBlock.TextAlignment = TextAlignment.Center;
-                currentTextBlock.Measure(new Size(Double.PositiveInfinity, double.PositiveInfinity));
             }
             axisLabel.Measure(new Size(Double.PositiveInfinity, double.PositiveInfinity));
+            SetToShowAllLabels();
         }
 
         // Calculate thickness of axis (size in direction penpendicular to axis vector).
@@ -288,20 +311,21 @@ namespace IronPlot
             double maxThickness = 0;
             for (int i = 0; i < Ticks.Length; ++i)
             {
-                if (tickLabels[i].Text != "") maxThickness = Math.Max(maxThickness, LimitingTickLabelSizeForThickness(i));
+                if (LabelsVisible && TickLabelCache[i].IsShown) maxThickness = Math.Max(maxThickness, LimitingTickLabelSizeForThickness(i));
             }
-            AxisThickness = maxThickness + Math.Max(TickLength, 0) + LimitingAxisLabelSizeForThickness();
+            double tickLength = TicksVisible ? Math.Max(TickLength, 0) : 0.0;
+            AxisThickness = maxThickness + tickLength + LimitingAxisLabelSizeForThickness();
             return AxisThickness;
         }
 
         internal virtual double LimitingTickLabelSizeForLength(int index)
         {
-            return tickLabels[index].DesiredSize.Width;
+            return TickLabelCache[index].Label.DesiredSize.Width;
         }
 
         protected virtual double LimitingTickLabelSizeForThickness(int index)
         {
-            return tickLabels[index].DesiredSize.Height;
+            return TickLabelCache[index].Label.DesiredSize.Height;
         }
 
         protected virtual double LimitingAxisLabelSizeForLength()

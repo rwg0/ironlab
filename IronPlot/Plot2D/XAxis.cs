@@ -20,14 +20,12 @@ namespace IronPlot
     {
         // The y position of the axis in Axis Canvas coordinates. 
         internal double yPosition = 0;
-        // The y position of the opposite axis in Axis Canvas coorindates.
-        internal double yPositionOpposite;
 
         internal static DependencyProperty XAxisPositionProperty =
             DependencyProperty.Register("XAxisPositionProperty",
             typeof(XAxisPosition), typeof(XAxis), new PropertyMetadata(XAxisPosition.Bottom));
 
-        public XAxisPosition Position { get { return (XAxisPosition)GetValue(XAxisPositionProperty); } }
+        public XAxisPosition Position { get { return (XAxisPosition)GetValue(XAxisPositionProperty); } set { SetValue(XAxisPositionProperty, value); } }
 
         public XAxis() : base() 
         {
@@ -36,6 +34,7 @@ namespace IronPlot
 
         internal override void PositionLabels(bool cullOverlapping)
         {
+            if (!LabelsVisible) return;
             TextBlock currentTextBlock;
             int missOut = 0, missOutMax = 0;
             double currentRight, lastRight = Double.NegativeInfinity;
@@ -43,7 +42,7 @@ namespace IronPlot
             for (int i = 0; i < TicksTransformed.Length; ++i)
             {
                 // Miss out labels if these would overlap.
-                currentTextBlock = tickLabels[i];
+                currentTextBlock = TickLabelCache[i].Label;
                 currentRight = Scale * TicksTransformed[i] - Offset + currentTextBlock.DesiredSize.Width / 2.0;
                 currentTextBlock.SetValue(Canvas.LeftProperty, currentRight - currentTextBlock.DesiredSize.Width);
                 if ((XAxisPosition)GetValue(XAxisPositionProperty) == XAxisPosition.Bottom)
@@ -74,15 +73,15 @@ namespace IronPlot
                     if ((missOut < missOutMax) && (i > 0))
                     {
                         missOut += 1;
-                        tickLabels[i].Text = "";
+                        TickLabelCache[i].IsShown = false;
                     }
                     else missOut = 0;
                 }
             }
             // Cycle through any now redundant TextBlocks and make invisible.
-            for (int i = TicksTransformed.Length; i < tickLabels.Count; ++i)
+            for (int i = TicksTransformed.Length; i < TickLabelCache.Count; ++i)
             {
-                tickLabels[i].Text = "";
+                TickLabelCache[i].Label.Text = ""; TickLabelCache[i].Value = Double.NaN;
             }
             // Finally, position axisLabel.
             if ((XAxisPosition)GetValue(XAxisPositionProperty) == XAxisPosition.Bottom)
@@ -94,12 +93,12 @@ namespace IronPlot
 
         internal override double LimitingTickLabelSizeForLength(int index)
         {
-            return tickLabels[index].DesiredSize.Width;
+            return TickLabelCache[index].Label.DesiredSize.Width;
         }
 
         protected override double LimitingTickLabelSizeForThickness(int index)
         {
-            return tickLabels[index].DesiredSize.Height;
+            return TickLabelCache[index].Label.DesiredSize.Height;
         }
 
         protected override double LimitingAxisLabelSizeForLength()

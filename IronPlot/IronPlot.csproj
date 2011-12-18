@@ -195,6 +195,7 @@
     <Compile Include="PlotCommon\EnumerableFunctions.cs" />
     <Compile Include="PlotCommon\Image.cs" />
     <Compile Include="PlotCommon\Label.cs" />
+    <Compile Include="PlotCommon\LabelCache.cs" />
     <Compile Include="PlotCommon\LabelProperties.cs" />
     <Compile Include="PlotCommon\Legend.cs" />
     <Compile Include="PlotCommon\LegendItem.cs" />

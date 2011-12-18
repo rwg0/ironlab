@@ -14,6 +14,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using System.Diagnostics;
 
 namespace IronPlot
 {
@@ -24,9 +25,9 @@ namespace IronPlot
 
     public partial class PlotPanel : Panel
     {
-        // Children are two canvases: one for plot content and one for the axes:
-        internal Canvas canvas;
-        internal Canvas axesCanvas;
+        // Canvas for plot content:
+        internal Canvas Canvas;
+
         // Also a background Canvas
         internal Canvas BackgroundCanvas;
         // This is present because a Direct2D surface can also be added and it is desirable to make the
@@ -35,9 +36,6 @@ namespace IronPlot
         // Also a Direct2DControl: a control which can use Direct2D for fast plotting.
         internal Direct2DControl direct2DControl = null;
 
-        // The items are stacked
-
-        // Axes object (child of axesCanvas) 
         internal Axes2D axes;
 
         // Annotation regions
@@ -45,8 +43,6 @@ namespace IronPlot
         internal StackPanel annotationsRight;
         internal StackPanel annotationsTop;
         internal StackPanel annotationsBottom;
-
-        internal Thickness minimumAxesMargin = new Thickness(0);
 
         protected DispatcherTimer marginChangeTimer;
 
@@ -56,9 +52,10 @@ namespace IronPlot
         bool showAnnotationsRight = false;
         bool showAnnotationsTop = false;
         bool showAnnotationsBottom = false;
-        
-        // The location of canvas and axes; axes canvas always starts at point (0,0):
-        protected Rect axesCanvasLocation, canvasLocation;
+
+        protected Size axesRegionSize;
+        // The location of canvas:
+        protected Rect canvasLocation;
         // Width and height of legends, axes and canvas combined: 
         double entireWidth = 0, entireHeight = 0;
         // Offset of combination of legends, axes and canvas in available area:
@@ -115,32 +112,29 @@ namespace IronPlot
 
         public PlotPanel()
         {
+            ClipToBounds = true;
             // Add Canvas objects
             this.Background = Brushes.White; this.HorizontalAlignment = HorizontalAlignment.Center; this.VerticalAlignment = VerticalAlignment.Center;
-            canvas = new Canvas();
-            axesCanvas = new Canvas();
+            Canvas = new Canvas();
             BackgroundCanvas = new Canvas();
-            this.Children.Add(canvas);
-            this.Children.Add(axesCanvas);
+            this.Children.Add(Canvas);
             this.Children.Add(BackgroundCanvas);
             //
-            canvas.ClipToBounds = true;
-            axesCanvas.ClipToBounds = false;
-            canvas.SetValue(Grid.ZIndexProperty, 100);
-            axesCanvas.SetValue(Grid.ZIndexProperty, 200);
+            Canvas.ClipToBounds = true;
+            Canvas.SetValue(Grid.ZIndexProperty, 100);
             BackgroundCanvas.SetValue(Grid.ZIndexProperty, 50);
+            axes = new Axes2D(this);
+            this.Children.Add(axes);
+            axes.SetValue(Grid.ZIndexProperty, 300);
+            // note that individual axes have index of 200
 
-            // Add Axes to axesCanvas
             LinearGradientBrush background = new LinearGradientBrush();
             background.StartPoint = new Point(0, 0); background.EndPoint = new Point(1, 1);
             background.GradientStops.Add(new GradientStop(Colors.White, 0.0));
             background.GradientStops.Add(new GradientStop(Colors.LightGray, 1.0));
-            canvas.Background = Brushes.Transparent;
+            Canvas.Background = Brushes.Transparent;
             BackgroundCanvas.Background = background;
             direct2DControl = null;
-
-            axes = new Axes2D(this);
-            axesCanvas.Children.Add(axes);
             //
             this.CreateLegends();
             if (!(this is ColourBarPanel)) this.AddInteractionEvents();
@@ -149,10 +143,23 @@ namespace IronPlot
             marginChangeTimer = new DispatcherTimer(TimeSpan.FromSeconds(0.0), DispatcherPriority.Normal, marginChangeTimer_Tick, this.Dispatcher);
         }
 
+        Size sizeOnMeasure;// = new Size();
+        Size sizeAfterMeasure;// = new Size();
+
         protected override Size MeasureOverride(Size availableSize)
         {
+            Stopwatch watch = new Stopwatch(); watch.Start();
+            sizeOnMeasure = availableSize;
             var allAxes = axes.XAxes.Concat(axes.YAxes);
-            foreach (Axis2D axis in allAxes) axis.UpdateAndMeasureLabels();
+            axes.Measure(availableSize);
+            foreach (Axis2D axis in allAxes)
+            {
+                axis.UpdateAndMeasureLabels();
+            }
+
+            //watch.Start();
+            double test1 = watch.ElapsedMilliseconds;
+            //watch.Stop();
             annotationsLeft.Measure(availableSize);
             annotationsRight.Measure(availableSize);
             annotationsTop.Measure(availableSize);
@@ -160,19 +167,16 @@ namespace IronPlot
             //
             availableSize.Height = Math.Min(availableSize.Height, 10000);
             availableSize.Width = Math.Min(availableSize.Width, 10000);
+            double test2 = watch.ElapsedMilliseconds;
             MeasureAxes(availableSize);
             //
-            canvas.Measure(new Size(canvasLocation.Width, canvasLocation.Height));
+            Canvas.Measure(new Size(canvasLocation.Width, canvasLocation.Height));
             BackgroundCanvas.Measure(new Size(canvasLocation.Width, canvasLocation.Height));
-            availableSize.Height = axesCanvasLocation.Height + annotationsTop.DesiredSize.Height + annotationsBottom.DesiredSize.Height;
-            availableSize.Width = axesCanvasLocation.Width + annotationsLeft.DesiredSize.Width + annotationsRight.DesiredSize.Width;
-
+            availableSize.Height = axesRegionSize.Height + annotationsTop.DesiredSize.Height + annotationsBottom.DesiredSize.Height;
+            availableSize.Width = axesRegionSize.Width + annotationsLeft.DesiredSize.Width + annotationsRight.DesiredSize.Width;
+            sizeAfterMeasure = availableSize;
+            double test3 = watch.ElapsedMilliseconds;
             return availableSize;
-        }
-
-        protected void ArrangeAxes(Size availableSize)
-        {
-
         }
 
         /// <summary>
@@ -182,6 +186,7 @@ namespace IronPlot
         protected void MeasureAxes(Size availableSize)
         {
             // Allow legends their widths.
+            axes.Measure(availableSize);
             showAnnotationsLeft = false;
             showAnnotationsRight = false;
             showAnnotationsTop = false;
@@ -220,76 +225,81 @@ namespace IronPlot
             bool axesEqual = (bool)this.GetValue(EqualAxesProperty);
             // Calculates the axes positions, positions labels
             // and updates the graphToAxesCanvas transform.
-            Size requiredSize;
             Rect canvasLocationWithinAxes;
             if (dragging)
-                axes.UpdateAxisPositionsOffsetOnly(available, out canvasLocation, out axesCanvasLocation);
+                axes.UpdateAxisPositionsOffsetOnly(available, out canvasLocation, out axesRegionSize);
             else
             {
-                axes.MeasureAxesFull(new Size(available.Width, available.Height), out canvasLocationWithinAxes, out requiredSize);
+                axes.MeasureAxesFull(new Size(available.Width, available.Height), out canvasLocationWithinAxes, out axesRegionSize);
                 canvasLocation = canvasLocationWithinAxes;
-                axesCanvasLocation = new Rect(new Point(0, 0), requiredSize);
+                //axesCanvasLocation = new Rect(new Point(0, 0), requiredSize);
             }
         }
 
         protected override Size ArrangeOverride(Size finalSize)
         {
-            //MeasureAxes(finalSize);     
+            Stopwatch watch = new Stopwatch(); watch.Start();
+            if (!(finalSize == sizeOnMeasure || finalSize == sizeAfterMeasure))
+            {
+                MeasureAxes(finalSize);
+            }
             canvasLocation = new Rect(canvasLocation.X, canvasLocation.Y, canvasLocation.Width, canvasLocation.Height);
-            axesCanvasLocation = new Rect(axesCanvasLocation.X, axesCanvasLocation.Y, axesCanvasLocation.Width, axesCanvasLocation.Height);
+            Rect axesRegionLocation = new Rect(0, 0, axesRegionSize.Width, axesRegionSize.Height);
             double entireWidth = this.entireWidth;
             double entireHeight = this.entireHeight;
             double offsetX = this.offsetX;
             double offsetY = this.offsetY;
-            entireWidth += axesCanvasLocation.Width;
-            entireHeight += axesCanvasLocation.Height;
+            entireWidth += axesRegionSize.Width;
+            entireHeight += axesRegionSize.Height;
             offsetX += (finalSize.Width - entireWidth) / 2;
             offsetY += (finalSize.Height - entireHeight) / 2;
-            axesCanvasLocation.X += offsetX;
+            axesRegionLocation.X += offsetX;
             canvasLocation.X += offsetX;
-            axesCanvasLocation.Y += offsetY;
+            axesRegionLocation.Y += offsetY;
             canvasLocation.Y += offsetY;
-            //canvas.InvalidateVisual();
+
+            axes.RenderEachAxis();
             BeforeArrange();
-            axesCanvas.Arrange(axesCanvasLocation);
-            //
+
+            axes.Arrange(canvasLocation);
+            axes.InvalidateVisual();
             // We also arrange each Axis in the same location.
-            foreach (Axis2D axis in axes.XAxes) axis.Arrange(axesCanvasLocation);
-            foreach (Axis2D axis in axes.YAxes) axis.Arrange(axesCanvasLocation);
+            foreach (Axis2D axis in axes.XAxes) axis.Arrange(axesRegionLocation);
+            foreach (Axis2D axis in axes.YAxes) axis.Arrange(axesRegionLocation);
 
             BackgroundCanvas.Arrange(canvasLocation);
-            canvas.Arrange(canvasLocation);
+            Canvas.Arrange(canvasLocation);
             if (direct2DControl != null) direct2DControl.Arrange(canvasLocation);
             BackgroundCanvas.InvalidateVisual();
-            canvas.InvalidateVisual();
-            // Now arrange canvases
+            Canvas.InvalidateVisual();
+
             if (showAnnotationsLeft)
             {
-                Rect annotationsLeftRect = new Rect(new Point(axesCanvasLocation.Left - annotationsLeft.DesiredSize.Width, axesCanvasLocation.Top),
-                    new Point(axesCanvasLocation.Left, axesCanvasLocation.Bottom));
+                Rect annotationsLeftRect = new Rect(new Point(axesRegionLocation.Left - annotationsLeft.DesiredSize.Width, axesRegionLocation.Top),
+                    new Point(axesRegionLocation.Left, axesRegionLocation.Bottom));
                 annotationsLeft.Arrange(annotationsLeftRect);
             }
             if (showAnnotationsRight)
             {
-                Rect annotationsRightRect = new Rect(new Point(axesCanvasLocation.Right, axesCanvasLocation.Top),
-                    new Point(axesCanvasLocation.Right + annotationsRight.DesiredSize.Width, axesCanvasLocation.Bottom));
+                Rect annotationsRightRect = new Rect(new Point(axesRegionLocation.Right, axesRegionLocation.Top),
+                    new Point(axesRegionLocation.Right + annotationsRight.DesiredSize.Width, axesRegionLocation.Bottom));
                 annotationsRight.Arrange(annotationsRightRect);
             }
             else annotationsRight.Arrange(new Rect());
             if (showAnnotationsTop)
             {
-                Rect annotationsTopRect = new Rect(new Point(axesCanvasLocation.Left, axesCanvasLocation.Top - annotationsTop.DesiredSize.Height),
-                    new Point(axesCanvasLocation.Right, axesCanvasLocation.Top));
+                Rect annotationsTopRect = new Rect(new Point(axesRegionLocation.Left, axesRegionLocation.Top - annotationsTop.DesiredSize.Height),
+                    new Point(axesRegionLocation.Right, axesRegionLocation.Top));
                 annotationsTop.Arrange(annotationsTopRect);
             }
             if (showAnnotationsBottom)
             {
-                Rect annotationsBottomRect = new Rect(new Point(axesCanvasLocation.Left, axesCanvasLocation.Bottom),
-                    new Point(axesCanvasLocation.Right, axesCanvasLocation.Bottom + annotationsBottom.DesiredSize.Height));
+                Rect annotationsBottomRect = new Rect(new Point(axesRegionLocation.Left, axesRegionLocation.Bottom),
+                    new Point(axesRegionLocation.Right, axesRegionLocation.Bottom + annotationsBottom.DesiredSize.Height));
                 annotationsBottom.Arrange(annotationsBottomRect);
             }
             // Finally redraw axes lines
-            axes.InvalidateMeasure();
+            watch.Stop();
             return finalSize;
         }
 

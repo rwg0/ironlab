@@ -243,8 +243,8 @@ namespace IronPlot
                 line.SetValue(Canvas.ZIndexProperty, 200);
                 line.Data.Transform = graphToCanvas;
                 markers.SetValue(Canvas.ZIndexProperty, 200);
-                host.canvas.Children.Add(Line);
-                host.canvas.Children.Add(Markers);
+                host.Canvas.Children.Add(Line);
+                host.Canvas.Children.Add(Markers);
             }
             else
             {
@@ -265,8 +265,8 @@ namespace IronPlot
             }
             else
             {
-                host.canvas.Children.Remove(line);
-                host.canvas.Children.Remove(markers);
+                host.Canvas.Children.Remove(line);
+                host.Canvas.Children.Remove(markers);
             }
         }
 

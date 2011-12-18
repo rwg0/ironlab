@@ -47,7 +47,7 @@ namespace IronPlot
             newItem.PlotPanel = panel;
             panel.Children.Add(newItem);
             panel.BackgroundCanvas.Children.Add(newItem.GridLines);
-            newItem.SetValue(Grid.ZIndexProperty, 201);
+            newItem.SetValue(Grid.ZIndexProperty, 200);
             panel.AddAxisInteractionEvents(new List<Axis2D> { newItem });
         }
 

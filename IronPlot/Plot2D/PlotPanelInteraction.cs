@@ -33,12 +33,12 @@ namespace IronPlot
 
         protected void AddInteractionEvents()
         {
-            canvas.MouseLeftButtonUp += new MouseButtonEventHandler(LeftClickEnd);
-            canvas.MouseLeftButtonDown += new MouseButtonEventHandler(LeftClickStart);
-            canvas.MouseRightButtonUp += new MouseButtonEventHandler(canvas_RightClickEnd);
-            canvas.MouseRightButtonDown += new MouseButtonEventHandler(canvas_RightClickStart);
-            canvas.MouseMove += new MouseEventHandler(element_MouseMove);
-            canvas.MouseWheel += new MouseWheelEventHandler(element_MouseWheel);
+            Canvas.MouseLeftButtonUp += new MouseButtonEventHandler(LeftClickEnd);
+            Canvas.MouseLeftButtonDown += new MouseButtonEventHandler(LeftClickStart);
+            Canvas.MouseRightButtonUp += new MouseButtonEventHandler(canvas_RightClickEnd);
+            Canvas.MouseRightButtonDown += new MouseButtonEventHandler(canvas_RightClickStart);
+            Canvas.MouseMove += new MouseEventHandler(element_MouseMove);
+            Canvas.MouseWheel += new MouseWheelEventHandler(element_MouseWheel);
             var allAxes = axes.XAxes.Concat(axes.YAxes);
         }
 
@@ -73,7 +73,7 @@ namespace IronPlot
             DoubleCollection strokeDashArray1 = new DoubleCollection(2);
             strokeDashArray1.Add(3); strokeDashArray1.Add(3);
             selection.StrokeDashArray = strokeDashArray1;
-            canvas.Children.Add(selection);
+            Canvas.Children.Add(selection);
             selection.SetValue(Canvas.ZIndexProperty, 1000);
         }
 
@@ -100,7 +100,7 @@ namespace IronPlot
                 else axesBeingDragged = axes.XAxes.Concat(axes.YAxes).ToList();
                 StartDrag(e);
             }
-            canvas.CaptureMouse();
+            Canvas.CaptureMouse();
         }
 
         protected void StartDrag(MouseButtonEventArgs e)
@@ -154,10 +154,10 @@ namespace IronPlot
         protected void canvas_RightClickStart(object sender, MouseButtonEventArgs e)
         {
             selectionStarted = true;
-            selectionStart = e.GetPosition(canvas);
+            selectionStart = e.GetPosition(Canvas);
             selection.Width = 0;
             selection.Height = 0;
-            canvas.CaptureMouse();
+            Canvas.CaptureMouse();
         }
 
         protected void LeftClickEnd(object sender, MouseButtonEventArgs e)
@@ -167,14 +167,14 @@ namespace IronPlot
 
         protected void canvas_RightClickEnd(object sender, MouseButtonEventArgs e)
         {
-            if (canvas.IsMouseCaptured)
+            if (Canvas.IsMouseCaptured)
             {
                 if (selectionStarted)
                 {
                     selection.Width = 0;
                     selection.Height = 0;
                     selectionStarted = false;
-                    Point selectionEnd = e.GetPosition(canvas);
+                    Point selectionEnd = e.GetPosition(Canvas);
                     if ((Math.Abs(selectionStart.X - selectionEnd.X) <= 1) ||
                        (Math.Abs(selectionStart.Y - selectionEnd.Y) <= 1))
                     {
@@ -195,7 +195,7 @@ namespace IronPlot
                     selectionStarted = false;
                 }
             }
-            canvas.ReleaseMouseCapture();
+            Canvas.ReleaseMouseCapture();
             e.Handled = true;
         }
 
@@ -203,7 +203,7 @@ namespace IronPlot
         {
             bool isSingleAxis = (sender is Axis2D);
             double delta = e.Delta / 120;
-            Point canvasPosition = e.GetPosition(canvas);
+            Point canvasPosition = e.GetPosition(Canvas);
             double factor = Math.Pow(1.4, delta);
             //
             List<Axis2D> zoomAxes;
@@ -222,7 +222,7 @@ namespace IronPlot
 
         protected void element_MouseMove(object sender, MouseEventArgs e)
         {
-            if (canvas.IsMouseCaptured)
+            if (Canvas.IsMouseCaptured)
             {
                 if (dragging)
                 {
@@ -230,7 +230,7 @@ namespace IronPlot
                 }
                 if (selectionStarted)
                 {
-                    Rect rect = new Rect(selectionStart, e.GetPosition(canvas));
+                    Rect rect = new Rect(selectionStart, e.GetPosition(Canvas));
                     selection.RenderTransform = new TranslateTransform(rect.X, rect.Y);
                     selection.Width = rect.Width;
                     selection.Height = rect.Height;

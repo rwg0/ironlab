@@ -40,12 +40,12 @@ namespace IronPlot
                     if (axis is XAxis)
                     {
                         tickStart = new Point(axis.GraphToCanvas(axis.Ticks[i]), 0);
-                        tickEnd = new Point(axis.GraphToCanvas(axis.Ticks[i]), axis.PlotPanel.canvas.ActualHeight);
+                        tickEnd = new Point(axis.GraphToCanvas(axis.Ticks[i]), axis.PlotPanel.Canvas.ActualHeight);
                     }
                     else
                     {
                         tickStart = new Point(0, axis.GraphToCanvas(axis.Ticks[i]));
-                        tickEnd = new Point(axis.PlotPanel.canvas.ActualWidth, axis.GraphToCanvas(axis.Ticks[i]));
+                        tickEnd = new Point(axis.PlotPanel.Canvas.ActualWidth, axis.GraphToCanvas(axis.Ticks[i]));
                     }
                     gridLinesGeometryContext.BeginFigure(tickStart, false, false);
                     gridLinesGeometryContext.LineTo(tickEnd, true, false);

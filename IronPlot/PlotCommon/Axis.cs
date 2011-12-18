@@ -68,7 +68,7 @@ namespace IronPlot
         internal double[] Coefficient;
         internal int[] Exponent;
         internal int[] RequiredDPs;
-        
+
         protected string[] labels;
         protected double[] cachedTicksOverride;
         protected double[] cachedCoefficientOverride;

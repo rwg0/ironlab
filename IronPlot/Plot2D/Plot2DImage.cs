@@ -61,7 +61,7 @@ namespace IronPlot
             {
                 try
                 {
-                    host.canvas.Children.Remove(Rectangle);
+                    host.Canvas.Children.Remove(Rectangle);
                 }
                 catch (Exception) 
                 { 
@@ -77,7 +77,7 @@ namespace IronPlot
                 colourBar.ColourMapChanged += new RoutedEventHandler(OnColourMapChanged);
             }
             colourMapUpdateTimer.Tick += OnColourMapUpdateTimerElapsed;
-            host.canvas.Children.Add(Rectangle);
+            host.Canvas.Children.Add(Rectangle);
         }
         
         // a FalseColourImage creates a UInt16[]
