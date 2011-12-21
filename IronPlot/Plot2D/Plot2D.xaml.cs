@@ -148,17 +148,11 @@ namespace IronPlot
 
         public void ToClipboard(int dpi)
         {
-            //Thickness savePaddingThickness = this.Padding;
-            //Thickness saveMarginThickness = this.Margin;
-            //this.Padding = new Thickness(0);
-            //this.Margin = new Thickness(0);
             this.InvalidateVisual();
             int width = (int)(this.ActualWidth * (double)dpi / 96.0);
             int height = (int)(this.ActualHeight * (double)dpi / 96.0);
             RenderTargetBitmap renderBitmap = new RenderTargetBitmap(width, height, dpi, dpi, PixelFormats.Pbgra32);
             renderBitmap.Render(this);
-            //this.Padding = savePaddingThickness;
-            //this.Margin = saveMarginThickness;
             Clipboard.SetImage(renderBitmap);
         }
 

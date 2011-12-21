@@ -128,8 +128,6 @@ namespace IronPlot
         /// </summary>
         internal double AxisTotalLength; 
         // canvasCoord = transformedGraphCoord * Scale - Offset
-        // There is deliberately redundant information here: Offset may be inferred from Scale and startPoint.
-        // Object that supplies the Max and Min of the Axis.
 
         // Assume that any change to the axis (number and length of ticks, change to labels) requires
         // another layout pass of the PlotPanel.
@@ -286,7 +284,7 @@ namespace IronPlot
                     TickLabelCache.Add(newItem);
                 }
                 else currentTextBlock = TickLabelCache[i].Label;
-                if (TickLabelCache[i].TextRequiresChange(AxisType, Ticks[i]))
+                if (TickLabelCache[i].TextRequiresChange(AxisType, Ticks[i], RequiredDPs[i]))
                 {
                     if (isFirstNewItem)
                     {
@@ -298,8 +296,8 @@ namespace IronPlot
                     AddTextToBlock(currentTextBlock, i);
                     currentTextBlock.Visibility = Visibility.Visible;
                     TickLabelCache[i].AxisType = AxisType; TickLabelCache[i].Value = Ticks[i];
-                    currentTextBlock.Measure(new Size(Double.PositiveInfinity, double.PositiveInfinity));
                 }
+                currentTextBlock.Measure(new Size(Double.PositiveInfinity, double.PositiveInfinity));
             }
             axisLabel.Measure(new Size(Double.PositiveInfinity, double.PositiveInfinity));
             SetToShowAllLabels();

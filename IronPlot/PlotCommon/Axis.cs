@@ -62,7 +62,7 @@ namespace IronPlot
     /// </summary>
     public abstract class Axis : ContentControl
     {
-        protected Canvas canvas;
+        protected AxisCanvas canvas;
         
         internal double[] Ticks;
         internal double[] Coefficient;
@@ -165,7 +165,7 @@ namespace IronPlot
         
         public Axis()
         {
-            canvas = new Canvas();
+            canvas = new AxisCanvas();
             this.Content = canvas;
         }
 

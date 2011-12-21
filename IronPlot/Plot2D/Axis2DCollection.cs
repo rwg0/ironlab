@@ -17,8 +17,8 @@ namespace IronPlot
         public XAxis2DCollection(PlotPanel panel)
             : base(panel) { }
 
-        public XAxis Top { get { return this[1] as XAxis; } }
-        public XAxis Bottom { get { return this[0] as XAxis; } }
+        public XAxis Top { get { return this[1] as XAxis; } set { this[0] = value; } }
+        public XAxis Bottom { get { return this[0] as XAxis; } set { this[1] = value; } }
     }
 
     public class YAxis2DCollection : Axis2DCollection
@@ -26,8 +26,8 @@ namespace IronPlot
         public YAxis2DCollection(PlotPanel panel)
             : base(panel) { }
 
-        public YAxis Left { get { return this[0] as YAxis; } }
-        public YAxis Right { get { return this[1] as YAxis; } }
+        public YAxis Left { get { return this[0] as YAxis; } set { this[0] = value; } }
+        public YAxis Right { get { return this[1] as YAxis; } set { this[1] = value; } }
     }
 
     public class Axis2DCollection : Collection<Axis2D>
@@ -53,15 +53,23 @@ namespace IronPlot
 
         protected override void SetItem(int index, Axis2D newItem)
         {
+            panel.RemoveAxisInteractionEvents(new List<Axis2D> { this[index] });
+            panel.Children.Remove(this[index]);
+            panel.BackgroundCanvas.Children.Remove(this[index].GridLines);
             base.SetItem(index, newItem);
+            newItem.PlotPanel = panel;
+            panel.Children.Add(newItem);
+            panel.BackgroundCanvas.Children.Add(newItem.GridLines);
+            newItem.SetValue(Grid.ZIndexProperty, 200);
+            panel.AddAxisInteractionEvents(new List<Axis2D> { newItem });
         }
 
         protected override void RemoveItem(int index)
         {
-            base.RemoveItem(index);
             panel.RemoveAxisInteractionEvents(new List<Axis2D> { this[index] });
             panel.Children.Remove(this[index]);
             panel.BackgroundCanvas.Children.Remove(this[index].GridLines);
+            base.RemoveItem(index);
         }
     }
 }

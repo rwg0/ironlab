@@ -143,12 +143,11 @@ namespace IronPlot
             marginChangeTimer = new DispatcherTimer(TimeSpan.FromSeconds(0.0), DispatcherPriority.Normal, marginChangeTimer_Tick, this.Dispatcher);
         }
 
-        Size sizeOnMeasure;// = new Size();
-        Size sizeAfterMeasure;// = new Size();
+        Size sizeOnMeasure;
+        Size sizeAfterMeasure;
 
         protected override Size MeasureOverride(Size availableSize)
         {
-            Stopwatch watch = new Stopwatch(); watch.Start();
             sizeOnMeasure = availableSize;
             var allAxes = axes.XAxes.Concat(axes.YAxes);
             axes.Measure(availableSize);
@@ -157,25 +156,21 @@ namespace IronPlot
                 axis.UpdateAndMeasureLabels();
             }
 
-            //watch.Start();
-            double test1 = watch.ElapsedMilliseconds;
-            //watch.Stop();
             annotationsLeft.Measure(availableSize);
             annotationsRight.Measure(availableSize);
             annotationsTop.Measure(availableSize);
             annotationsBottom.Measure(availableSize);
-            //
+            
             availableSize.Height = Math.Min(availableSize.Height, 10000);
             availableSize.Width = Math.Min(availableSize.Width, 10000);
-            double test2 = watch.ElapsedMilliseconds;
+            // Main measurement work:
             MeasureAxes(availableSize);
-            //
+            
             Canvas.Measure(new Size(canvasLocation.Width, canvasLocation.Height));
             BackgroundCanvas.Measure(new Size(canvasLocation.Width, canvasLocation.Height));
             availableSize.Height = axesRegionSize.Height + annotationsTop.DesiredSize.Height + annotationsBottom.DesiredSize.Height;
             availableSize.Width = axesRegionSize.Width + annotationsLeft.DesiredSize.Width + annotationsRight.DesiredSize.Width;
             sizeAfterMeasure = availableSize;
-            double test3 = watch.ElapsedMilliseconds;
             return availableSize;
         }
 
@@ -223,8 +218,7 @@ namespace IronPlot
             }
             Rect available = new Rect(startX, 0, endX - startX, endY - startY);
             bool axesEqual = (bool)this.GetValue(EqualAxesProperty);
-            // Calculates the axes positions, positions labels
-            // and updates the graphToAxesCanvas transform.
+            // Calculates the axes positions, positions labels, updates geometries.
             Rect canvasLocationWithinAxes;
             if (dragging)
                 axes.UpdateAxisPositionsOffsetOnly(available, out canvasLocation, out axesRegionSize);
@@ -232,7 +226,6 @@ namespace IronPlot
             {
                 axes.MeasureAxesFull(new Size(available.Width, available.Height), out canvasLocationWithinAxes, out axesRegionSize);
                 canvasLocation = canvasLocationWithinAxes;
-                //axesCanvasLocation = new Rect(new Point(0, 0), requiredSize);
             }
         }
 
@@ -259,11 +252,15 @@ namespace IronPlot
             canvasLocation.Y += offsetY;
 
             axes.RenderEachAxis();
+            // 'Rendering' of plot items, i.e. recreating geometries is done in BeforeArrange.
             BeforeArrange();
 
+            // The axes themselves (i.e. the rectangle around the plot canvas):
             axes.Arrange(canvasLocation);
             axes.InvalidateVisual();
-            // We also arrange each Axis in the same location.
+
+            // Arrange each Axis. Arranged over the whole axes region, although of course the axis will typically
+            // only cover a potion of this.
             foreach (Axis2D axis in axes.XAxes) axis.Arrange(axesRegionLocation);
             foreach (Axis2D axis in axes.YAxes) axis.Arrange(axesRegionLocation);
 
@@ -298,8 +295,6 @@ namespace IronPlot
                     new Point(axesRegionLocation.Right, axesRegionLocation.Bottom + annotationsBottom.DesiredSize.Height));
                 annotationsBottom.Arrange(annotationsBottomRect);
             }
-            // Finally redraw axes lines
-            watch.Stop();
             return finalSize;
         }
 

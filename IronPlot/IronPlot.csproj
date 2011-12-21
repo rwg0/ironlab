@@ -141,6 +141,7 @@
     <Compile Include="Plot2D\Direct2D\DirectPathScatter.cs" />
     <Compile Include="Plot2D\GridLines.cs" />
     <Compile Include="Plot2D\IBoundable.cs" />
+    <Compile Include="Plot2D\AxisCanvas.cs" />
     <Compile Include="Plot2D\PlotPath.cs" />
     <Compile Include="Plot2D\Lines.cs" />
     <Compile Include="Plot2D\Plot2D.xaml.cs">

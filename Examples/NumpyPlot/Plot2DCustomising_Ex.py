@@ -34,6 +34,6 @@ plot1.FontWeight = FontWeights.SemiBold
 curve1.QuickStrokeDash = QuickStrokeDash.Dash
 # This specifies that there should be at most 20 ticks: if 20 ticks does not give a 'sensible'
 # tick spacing then a smaller number is used
-plot1.Axes.XAxes.NumberOfTicks = 20
+plot1.Axes.XAxes.Bottom.NumberOfTicks = plot1.Axes.XAxes.Top.NumberOfTicks = 20
 plot1.LegendPosition = Position.Top
-plot1.Legend.Orentation = Orientation.Horizontal
+plot1.Legend.Orientation = Orientation.Horizontal

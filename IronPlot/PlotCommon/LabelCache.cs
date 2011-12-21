@@ -21,10 +21,11 @@ namespace IronPlot
         /// If AxisType and Value are the same, Label does not require alteration.
         /// </summary>
         public double Value = Double.NaN;
+        public int RequiredDPs = 0;
 
-        public bool TextRequiresChange(AxisType newType, double newValue)
+        public bool TextRequiresChange(AxisType newType, double newValue, int requiredDPs)
         {
-            return newType != AxisType || newValue != Value;
+            return newType != AxisType || newValue != Value || requiredDPs != RequiredDPs;
         }
 
         /// <summary>

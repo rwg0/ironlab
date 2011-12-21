@@ -36,7 +36,11 @@ namespace IronPlot
             set
             {
                 if (host == null) xAxis = value;
-                else if (host.axes.XAxes.Contains(value)) xAxis = value;
+                else if (host.axes.XAxes.Contains(value))
+                {
+                    xAxis = value;
+                    host.InvalidateArrange();
+                }
                 else throw new Exception("Axis does not belong to plot.");
             }
         }
@@ -48,7 +52,11 @@ namespace IronPlot
             set
             {
                 if (host == null) yAxis = value;
-                else if (host.axes.YAxes.Contains(value)) yAxis = value;
+                else if (host.axes.YAxes.Contains(value))
+                {
+                    yAxis = value;
+                    host.InvalidateArrange();
+                }
                 else throw new Exception("Axis does not belong to plot.");
             }
         }
