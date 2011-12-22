@@ -9,15 +9,74 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.ComponentModel;
+using System.Diagnostics;
 
 namespace IronPlot
 {
+    public class AxisPair
+    {
+        public XAxis XAxis;
+        public YAxis YAxis;
+
+        public AxisPair(XAxis xAxis, YAxis yAxis)
+        {
+            XAxis = xAxis; YAxis = yAxis;
+        }
+    }
+
     public class Axes2D : Shape
     {
+        public static readonly DependencyProperty AxisSpacingProperty =
+            DependencyProperty.Register("AxisSpacingProperty",
+            typeof(double), typeof(Axes2D),
+            new PropertyMetadata((double)5));
+
+        public static readonly DependencyProperty MinAxisMarginProperty =
+           DependencyProperty.Register("MinAxisMarginProperty",
+           typeof(Thickness), typeof(Axes2D),
+           new PropertyMetadata(new Thickness(0)));
+
+        public static readonly DependencyProperty EqualAxesProperty =
+            DependencyProperty.Register("EqualAxesProperty",
+            typeof(AxisPair), typeof(Axes2D),
+            new PropertyMetadata(null));
+
+        public double AxisSpacing
+        {
+            set { SetValue(AxisSpacingProperty, value); }
+            get { return (double)GetValue(AxisSpacingProperty); }
+        }
+
+        /// <summary>
+        /// The minimum Thickness of the region in which axes are rendered. 
+        /// </summary>
+        public Thickness MinAxisMargin
+        {
+            set { SetValue(MinAxisMarginProperty, value); }
+            get { return (Thickness)GetValue(MinAxisMarginProperty); }
+        }
+
+        /// <summary>
+        /// The two axes (if any) which should be made to have an equal scale.
+        /// </summary>
+        public AxisPair EqualAxes
+        {
+            set { SetValue(EqualAxesProperty, value); }
+            get { return (AxisPair)GetValue(EqualAxesProperty); }
+        }
+
+        /// <summary>
+        /// Set the innermost bottom X Axis and innermost left Y Axis to have equal scales.
+        /// </summary>
+        public void SetAxesEqual()
+        {
+            EqualAxes = new AxisPair(XAxes.Bottom, YAxes.Left);
+        }
+
         // Canvas containing axes.
         protected Canvas canvas;
 
-        protected MatrixTransform graphToCanvas;
+        Size maxCanvasSize = new Size(10000, 10000);
         
         // Axes geometry and context
         protected StreamGeometry axesGeometry;
@@ -30,35 +89,39 @@ namespace IronPlot
         private YAxis yAxis;
         private Axis2DCollection xAxes;
         private Axis2DCollection yAxes;
+
         public XAxis2DCollection XAxes { get { return xAxes as XAxis2DCollection; } }
         public YAxis2DCollection YAxes { get { return yAxes as YAxis2DCollection; } }
 
         public Axes2D(PlotPanel plotPanel)
         {
+            //ClipToBounds = false;
             axesGeometry = new StreamGeometry();
-            this.canvas = plotPanel.axesCanvas;
-            this.graphToCanvas = plotPanel.graphToAxesCanvas;
-            xAxisBottom = new XAxis(plotPanel);
+            xAxisBottom = new XAxis();
             xAxisBottom.SetValue(XAxis.XAxisPositionProperty, XAxisPosition.Bottom);
-            xAxisTop = new XAxis(plotPanel);
+            xAxisTop = new XAxis();
             xAxisTop.SetValue(XAxis.XAxisPositionProperty, XAxisPosition.Top);
             //
-            xAxes = new XAxis2DCollection();
-            xAxes.AddAxis(xAxisBottom); xAxes.AddAxis(xAxisTop);
+            xAxes = new XAxis2DCollection(plotPanel);
+            xAxes.Add(xAxisBottom); xAxes.Add(xAxisTop);
             xAxis = xAxisBottom;
             xAxisTop.LabelsVisible = false;
             xAxisTop.TicksVisible = true;
+            xAxisTop.GridLines.Visibility = Visibility.Collapsed;
+            xAxisTop.BindToAxis(xAxisBottom);
             //
-            yAxisLeft = new YAxis(plotPanel);
+            yAxisLeft = new YAxis();
             yAxisLeft.SetValue(YAxis.YAxisPositionProperty, YAxisPosition.Left);
-            yAxisRight = new YAxis(plotPanel);
+            yAxisRight = new YAxis();
             yAxisRight.SetValue(YAxis.YAxisPositionProperty, YAxisPosition.Right);
             //
-            yAxes = new YAxis2DCollection();
-            yAxes.AddAxis(yAxisLeft); yAxes.AddAxis(yAxisRight);
+            yAxes = new YAxis2DCollection(plotPanel);
+            yAxes.Add(yAxisLeft); yAxes.Add(yAxisRight);
             yAxis = yAxisLeft;
             yAxisRight.LabelsVisible = false;
             yAxisRight.TicksVisible = true;
+            yAxisRight.GridLines.Visibility = Visibility.Collapsed;
+            yAxisRight.BindToAxis(yAxisLeft);
             //
             UpdateTicks();
             this.Stroke = Brushes.Black;
@@ -71,170 +134,285 @@ namespace IronPlot
             get 
             {
                 axesGeometryContext = axesGeometry.Open();
-                Lines lines = new Lines();
-                Point canvasTopLeft = new Point(0, 0);
-                double canvasWidth, canvasHeight;
-                Point topLeftGraph = new Point(xAxis.Min, yAxis.Max);
-                Point bottomRightGraph = new Point(xAxis.Max, yAxis.Min);
-                Point topLeftPlot = graphToCanvas.Transform(topLeftGraph);
-                Point bottomRightPlot = graphToCanvas.Transform(bottomRightGraph);
-                canvasWidth = Math.Max(bottomRightPlot.X - topLeftPlot.X, 1.0);
-                canvasHeight = Math.Max(bottomRightPlot.Y - topLeftPlot.Y, 1.0);
+                double canvasWidth = xAxisBottom.AxisTotalLength - xAxisBottom.AxisMargin.Total();
+                double canvasHeight = yAxisLeft.AxisTotalLength - yAxisLeft.AxisMargin.Total();
 
                 // Add in axes lines
-                Point contextPoint = new Point(topLeftPlot.X, topLeftPlot.Y);
+                Point contextPoint = new Point(0.0, 0.0);
                 axesGeometryContext.BeginFigure(contextPoint, false, true);
                 contextPoint.Y = contextPoint.Y + canvasHeight; axesGeometryContext.LineTo(contextPoint, true, false);
                 contextPoint.X = contextPoint.X + canvasWidth; axesGeometryContext.LineTo(contextPoint, true, false);
                 contextPoint.Y = contextPoint.Y - canvasHeight; axesGeometryContext.LineTo(contextPoint, true, false);
                 //
-                AddTicks(axesGeometryContext);
                 axesGeometryContext.Close();
                 return axesGeometry;
             }
         }
 
-        protected void AddTicks(StreamGeometryContext context)
+        internal void RenderEachAxis()
         {
-            Point tickPosition;
-            bool left = (yAxisLeft.TicksVisible == true);
-            bool right = (yAxisRight.TicksVisible == true);
-            bool top = (xAxisTop.TicksVisible == true);
-            bool bottom = (xAxisBottom.TicksVisible == true);
-            for (int i = 0; i < yAxisLeft.Ticks.Length; ++i)
-            {
-                // Left
-                if (left)
-                {
-                    tickPosition = yAxisLeft.TickStartPosition(i);
-                    context.BeginFigure(tickPosition, false, false);
-                    tickPosition.X = tickPosition.X - yAxisLeft.TickLength;
-                    context.LineTo(tickPosition, true, false);
-                }
-                // Right
-                if (right)
-                {
-                    tickPosition = yAxisRight.TickStartPosition(i);
-                    context.BeginFigure(tickPosition, false, false);
-                    tickPosition.X = tickPosition.X + yAxisRight.TickLength;
-                    context.LineTo(tickPosition, true, false);
-                }
-            }
-            for (int i = 0; i < xAxis.Ticks.Length; ++i)
-            {
-                // Top
-                if (top)
-                {
-                    tickPosition = xAxisTop.TickStartPosition(i);
-                    context.BeginFigure(tickPosition, false, false);
-                    tickPosition.Y = tickPosition.Y - xAxisTop.TickLength;
-                    context.LineTo(tickPosition, true, false);
-                }
-                // Bottom
-                if (bottom)
-                {
-                    tickPosition = xAxisBottom.TickStartPosition(i);
-                    context.BeginFigure(tickPosition, false, false);
-                    tickPosition.Y = tickPosition.Y + xAxisBottom.TickLength;
-                    context.LineTo(tickPosition, true, false);
-                }
-            }
+            IEnumerable<Axis2D> allAxis = xAxes.Concat(yAxes);
+            foreach (Axis2D axis in allAxis) axis.RenderAxis();
         }
 
         internal void UpdateTicks()
         {
-            xAxisBottom.DeriveTicks(); xAxisTop.DeriveTicks();
-            yAxisLeft.DeriveTicks(); yAxisRight.DeriveTicks();
+            foreach (Axis2D axis in xAxes) axis.DeriveTicks();
+            foreach (Axis2D axis in yAxes) axis.DeriveTicks();
         }
 
-        internal void UpdateAxisPositionsFull(Rect availableSize, bool axesEqual, Thickness minimumAxesMargin, out Rect canvasPosition, out Rect axesCanvasPosition)
+        /// <summary>
+        /// Increase axis margins by amount necessary to ensure both that there is room
+        /// for labels and that the necessary axes are aligned.
+        /// </summary>
+        /// <param name="alignedAxes">List of axes that need to be aligned.</param>
+        private void ExpandAxisMargins(List<Axis2D> alignedAxes, double lengthOverride)
         {
-            Thickness requiredMargin;
-            int iter = 0;
-            // Perform two passes. On the first, all labels are present and are then culled if necessary.
-            // On the second pass only the remaining labels are present.
-            while (iter < 2)
+            // Calculate margins
+            AxisMargin margin = new AxisMargin(alignedAxes.Max(axis => axis.AxisMargin.LowerMargin), alignedAxes.Max(axis => axis.AxisMargin.UpperMargin));
+
+            double plotLength = 1.0;
+            if (alignedAxes[0] is XAxis) plotLength = Double.IsNaN(lengthOverride) ? Width : lengthOverride;
+            else plotLength = Double.IsNaN(lengthOverride) ? Height : lengthOverride;
+            double minPlotLength = 1.0;
+            if (plotLength > minPlotLength)
             {
-                // Required margin is the margin that would be needed if the axes lengths were all zero.
-                requiredMargin = new Thickness(Math.Max(minimumAxesMargin.Left, yAxisLeft.AxisThickness()),
-                Math.Max(minimumAxesMargin.Top, xAxisTop.AxisThickness()),
-                Math.Max(minimumAxesMargin.Right, yAxisRight.AxisThickness()),
-                Math.Max(minimumAxesMargin.Bottom, xAxisBottom.AxisThickness()));
-                
-                // Calculate the position of each axis assuming all labels for that axis are visible.
-                AxisMargin xAxesMargin = new AxisMargin(requiredMargin.Left, requiredMargin.Right);
-                xAxisBottom.SetAxisLengthFromLabels(availableSize.Width, xAxesMargin);
-                xAxisTop.SetAxisLengthFromLabels(availableSize.Width, xAxesMargin);
-                // Demand that axes' scales are the same and therefore take worst-case.
-                if (Math.Abs(xAxisTop.scale) < Math.Abs(xAxisBottom.scale))
-                    xAxisBottom.OverrideAxisScaling(xAxisTop.scale, xAxisTop.offset, xAxisTop.axisMargin);
-                else xAxisTop.OverrideAxisScaling(xAxisBottom.scale, xAxisBottom.offset, xAxisBottom.axisMargin);
-                //
-                AxisMargin yAxesMargin = new AxisMargin(requiredMargin.Bottom, requiredMargin.Top);
-                yAxisLeft.SetAxisLengthFromLabels(availableSize.Height, yAxesMargin);
-                yAxisRight.SetAxisLengthFromLabels(availableSize.Height, yAxesMargin);
-                if (Math.Abs(yAxisLeft.scale) < Math.Abs(yAxisRight.scale))
-                    yAxisRight.OverrideAxisScaling(yAxisLeft.scale, yAxisLeft.offset, yAxisLeft.axisMargin);
-                else
-                    yAxisLeft.OverrideAxisScaling(yAxisRight.scale, yAxisRight.offset, yAxisRight.axisMargin);
-                // At the end of the second iteration, we know which axis must be reduced in size
-                // if the axes are to be constrained to be equal.
-                if ((iter == 1) && axesEqual)
+                double newTotalLength = plotLength + margin.Total();
+                foreach (Axis2D axis in alignedAxes) axis.AxisTotalLength = newTotalLength;
+            }
+
+            // Set the margin and update Scale and Offset.
+            foreach (Axis2D axis in alignedAxes) axis.ResetAxisMargin(margin);
+            
+            int tickIndex = 0;
+            int maxTickIndex = alignedAxes.Max(axis => axis.Ticks.Length) / 2;
+            int[] tickPair = new int[2];
+            Axis2D limitingLowerAxis = null;
+            int limitingLowerTickIndex = 0;
+            double limitingLowerSemiWidth = margin.LowerMargin;
+            Axis2D limitingUpperAxis = null;
+            int limitingUpperTickIndex = 0;
+            double limitingUpperSemiWidth = margin.UpperMargin;
+            double offsetLower = 0;
+            double deltaLower = alignedAxes[0].MaxTransformed - alignedAxes[0].MinTransformed;
+            double deltaUpper = deltaLower;
+            double axisTotalLength = alignedAxes[0].AxisTotalLength;
+            double offsetUpper = 0;
+
+            int nRescales = 0; // for diagnosic purposes only
+
+            while ((tickIndex <= maxTickIndex) && (nRescales < 10))
+            {
+                bool reset = false;
+                // if a rescaling is required, start again from the beginning.
+                for (int i = 0; i < alignedAxes.Count; ++i)
                 {
-                    if (yAxisLeft.scale > xAxisBottom.scale)
+                    Axis2D currentAxis = alignedAxes[i];
+                    tickPair[0] = tickIndex;
+                    tickPair[1] = currentAxis.TicksTransformed.Length - 1 - tickIndex;
+                    if ((currentAxis.TicksTransformed.Length - 1 - tickIndex) < tickIndex) continue;
+                    for (int j = 0; j <= 1; ++j)
                     {
-                        // Need to shorten the y axis.  
-                        yAxisLeft.ScaleAxis(xAxisBottom.scale, availableSize.Height);
-                        yAxisRight.ScaleAxis(xAxisBottom.scale, availableSize.Height);
+                        int index = tickPair[j];
+                        if (!currentAxis.LabelsVisible || currentAxis.TickLabelCache[index].Label.Text == "" || !currentAxis.TickLabelCache[index].IsShown) continue;
+                        if ((currentAxis.Scale * currentAxis.TicksTransformed[index] - currentAxis.Offset - currentAxis.LimitingTickLabelSizeForLength(index) / 2) < -0.1)
+                        {
+                            // need to rescale axes
+                            limitingLowerAxis = currentAxis;
+                            limitingLowerTickIndex = index;
+                            limitingLowerSemiWidth = currentAxis.LimitingTickLabelSizeForLength(index) / 2;
+                            offsetLower = currentAxis.TicksTransformed[index] - currentAxis.MinTransformed;
+                            deltaLower = currentAxis.MaxTransformed - currentAxis.MinTransformed;
+                        }
+                        else if ((currentAxis.Scale * currentAxis.TicksTransformed[index] - currentAxis.Offset + currentAxis.LimitingTickLabelSizeForLength(index) / 2) > (currentAxis.AxisTotalLength + 0.1))
+                        {
+                            // need to rescale axes
+                            limitingUpperAxis = currentAxis;
+                            limitingUpperTickIndex = index;
+                            limitingUpperSemiWidth = currentAxis.LimitingTickLabelSizeForLength(index) / 2;
+                            offsetUpper = currentAxis.MaxTransformed - currentAxis.TicksTransformed[index];
+                            deltaUpper = currentAxis.MaxTransformed - currentAxis.MinTransformed;
+                        }
+                        else continue;
+                        
+                        // Reset required:
+                        reset = true; nRescales++;
+                        double offsetUpperPrime = offsetUpper * deltaLower / deltaUpper;
+                        
+                        // scale for lower-limiting axis
+                        double newScale = (axisTotalLength - limitingLowerSemiWidth - limitingUpperSemiWidth) /
+                            (deltaLower - offsetLower - offsetUpperPrime);
+                        if (plotLength > minPlotLength)
+                        {
+                            // Axis is fixed to plotLength.
+                            newScale = plotLength / deltaLower;
+                            margin = new AxisMargin(limitingLowerSemiWidth - offsetLower * newScale, limitingUpperSemiWidth - offsetUpperPrime * newScale);
+                            foreach (Axis2D axis in alignedAxes) axis.AxisTotalLength = plotLength + margin.Total();
+                        }
+                        if (newScale * deltaLower <= minPlotLength) 
+                        {
+                            // Axis is fixed to minPlotLength
+                            newScale = minPlotLength / deltaLower;
+                            margin = new AxisMargin(limitingLowerSemiWidth - offsetLower * newScale, limitingUpperSemiWidth - offsetUpperPrime * newScale);
+                            foreach (Axis2D axis in alignedAxes) axis.AxisTotalLength = minPlotLength + margin.Total();
+                        }
+                        // otherwise, axis is unfixed.
+                        margin = new AxisMargin(limitingLowerSemiWidth - offsetLower * newScale, limitingUpperSemiWidth - offsetUpperPrime * newScale);
+                        foreach (Axis2D axis in alignedAxes) axis.RescaleAxis(newScale * deltaLower / (axis.MaxTransformed - axis.MinTransformed), margin);
+                        break;
+                    }
+                    if (reset == true) break;
+                }
+                if (reset == true) tickIndex = 0;
+                else tickIndex++;
+            }
+            if (nRescales == 10)
+            {
+                Console.WriteLine("Many rescales...");
+            }
+        }
+
+        /// <summary>
+        /// Given the available size for the plot area and axes, determine the
+        /// required size and the position of the plot region within this region.
+        /// Also sets the axes scales and positions and positions labels.
+        /// </summary>
+        /// <param name="availableSize"></param>
+        /// <param name="canvasPosition"></param>
+        /// <param name="axesCanvasPositions"></param>
+        internal void MeasureAxesFull(Size availableSize, out Rect canvasPosition, out Size requiredSize)
+        {
+            Stopwatch watch = new Stopwatch(); watch.Start();
+            // The arrangement process is
+            // 1 - Calculate axes thicknesses
+            // 2 - Expand axis margins if required, taking into account alignment requirements
+            // 3 - Reduce axis if equal axes is demanded
+            // 4 - Cull labels
+            // 5 - Repeat 1 - 3 with culled labels
+            requiredSize = availableSize;
+            canvasPosition = new Rect();
+            int iter = 0;
+            var xAxesBottom = xAxes.Where(axis => (axis as XAxis).Position == XAxisPosition.Bottom);
+            var xAxesTop = xAxes.Where(axis => (axis as XAxis).Position == XAxisPosition.Top);
+            var yAxesLeft = yAxes.Where(axis => (axis as YAxis).Position == YAxisPosition.Left);
+            var yAxesRight = yAxes.Where(axis => (axis as YAxis).Position == YAxisPosition.Right);
+            var allAxes = xAxes.Concat(yAxes);
+            if (xAxesBottom.First() != null) xAxesBottom.First().IsInnermost = true;
+            if (xAxesTop.First() != null) xAxesTop.First().IsInnermost = true;
+            if (yAxesLeft.First() != null) yAxesLeft.First().IsInnermost = true;
+            if (yAxesRight.First() != null) yAxesRight.First().IsInnermost = true;
+            while (iter <= 1)
+            {
+                // Step 1: calculate axis thicknesses (given any removed labels)
+                foreach (Axis2D axis in allAxes) axis.CalculateAxisThickness();
+                double axisSpacing = AxisSpacing;
+                Thickness axisSpacings = new Thickness(Math.Max((yAxesLeft.Count() - 1) * axisSpacing, 0),
+                    Math.Max((xAxesTop.Count() - 1) * axisSpacing, 0), Math.Max((yAxesRight.Count() - 1) * axisSpacing, 0), Math.Max((xAxesBottom.Count() - 1) * axisSpacing, 0));
+                Thickness minAxisMargin = MinAxisMargin;
+                Thickness margin = new Thickness(Math.Max(yAxesLeft.Sum(axis => axis.AxisThickness) + axisSpacings.Left, minAxisMargin.Left), 
+                    Math.Max(xAxesTop.Sum(axis => axis.AxisThickness) + axisSpacings.Top, minAxisMargin.Top),
+                    Math.Max(yAxesRight.Sum(axis => axis.AxisThickness) + axisSpacings.Right, minAxisMargin.Right), 
+                    Math.Max(xAxesBottom.Sum(axis => axis.AxisThickness) + axisSpacings.Bottom, minAxisMargin.Bottom));
+
+                ResetMarginsXAxes(availableSize, margin);
+                ResetMarginsYAxes(availableSize, margin);
+
+                // Step 2: expand axis margins if necessary
+                ExpandAxisMargins(xAxes.ToList(), Double.NaN);
+                ExpandAxisMargins(yAxes.ToList(), Double.NaN);
+                //foreach (Axis2D axis in allAxes) axis.ExpandMarginsAsRequired();
+
+                // Step 3: take account of equal axes
+                // This is only done on the second (and final iteration)
+                if ((iter == 1) && (EqualAxes != null))
+                {
+                    if (EqualAxes.XAxis.Scale > EqualAxes.YAxis.Scale)
+                    {
+                        // XAxes will be reduced in size. First reset all margins to the minimum, then expand margins given the fixed scale.
+                        ResetMarginsXAxes(availableSize, margin);
+                        foreach (Axis2D axis in xAxes) axis.SetToShowAllLabels(); 
+                        ExpandAxisMargins(xAxes.ToList(), EqualAxes.YAxis.Scale * (EqualAxes.XAxis.MaxTransformed - EqualAxes.XAxis.MinTransformed)); 
                     }
                     else
                     {
-                        // Need to shorten the x axis.  
-                        xAxisTop.ScaleAxis(yAxisLeft.scale, availableSize.Width);
-                        xAxisBottom.ScaleAxis(yAxisLeft.scale, availableSize.Width);
+                        ResetMarginsYAxes(availableSize, margin);
+                        foreach (Axis2D axis in yAxes) axis.SetToShowAllLabels(); 
+                        ExpandAxisMargins(yAxes.ToList(), EqualAxes.XAxis.Scale * (EqualAxes.YAxis.MaxTransformed - EqualAxes.YAxis.MinTransformed)); 
                     }
+
                 }
-                // Now position labels, removing as required to prevent overlap.
-                xAxisBottom.yPosition = yAxisLeft.axisMax - yAxisLeft.axisMargin.MinMargin;
-                xAxisTop.yPosition = yAxisLeft.axisMargin.MaxMargin;
-                yAxisLeft.xPosition = xAxisBottom.axisMargin.MinMargin;
-                yAxisRight.xPosition = xAxisBottom.axisMax - xAxisBottom.axisMargin.MaxMargin;
-                // If axes are not equal then labels are culled on the first pass and then we re scale the graph
-                // to the available space on the second.
-                bool cullOverlapping = ((iter == 0) && !axesEqual) || ((iter == 1) && axesEqual);
-                xAxisBottom.PositionLabels(cullOverlapping);
-                xAxisTop.PositionLabels(cullOverlapping);
-                yAxisLeft.PositionLabels(cullOverlapping);
-                yAxisRight.PositionLabels(cullOverlapping);
-                // The axis length may have to be readjusted if labels were removed, so repeat the process.
+
+                double yPosition = yAxes[0].AxisTotalLength - yAxes[0].AxisMargin.LowerMargin;
+                foreach (XAxis xAxis in xAxesBottom)
+                {
+                    xAxis.yPosition = yPosition;
+                    yPosition += xAxis.AxisThickness + axisSpacing;
+                }
+                yPosition = yAxes[0].AxisMargin.UpperMargin;
+                foreach (XAxis xAxis in xAxesTop)
+                {
+                    xAxis.yPosition = yPosition;
+                    yPosition -= xAxis.AxisThickness + axisSpacing;
+                }
+                double xPosition = xAxes[0].AxisMargin.LowerMargin;
+                foreach (YAxis yAxis in yAxesLeft)
+                {
+                    yAxis.xPosition = xPosition;
+                    xPosition -= yAxis.AxisThickness + axisSpacing;
+                }
+                xPosition = xAxes[0].AxisTotalLength - xAxes[0].AxisMargin.UpperMargin;
+                foreach (YAxis yAxis in yAxesRight)
+                {
+                    yAxis.xPosition = xPosition;
+                    xPosition += yAxis.AxisThickness + axisSpacing;
+                }
+
+                // Step 4: cull labels
+                bool cullOverlapping = (iter == 0) || (EqualAxes != null && iter == 1);
+                foreach (Axis2D axis in allAxes) axis.PositionLabels(cullOverlapping);
+
                 iter++;
             }
-            graphToCanvas.Matrix = new Matrix(xAxisBottom.scale, 0, 0, -yAxisLeft.scale, -xAxisBottom.offset, yAxisLeft.offset + yAxisLeft.axisMax);
-            axesCanvasPosition = new Rect(0, 0,
-                xAxisBottom.axisMax,
-                yAxisLeft.axisMax);
-            canvasPosition = new Rect(xAxisBottom.axisMargin.MinMargin, yAxisLeft.axisMargin.MaxMargin,
-                xAxisBottom.axisMax - xAxisBottom.axisMargin.MinMargin - xAxisBottom.axisMargin.MaxMargin,
-                yAxisLeft.axisMax - yAxisLeft.axisMargin.MinMargin - yAxisLeft.axisMargin.MaxMargin);
+            foreach (Axis2D axis in allAxes) axis.SetLabelVisibility(); 
+            requiredSize = new Size(xAxes[0].AxisTotalLength, yAxes[0].AxisTotalLength);
+            canvasPosition = new Rect(new Point(xAxes[0].AxisMargin.LowerMargin, yAxes[0].AxisMargin.UpperMargin),
+                new Point(requiredSize.Width - xAxes[0].AxisMargin.UpperMargin, requiredSize.Height - yAxes[0].AxisMargin.LowerMargin));
+            watch.Stop();
         }
 
-        internal void UpdateAxisPositionsOffsetOnly(Rect availableSize, out Rect canvasPosition, out Rect axesCanvasPosition)
+        private void ResetMarginsXAxes(Size availableSize, Thickness margin)
         {
-            xAxisBottom.UpdateOffset();
-            xAxisTop.UpdateOffset();
-            yAxisLeft.UpdateOffset();
-            yAxisRight.UpdateOffset();
-            xAxisBottom.PositionLabels(true);
-            xAxisTop.PositionLabels(true);
-            yAxisLeft.PositionLabels(true);
-            yAxisRight.PositionLabels(true);
-            graphToCanvas.Matrix = new Matrix(xAxisBottom.scale, 0, 0, -yAxisLeft.scale, -xAxisBottom.offset, yAxisLeft.offset + yAxisLeft.axisMax);
-            axesCanvasPosition = new Rect(0, 0,
-                xAxisBottom.axisMax,
-                yAxisLeft.axisMax);
-            canvasPosition = new Rect(xAxisBottom.axisMargin.MinMargin, availableSize.Height - yAxisLeft.axisMax + yAxisLeft.axisMargin.MaxMargin,
-                xAxisBottom.axisMax - xAxisBottom.axisMargin.MinMargin - xAxisBottom.axisMargin.MaxMargin,
-                yAxisLeft.axisMax - yAxisLeft.axisMargin.MinMargin - yAxisLeft.axisMargin.MaxMargin);
+            foreach (Axis2D axis in xAxes)
+            {
+                axis.AxisTotalLength = Math.Min(availableSize.Width, maxCanvasSize.Width + axis.AxisMargin.Total());
+                axis.AxisTotalLengthConstrained = axis.AxisTotalLength;
+                axis.ResetAxisMargin(new AxisMargin(margin.Left, margin.Right));
+            }
+        }
+
+        private void ResetMarginsYAxes(Size availableSize, Thickness margin)
+        {
+            foreach (Axis2D axis in yAxes)
+            {
+                axis.AxisTotalLength = Math.Min(availableSize.Height, maxCanvasSize.Height + axis.AxisMargin.Total());
+                axis.AxisTotalLengthConstrained = axis.AxisTotalLength;
+                axis.ResetAxisMargin(new AxisMargin(margin.Bottom, margin.Top));
+            }
+        }
+
+        internal void UpdateAxisPositionsOffsetOnly(Rect availableSize, out Rect canvasPosition, out Size requiredSize)
+        {
+            var allAxes = xAxes.Concat(yAxes);
+            foreach (Axis2D axis in allAxes)
+            {
+                axis.UpdateOffset();
+                axis.PositionLabels(true);
+                axis.SetLabelVisibility(); 
+            }
+            requiredSize = new Size(xAxisBottom.AxisTotalLength, yAxisLeft.AxisTotalLength);
+            canvasPosition = new Rect(xAxisBottom.AxisMargin.LowerMargin, availableSize.Height - yAxisLeft.AxisTotalLength + yAxisLeft.AxisMargin.UpperMargin,
+                xAxisBottom.AxisTotalLength - xAxisBottom.AxisMargin.LowerMargin - xAxisBottom.AxisMargin.UpperMargin,
+                yAxisLeft.AxisTotalLength - yAxisLeft.AxisMargin.LowerMargin - yAxisLeft.AxisMargin.UpperMargin);
         }
     }
 }

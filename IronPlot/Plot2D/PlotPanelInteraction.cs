@@ -20,8 +20,8 @@ namespace IronPlot
     {
         // Mouse interaction
         private Point mouseDragStartPoint;
-        private Rect mouseDragStartRect;
-        private string displayMode = "normal";
+        List<Axis2D> axesBeingDragged;
+        List<Range> axesDragStartRanges;
 
         // Selection Window
         private bool selectionStarted = false;
@@ -33,171 +33,207 @@ namespace IronPlot
 
         protected void AddInteractionEvents()
         {
-            canvas.MouseLeftButtonUp += new MouseButtonEventHandler(canvas_LeftClickEnd);
-            canvas.MouseLeftButtonDown += new MouseButtonEventHandler(canvas_LeftClickStart);
-            canvas.MouseRightButtonUp += new MouseButtonEventHandler(canvas_RightClickEnd);
-            canvas.MouseRightButtonDown += new MouseButtonEventHandler(canvas_RightClickStart);
-            canvas.MouseMove += new MouseEventHandler(canvas_MouseMove);
-            canvas.MouseWheel += new MouseWheelEventHandler(canvas_MouseWheel);
+            Canvas.MouseLeftButtonUp += new MouseButtonEventHandler(LeftClickEnd);
+            Canvas.MouseLeftButtonDown += new MouseButtonEventHandler(LeftClickStart);
+            Canvas.MouseRightButtonUp += new MouseButtonEventHandler(canvas_RightClickEnd);
+            Canvas.MouseRightButtonDown += new MouseButtonEventHandler(canvas_RightClickStart);
+            Canvas.MouseMove += new MouseEventHandler(element_MouseMove);
+            Canvas.MouseWheel += new MouseWheelEventHandler(element_MouseWheel);
+            var allAxes = axes.XAxes.Concat(axes.YAxes);
+        }
+
+        internal void RemoveAxisInteractionEvents(IEnumerable<Axis2D> axes)
+        {
+            if (this is ColourBarPanel) return;
+            foreach (Axis2D axis in axes) axis.MouseLeftButtonDown -= new MouseButtonEventHandler(LeftClickStart);
+            foreach (Axis2D axis in axes) axis.MouseMove -= new MouseEventHandler(element_MouseMove);
+            foreach (Axis2D axis in axes) axis.MouseLeftButtonUp -= new MouseButtonEventHandler(LeftClickEnd);
+            foreach (Axis2D axis in axes) axis.MouseWheel -= new MouseWheelEventHandler(element_MouseWheel);
+        }
+
+        internal void AddAxisInteractionEvents(IEnumerable<Axis2D> axes)
+        {
+            if (this is ColourBarPanel) return;
+            foreach (Axis2D axis in axes) axis.MouseLeftButtonDown += new MouseButtonEventHandler(LeftClickStart);
+            foreach (Axis2D axis in axes) axis.MouseMove += new MouseEventHandler(element_MouseMove);
+            foreach (Axis2D axis in axes) axis.MouseLeftButtonUp += new MouseButtonEventHandler(LeftClickEnd);
+            foreach (Axis2D axis in axes) axis.MouseWheel += new MouseWheelEventHandler(element_MouseWheel);
         }
 
         protected void AddSelectionRectangle()
         {
-            mouseDragStartRect = new Rect();
-            //
-            selection = new Rectangle(); selection.Visibility = Visibility.Visible;
-            SolidColorBrush selectionBrush = new SolidColorBrush();
-            selectionBrush.Color = Brushes.Aquamarine.Color;
-            selectionBrush.Opacity = 0.5;
+            selection = new Rectangle() { Visibility = Visibility.Visible, ClipToBounds = true, Width = 0, Height = 0, 
+                VerticalAlignment = VerticalAlignment.Top };
+            SolidColorBrush selectionBrush = new SolidColorBrush() { Color = Brushes.Aquamarine.Color, Opacity = 0.5 };
             selection.Fill = selectionBrush;
             selection.StrokeDashOffset = 5; selection.StrokeThickness = 0.99;
-            SolidColorBrush selectionBrush2 = new SolidColorBrush();
-            selectionBrush2.Color = Color.FromArgb(255, 0, 0, 0);
+            SolidColorBrush selectionBrush2 = new SolidColorBrush() { Color = Color.FromArgb(255, 0, 0, 0) };
             selection.Stroke = selectionBrush2;
             selection.HorizontalAlignment = HorizontalAlignment.Left;
             DoubleCollection strokeDashArray1 = new DoubleCollection(2);
             strokeDashArray1.Add(3); strokeDashArray1.Add(3);
-            selection.VerticalAlignment = VerticalAlignment.Top;
             selection.StrokeDashArray = strokeDashArray1;
-            selection.ClipToBounds = true;
-            selection.Width = 0; selection.Height = 0;
-            canvas.Children.Add(selection);
+            Canvas.Children.Add(selection);
             selection.SetValue(Canvas.ZIndexProperty, 1000);
         }
 
-        protected void canvas_LeftClickStart(object sender, MouseButtonEventArgs e)
+        protected void LeftClickStart(object sender, MouseButtonEventArgs e)
         {
-            switch (displayMode)
+            // either whole canvas or single axis
+            bool isSingleAxis = (sender is Axis2D);
+            if (e.ClickCount > 1)
             {
-                case "normal":
-                    if (e.ClickCount > 1)
-                    {
-                        dragging = false;
-                        this.Cursor = Cursors.Arrow;
-                        ViewedRegion = GetBoundsFromChildren();
-                        break;
-                    }
-                    else
-                    {
-                        mouseDragStartPoint = e.GetPosition(this);
-                        mouseDragStartRect = ViewedRegion;
-                        this.Cursor = Cursors.ScrollAll;
-                        dragging = true;
-                        break;
-                    }
+                dragging = false;
+                this.Cursor = Cursors.Arrow;
+                List<Axis2D> allAxes;
+                if (isSingleAxis) allAxes = new List<Axis2D> { sender as Axis2D };
+                else allAxes = axes.XAxes.Concat(axes.YAxes).ToList();
+                foreach (Axis2D axis in allAxes)
+                {
+                    Range axisRange = GetRangeFromChildren(axis);
+                    if (axisRange.Length != 0) axis.SetValue(Axis2D.RangeProperty, axisRange);
+                }
             }
-            canvas.CaptureMouse();
+            else
+            {
+                if (isSingleAxis) axesBeingDragged = new List<Axis2D> { sender as Axis2D };
+                else axesBeingDragged = axes.XAxes.Concat(axes.YAxes).ToList();
+                StartDrag(e);
+            }
+            Canvas.CaptureMouse();
+        }
+
+        protected void StartDrag(MouseButtonEventArgs e)
+        {
+            mouseDragStartPoint = e.GetPosition(this);
+            axesDragStartRanges = new List<Range>();
+            foreach (Axis2D axis in axesBeingDragged)
+            {
+                axesDragStartRanges.Add(new Range(axis.Min, axis.Max));
+            }
+            this.Cursor = Cursors.ScrollAll;
+            dragging = true;
+        }
+
+        protected void MoveDrag(MouseEventArgs e)
+        {
+            // Get the new mouse position. 
+            Point mouseDragCurrentPoint = e.GetPosition(this);
+
+            Point delta = new Point(
+                (mouseDragCurrentPoint.X - mouseDragStartPoint.X),
+                (mouseDragCurrentPoint.Y - mouseDragStartPoint.Y));
+
+            int index = 0;
+            foreach (Axis2D axis in axesBeingDragged)
+            {
+                double offset;
+                if (axis is XAxis)
+                    offset = -delta.X / axis.Scale;
+                else offset = delta.Y / axis.Scale;
+                axis.SetValue(Axis2D.RangeProperty, new Range(
+                    axis.CanvasTransform(axis.GraphTransform(axesDragStartRanges[index].Min) + offset),
+                    axis.CanvasTransform(axis.GraphTransform(axesDragStartRanges[index].Max) + offset)));
+                index++;
+            }
+        }
+
+        protected void EndDrag(object sender)
+        {
+            UIElement element = (UIElement)sender;
+            if (element.IsMouseCaptured)
+            {
+                this.Cursor = Cursors.Arrow;
+                dragging = false;
+                marginChangeTimer.Interval = TimeSpan.FromSeconds(0.2);
+                marginChangeTimer.Start();
+            }
+            element.ReleaseMouseCapture();
         }
 
         protected void canvas_RightClickStart(object sender, MouseButtonEventArgs e)
         {
-            switch (displayMode)
-            {
-                case "normal":
-                    selectionStarted = true;
-                    selectionStart = e.GetPosition(canvas);
-                    selection.Width = 0;
-                    selection.Height = 0;
-                    break;
-            }
-            canvas.CaptureMouse();
+            selectionStarted = true;
+            selectionStart = e.GetPosition(Canvas);
+            selection.Width = 0;
+            selection.Height = 0;
+            Canvas.CaptureMouse();
         }
 
-        protected void canvas_LeftClickEnd(object sender, MouseButtonEventArgs e)
+        protected void LeftClickEnd(object sender, MouseButtonEventArgs e)
         {
-            if (canvas.IsMouseCaptured)
-            {
-                switch (displayMode)
-                {
-                    case "normal":
-                        this.Cursor = Cursors.Arrow;
-                        dragging = false;
-                        marginChangeTimer.Interval = TimeSpan.FromSeconds(0.2);
-                        marginChangeTimer.Start();
-                        break;
-                }
-            }
-            canvas.ReleaseMouseCapture();
+            EndDrag(sender);
         }
 
         protected void canvas_RightClickEnd(object sender, MouseButtonEventArgs e)
         {
-            if (canvas.IsMouseCaptured)
+            if (Canvas.IsMouseCaptured)
             {
-                switch (displayMode)
+                if (selectionStarted)
                 {
-                    case "normal":
-                        if (selectionStarted)
-                        {
-                            selection.Width = 0;
-                            selection.Height = 0;
-                            selectionStarted = false;
-                            Point selectionEnd = e.GetPosition(canvas);
-                            if ((Math.Abs(selectionStart.X - selectionEnd.X) <= 1) ||
-                               (Math.Abs(selectionStart.Y - selectionEnd.Y) <= 1))
-                            {
-                                return;
-                            }
-                            Point start = canvasToGraph.Transform(selectionStart);
-                            Point end = canvasToGraph.Transform(selectionEnd);
-                            Rect newViewedRegion = new Rect(start, end);
-                            ViewedRegion = newViewedRegion;
-                            selectionStarted = false;
-                        }
-                        break;
+                    selection.Width = 0;
+                    selection.Height = 0;
+                    selectionStarted = false;
+                    Point selectionEnd = e.GetPosition(Canvas);
+                    if ((Math.Abs(selectionStart.X - selectionEnd.X) <= 1) ||
+                       (Math.Abs(selectionStart.Y - selectionEnd.Y) <= 1))
+                    {
+                        return;
+                    }
+                    foreach (Axis2D axis in axes.XAxes)
+                    {
+                        axis.SetValue(Axis2D.RangeProperty, new Range(
+                            Math.Min(axis.CanvasToGraph(selectionStart.X), axis.CanvasToGraph(selectionEnd.X)),
+                            Math.Max(axis.CanvasToGraph(selectionStart.X), axis.CanvasToGraph(selectionEnd.X))));
+                    }
+                    foreach (Axis2D axis in axes.YAxes)
+                    {
+                        axis.SetValue(Axis2D.RangeProperty, new Range(
+                            Math.Min(axis.CanvasToGraph(selectionStart.Y), axis.CanvasToGraph(selectionEnd.Y)),
+                            Math.Max(axis.CanvasToGraph(selectionStart.Y), axis.CanvasToGraph(selectionEnd.Y))));
+                    }
+                    selectionStarted = false;
                 }
             }
-            canvas.ReleaseMouseCapture();
+            Canvas.ReleaseMouseCapture();
             e.Handled = true;
         }
 
-        protected void canvas_MouseWheel(object sender, MouseWheelEventArgs e)
+        protected void element_MouseWheel(object sender, MouseWheelEventArgs e)
         {
+            bool isSingleAxis = (sender is Axis2D);
             double delta = e.Delta / 120;
-            Point canvasPosition = e.GetPosition(canvas);
-            Point graphPosition = canvasToGraph.Transform(canvasPosition);
-            Rect viewedRegion = ViewedRegion;
+            Point canvasPosition = e.GetPosition(Canvas);
             double factor = Math.Pow(1.4, delta);
-            MatrixTransform newGraphToCanvas = new MatrixTransform(graphToCanvas.Matrix.M11 * factor, 0, 0,
-                graphToCanvas.Matrix.M22 * factor,
-                canvasPosition.X - graphPosition.X * graphToCanvas.Matrix.M11 * factor,
-                canvasPosition.Y - graphPosition.Y * graphToCanvas.Matrix.M22 * factor);
-            MatrixTransform newCanvasToGraph = (MatrixTransform)newGraphToCanvas.Inverse;
-            Point topLeft = new Point(0, 0);
-            Point bottomRight = new Point(canvas.ActualWidth, canvas.ActualHeight);
-            viewedRegion = new Rect(newCanvasToGraph.Transform(topLeft), newCanvasToGraph.Transform(bottomRight));
-            ViewedRegion = viewedRegion;
+            //
+            List<Axis2D> zoomAxes;
+            if (isSingleAxis) zoomAxes = new List<Axis2D>() { sender as Axis2D };
+            else zoomAxes = axes.XAxes.Concat(axes.YAxes).ToList();
+            foreach (Axis2D axis in zoomAxes)
+            {
+                double axisMid;
+                if (axis is XAxis) axisMid = axis.GraphTransform(axis.CanvasToGraph(canvasPosition.X));
+                else axisMid = axis.GraphTransform(axis.CanvasToGraph(canvasPosition.Y));
+                double axisMin = axis.GraphTransform(axis.Min);
+                double axisMax = axis.GraphTransform(axis.Max);
+                axis.SetValue(Axis2D.RangeProperty, new Range(axis.CanvasTransform(axisMid + (axisMin - axisMid) / factor), axis.CanvasTransform(axisMid + (axisMax - axisMid) / factor)));
+            }
         }
 
-        protected void canvas_MouseMove(object sender, MouseEventArgs e)
+        protected void element_MouseMove(object sender, MouseEventArgs e)
         {
-            if (canvas.IsMouseCaptured)
+            if (Canvas.IsMouseCaptured)
             {
-                switch (displayMode)
+                if (dragging)
                 {
-                    case "normal":
-                        if (dragging)
-                        {
-                            // Get the new mouse position. 
-                            Point mouseDragCurrentPoint = e.GetPosition(this);
-
-                            Point delta = new Point(
-                                (mouseDragCurrentPoint.X - mouseDragStartPoint.X),
-                                (mouseDragCurrentPoint.Y - mouseDragStartPoint.Y));
-
-                            Rect newViewedRegion = mouseDragStartRect;
-                            Point offset = new Point(-canvasToGraph.Matrix.M11 * delta.X, -canvasToGraph.Matrix.M22 * delta.Y);
-                            newViewedRegion.Offset(offset.X, offset.Y);
-                            ViewedRegion = newViewedRegion;
-                        }
-                        if (selectionStarted)
-                        {
-                            Rect rect = new Rect(selectionStart, e.GetPosition(canvas));
-                            selection.RenderTransform = new TranslateTransform(rect.X, rect.Y);
-                            selection.Width = rect.Width;
-                            selection.Height = rect.Height;
-                        }
-                        break;
+                    MoveDrag(e);
+                }
+                if (selectionStarted)
+                {
+                    Rect rect = new Rect(selectionStart, e.GetPosition(Canvas));
+                    selection.RenderTransform = new TranslateTransform(rect.X, rect.Y);
+                    selection.Width = rect.Width;
+                    selection.Height = rect.Height;
                 }
             }
         }
@@ -208,6 +244,5 @@ namespace IronPlot
             marginChangeTimer.Interval = TimeSpan.FromSeconds(0.0);
             this.InvalidateMeasure();
         }
-
     }
 }

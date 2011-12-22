@@ -18,20 +18,15 @@ namespace IronPlot
         private StreamGeometry gridLinesGeometry;
         private StreamGeometryContext gridLinesGeometryContext;
 
-        private Axis2DCollection axisCollection;
+        private Axis2D axis;
 
-        private MatrixTransform graphToCanvas;
-        private MatrixTransform graphToAxesCanvas;
-
-        public GridLines(Axis2DCollection axisCollection)
+        public GridLines(Axis2D axis)
         {
-            this.axisCollection = axisCollection;
+            this.axis = axis;
             gridLinesGeometry = new StreamGeometry();
             this.Stroke = Brushes.LightGray;
             this.StrokeThickness = 1;
             this.StrokeLineJoin = PenLineJoin.Miter;
-            graphToAxesCanvas = axisCollection[0].plotPanel.graphToAxesCanvas;
-            graphToCanvas = axisCollection[0].plotPanel.graphToCanvas;
         }
 
         protected override Geometry DefiningGeometry
@@ -39,13 +34,19 @@ namespace IronPlot
             get
             {
                 gridLinesGeometryContext = gridLinesGeometry.Open();
-                Point offset = new Point(graphToAxesCanvas.Matrix.OffsetX - graphToCanvas.Matrix.OffsetX, graphToAxesCanvas.Matrix.OffsetY - graphToCanvas.Matrix.OffsetY);
-                for (int i = 0; i < axisCollection[0].Ticks.Length && i < axisCollection[1].Ticks.Length; ++i)
+                for (int i = 0; i < axis.Ticks.Length; ++i)
                 {
-                    Point tickStart = axisCollection[0].TickStartPosition(i);
-                    tickStart.X -= offset.X; tickStart.Y -= offset.Y;
-                    Point tickEnd = axisCollection[1].TickStartPosition(i);
-                    tickEnd.X -= offset.X; tickEnd.Y -= offset.Y;
+                    Point tickStart, tickEnd;
+                    if (axis is XAxis)
+                    {
+                        tickStart = new Point(axis.GraphToCanvas(axis.Ticks[i]), 0);
+                        tickEnd = new Point(axis.GraphToCanvas(axis.Ticks[i]), axis.PlotPanel.Canvas.ActualHeight);
+                    }
+                    else
+                    {
+                        tickStart = new Point(0, axis.GraphToCanvas(axis.Ticks[i]));
+                        tickEnd = new Point(axis.PlotPanel.Canvas.ActualWidth, axis.GraphToCanvas(axis.Ticks[i]));
+                    }
                     gridLinesGeometryContext.BeginFigure(tickStart, false, false);
                     gridLinesGeometryContext.LineTo(tickEnd, true, false);
                 }

@@ -32,27 +32,28 @@ namespace IronPlot
         private DispatcherTimer colourMapUpdateTimer;
         private bool updateInProgress = false;
         private FalseColourImage image;
+        private List<Slider> sliderList;
 
         internal double Min
         {
             set
             {
-                colourBarPanel.YMin = value;
+                colourBarPanel.axes.YAxes[0].Min = value;
                 Rect newBounds = image.Bounds;
                 image.Bounds = new Rect(newBounds.Left, value, newBounds.Width, newBounds.Height);
             }
-            get { return colourBarPanel.YMin; }
+            get { return colourBarPanel.axes.YAxes[0].Min; }
         }
 
         internal double Max
         {
             set
             {
-                colourBarPanel.YMax = value;
+                colourBarPanel.axes.YAxes[0].Max = value;
                 Rect newBounds = image.Bounds;
                 image.Bounds = new Rect(newBounds.Left, newBounds.Top, newBounds.Width, value - newBounds.Top);
             }
-            get { return colourBarPanel.YMax; }
+            get { return colourBarPanel.axes.YAxes[0].Max; }
         }
 
         public static readonly RoutedEvent ColourMapChangedEvent =
@@ -79,8 +80,7 @@ namespace IronPlot
             image = new FalseColourImage(new Rect(0, Min, 1, Max), MathHelper.Counter(1, colourMap.Length), false);
             colourBarPanel.plotItems.Add(image);
             image.ColourMap = colourMap;
-            colourBarPanel.Margin = new Thickness(5, 0, 0, 0);
-            colourBarPanel.axes.XAxes.GridLines.Visibility = Visibility.Collapsed;
+            colourBarPanel.Margin = new Thickness(0, 0, 5, 0);
             this.grid.Children.Add(colourBarPanel);
             colourMapUpdateTimer = new DispatcherTimer();
             colourMapUpdateTimer.Interval = new TimeSpan(1000); // 1/10 s
@@ -92,8 +92,9 @@ namespace IronPlot
         protected void AddSliders()
         {
             interpolationPoints = (double[])colourMap.InterpolationPoints.Clone();
-            colourBarPanel.sliderList = new List<Slider>();
+            sliderList = new List<Slider>();
             byte[,] colourMapArray = colourMap.ToByteArray();
+            colourBarPanel.RemoveSliders();
             for (int i = 1; i < colourMap.InterpolationPoints.Length - 1; ++i)
             {
                 Slider slider = new Slider();
@@ -102,33 +103,32 @@ namespace IronPlot
                 slider.Minimum = 0.0;                
                 slider.Maximum = 1.0;
                 slider.ValueChanged += new RoutedPropertyChangedEventHandler<double>(slider_ValueChanged);
-                colourBarPanel.axesCanvas.Children.Add(slider);
-                slider.SetValue(Grid.ZIndexProperty, 300);
-                colourBarPanel.sliderList.Add(slider);
+                sliderList.Add(slider);
                 slider.Value = colourMap.InterpolationPoints[i];
                 int index = (int)(slider.Value * (double)(colourMap.Length - 1));
                 slider.Foreground = new SolidColorBrush
                     (Color.FromRgb(colourMapArray[index, 1], colourMapArray[index, 2], colourMapArray[index, 3]));
                 slider.Template = (ControlTemplate)(this.Resources["colourBarVerticalSlider"]);
             }
+            colourBarPanel.AddSliders(sliderList);
         }
 
         protected void slider_ValueChanged(object obj, RoutedPropertyChangedEventArgs<double> args)
         {
-            int index = colourBarPanel.sliderList.IndexOf((Slider)obj);
-            if (index < (colourBarPanel.sliderList.Count - 1))
+            int index = sliderList.IndexOf((Slider)obj);
+            if (index < (sliderList.Count - 1))
             {
-                if (args.NewValue > colourBarPanel.sliderList[index + 1].Value)
+                if (args.NewValue > sliderList[index + 1].Value)
                 {
-                    ((Slider)obj).Value = colourBarPanel.sliderList[index + 1].Value;
+                    ((Slider)obj).Value = sliderList[index + 1].Value;
                     args.Handled = true;
                 }
             }
             if (index > 0)
             {
-                if (args.NewValue < colourBarPanel.sliderList[index - 1].Value)
+                if (args.NewValue < sliderList[index - 1].Value)
                 {
-                    ((Slider)obj).Value = colourBarPanel.sliderList[index - 1].Value;
+                    ((Slider)obj).Value = sliderList[index - 1].Value;
                     args.Handled = true;
                 }
             }
@@ -147,8 +147,6 @@ namespace IronPlot
             colourMapUpdateTimer.Stop();
             updateInProgress = true;
             object state = new object();
-            //colourBarWriteable.Lock();
-            //backBuffer = colourBarWriteable.BackBuffer;
             ThreadPool.QueueUserWorkItem(new WaitCallback(UpdateColourMapAndBar), (object)state);
         }
 
@@ -163,8 +161,6 @@ namespace IronPlot
             colourMap.UpdateColourMap();
             image.OnColourMapChanged(null, new RoutedEventArgs());
             updateInProgress = false;
-            //Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal,
-            //    new AfterUpdateCallback(AfterUpdateColourMapAndBar));
         }
 
         protected void AddContextMenu()
@@ -233,10 +229,6 @@ namespace IronPlot
         private void ResetHandles()
         {
             colourMap.UpdateColourMap();
-            foreach (Slider slider in colourBarPanel.sliderList)
-            {
-                colourBarPanel.axesCanvas.Children.Remove(slider);
-            }
             AddSliders();
             colourMapUpdateTimer.Start();
             RaiseColourMapChangedEvent();

@@ -52,22 +52,43 @@ namespace PlotTest
             //curve3.QuickStrokeDash = QuickStrokeDash.Dash;
             plot1.Children.Add(curve3);
             // Can use Direct2D acceleration, but requires DirectX10 (Windows 7)
-            //plot1.UseDirect2D = false; 
+            //plot1.UseDirect2D = true; 
+
             // If you want to lose the gradient background:
             //plot1.Legend.Background = Brushes.White;
             //plot1.BackgroundPlot = Brushes.White;
-            plot1.BottomLabel.Text = "Bottom label";
-            plot1.LeftLabel.Text = "Left label";
-            plot1.Axes.XAxes.GridLines.Stroke = Brushes.LightGray;
+            
+            // Additional labels:
+            //plot1.BottomLabel.Text = "Bottom label";
+            //plot1.LeftLabel.Text = "Left label";
             plot1.FontSize = 14;
+            plot1.Axes.XAxes[0].AxisLabel.Text = "Innermost X Axis";
+            XAxis xAxisOuter = new XAxis(); YAxis yAxisOuter = new YAxis();
+            xAxisOuter.AxisLabel.Text = "Added X Axis";
+            yAxisOuter.AxisLabel.Text = "Added Y Axis";
+            plot1.Axes.XAxes.Add(xAxisOuter);
+            plot1.Axes.YAxes.Add(yAxisOuter);
+            yAxisOuter.Position = YAxisPosition.Right;
+            plot1.Axes.XAxes[0].FontStyle = plot1.Axes.YAxes[0].FontStyle = FontStyles.Oblique;
+            //curve3.XAxis = xAxisOuter;
+            curve3.YAxis = yAxisOuter;
+            //plot1.Axes.EqualAxes = new AxisPair(plot1.Axes.XAxes.Bottom, plot1.Axes.YAxes.Left);
+            //plot1.Axes.SetAxesEqual();
+            //plot1.Axes.Width = 200;
+            //plot1.Axes.MinAxisMargin = new Thickness(200, 0, 0, 0);
+
+            xAxisOuter.Min = 6.5e-5;
+            xAxisOuter.Max = 7.3e-3;
+            xAxisOuter.AxisType = AxisType.Log;
+            plot1.Children.Add(new Plot2DCurve(new Curve(new double[] { 0.01, 10 }, new double[] { 5, 6 })) { XAxis = xAxisOuter }); 
 
             // Example false colour plot: 
             double[,] falseColour = new double[128, 128];
             for (int i = 0; i < 128; ++i)
                 for (int j = 0; j < 128; ++j) falseColour[i, j] = i + j;
             plot2.AddFalseColourImage(falseColour);
-            plot2.Axes.XAxes.GridLines.Visibility = Visibility.Collapsed;
-            plot2.Axes.YAxes.GridLines.Visibility = Visibility.Collapsed;
+            //plot2.Axes.XAxes.GridLines.Visibility = Visibility.Collapsed;
+            //plot2.Axes.YAxes.GridLines.Visibility = Visibility.Collapsed;
 
             // Example surface plot:
             int nx = 20;
@@ -77,12 +98,20 @@ namespace PlotTest
             //var z2 = x2.Zip(y2, (u, v) => u*u + v*v); // .NET4 method
             var z2 = x2.Select(u => u * u);
             plot1.Axes.XAxes.Top.TickLength = 5;
-            //plot1.Axes.XAxes.AxisLabels.FontSize = 50;
             plot1.Axes.YAxes.Left.TickLength = 5;
             SurfaceModel3D surface = new SurfaceModel3D(x2, y2, z2, nx, ny);
             surface.Transparency = 20;
             surface.MeshLines = MeshLines.None;
             plot3.Viewport3D.Models.Add(surface);
+
+            // Some events.
+            //plot1.Axes.YAxes.Right.MouseEnter += new MouseEventHandler(Bottom_MouseEnter);
+        }
+
+        void Bottom_MouseEnter(object sender, MouseEventArgs e)
+        {
+            plot1.Axes.XAxes.Bottom.TickLength = 15;
+            plot1.Axes.XAxes.Bottom.FontSize = 20;
         }
     }
 }

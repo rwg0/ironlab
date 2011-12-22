@@ -15,7 +15,7 @@ namespace IronPlot.Plotting3D
     {
         public static DependencyProperty AxisTypeProperty =
             DependencyProperty.Register("AxisTypeProperty",
-            typeof(AxisType), typeof(Axis3DCollection), new PropertyMetadata(AxisType.Number));
+            typeof(AxisType), typeof(Axis3DCollection), new PropertyMetadata(AxisType.Linear));
 
         public AxisType AxisType
         {

@@ -51,17 +51,16 @@ namespace IronPlot.Plotting3D
 
         static Axis3D()
         {
-            Axis.AxisTypeProperty.OverrideMetadata(typeof(Axis3D), new PropertyMetadata(AxisType.Number, Axis3D.OnAxisTypeChanged));
             Axis.LabelsVisibleProperty.OverrideMetadata(typeof(Axis3D), new PropertyMetadata(true, Axis3D.OnLabelsVisibleChanged));
             Axis.TicksVisibleProperty.OverrideMetadata(typeof(Axis3D), new PropertyMetadata(true, Axis3D.OnTicksVisibleChanged));
             Axis.NumberOfTicksProperty.OverrideMetadata(typeof(Axis3D), new PropertyMetadata(10, Axis3D.OnNumberOfTicksChanged));
             Axis.TickLengthProperty.OverrideMetadata(typeof(Axis3D), new PropertyMetadata(0.05, Axis3D.OnTickLengthChanged));
         }
 
-        internal static void OnAxisTypeChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
+        protected override void UpdateTicksAndLabels()
         {
-            ((Axis3D)obj).UpdateLabels();
-            ((Axis3D)obj).UpdateLabelPositions(true);
+            UpdateLabels();
+            UpdateLabelPositions(true);
         }
 
         internal static void OnLabelsVisibleChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
@@ -208,9 +207,9 @@ namespace IronPlot.Plotting3D
                     }
                     toRight = (tickEndPoint2D.X > tickStartPoint2D.X) ? 0.0 : 1.0; // end of tick hits the left of label if 0.0; otherwise the right
                 }
-                Point offset = new Point(toRight * currentTextBlock.ActualWidth,
+                Point Offset = new Point(toRight * currentTextBlock.ActualWidth,
                     toBottom * currentTextBlock.ActualHeight);
-                currentRect = new Rect(new Point(tickEndPoint2D.X - offset.X, tickEndPoint2D.Y - offset.Y),
+                currentRect = new Rect(new Point(tickEndPoint2D.X - Offset.X, tickEndPoint2D.Y - Offset.Y),
                     new Size(currentTextBlock.ActualWidth, currentTextBlock.ActualHeight));
                 currentTextBlock.SetValue(Canvas.LeftProperty, currentRect.Left);
                 currentTextBlock.SetValue(Canvas.TopProperty, currentRect.Top);
@@ -289,7 +288,7 @@ namespace IronPlot.Plotting3D
             centreTick.Normalize();
             // Calculate maximum perpendicular distance of furthest point on any label from line
             distance = 0;
-            Vector offset;
+            Vector Offset;
             Vector axisNormal = axis.GetNormalDirection(); axisNormal.Normalize();
             if (Math.Abs(Vector.AngleBetween(axisNormal, centreTick)) > 90.0) axisNormal = axisNormal * -1.0;
             if (axisNormal.X < 0 && axisNormal.Y > 0) // labels in bottom left quadrant of axis
@@ -301,7 +300,7 @@ namespace IronPlot.Plotting3D
                     if (newDistance > distance) distance = newDistance;
                 }
                 // Top right corner of axis label
-                offset = new Vector(labelWidth / 2.0, -labelHeight / 2.0);
+                Offset = new Vector(labelWidth / 2.0, -labelHeight / 2.0);
             }
             else if (axisNormal.X >= 0 && axisNormal.Y > 0) // bottom right quadrant
             {
@@ -312,7 +311,7 @@ namespace IronPlot.Plotting3D
                     if (newDistance > distance) distance = newDistance;
                 }
                 // Top left corner of axis label
-                offset = new Vector(-labelWidth / 2.0, -labelHeight / 2.0);
+                Offset = new Vector(-labelWidth / 2.0, -labelHeight / 2.0);
             }
             else if (axisNormal.X < 0 && axisNormal.Y <= 0) // top left quadrant
             {
@@ -323,7 +322,7 @@ namespace IronPlot.Plotting3D
                     if (newDistance > distance) distance = newDistance;
                 }
                 // Bottom right corner of axis label
-                offset = new Vector(labelWidth / 2.0, labelHeight / 2.0);
+                Offset = new Vector(labelWidth / 2.0, labelHeight / 2.0);
             }
             else 
             {
@@ -334,14 +333,14 @@ namespace IronPlot.Plotting3D
                     if (newDistance > distance) distance = newDistance;
                 }
                 // Bottom left corner of axis label
-                offset = new Vector(-labelWidth / 2.0, labelHeight / 2.0);
+                Offset = new Vector(-labelWidth / 2.0, labelHeight / 2.0);
             }
             // Our new label is on this line:
             Line offsetAxis = new Line(axis.PointOnLine + axisNormal * distance, axis.Direction);
             // And also on this line:
-            //Line offsetCentreTick = new Line(centre2D.ToVector() + offset, centreTick);
-            Line offsetCentreTick = new Line(centre2D.ToVector() + offset, axisNormal);
-            Vector topLeft = offsetAxis.IntersectionWithLine(offsetCentreTick) - offset - (new Vector(labelWidth / 2.0, labelHeight / 2.0));
+            //Line offsetCentreTick = new Line(centre2D.ToVector() + Offset, centreTick);
+            Line offsetCentreTick = new Line(centre2D.ToVector() + Offset, axisNormal);
+            Vector topLeft = offsetAxis.IntersectionWithLine(offsetCentreTick) - Offset - (new Vector(labelWidth / 2.0, labelHeight / 2.0));
             axisLabel.SetValue(Canvas.LeftProperty, topLeft.X);
             axisLabel.SetValue(Canvas.TopProperty, topLeft.Y);
         }
@@ -374,7 +373,7 @@ namespace IronPlot.Plotting3D
             get { return axes.GraphMax.X; }
         }
 
-        private double offset;
+        private double Offset;
 
         public XAxis3D(Axes3D axes, Axis3DCollection axisCollection)
             : base(axes, axisCollection)
@@ -400,31 +399,31 @@ namespace IronPlot.Plotting3D
 
         public override Point3D TickEndPoint(int i)
         {
-            offset = TickLength * (axes.GraphMax.Y - axes.GraphMin.Y);
+            Offset = TickLength * (axes.GraphMax.Y - axes.GraphMin.Y);
             Point3D tickEndPoint3D;
             if (axisType == XAxisType.MinusY)
-                tickEndPoint3D = new Point3D(Ticks[i], axes.GraphMin.Y - offset, axes.GraphMin.Z);
+                tickEndPoint3D = new Point3D(Ticks[i], axes.GraphMin.Y - Offset, axes.GraphMin.Z);
             else
-                tickEndPoint3D = new Point3D(Ticks[i], axes.GraphMax.Y + offset, axes.GraphMin.Z);
+                tickEndPoint3D = new Point3D(Ticks[i], axes.GraphMax.Y + Offset, axes.GraphMin.Z);
             return tickEndPoint3D;
         }
 
         public override void AxisProperties(ref Point3D start, ref Point3D end, ref Point3D centre, ref Point3D offsetCentre)
         {
-            offset = TickLength * (axes.GraphMax.Y - axes.GraphMin.Y);
+            Offset = TickLength * (axes.GraphMax.Y - axes.GraphMin.Y);
             if (axisType == XAxisType.MinusY)
             {
                 start = new Point3D(Min, axes.GraphMin.Y, axes.GraphMin.Z);
                 end = new Point3D(Max, start.Y, start.Z);
                 centre = new Point3D((Max + Min) / 2.0, start.Y, start.Z);
-                offsetCentre = new Point3D(centre.X, centre.Y - offset, centre.Z);
+                offsetCentre = new Point3D(centre.X, centre.Y - Offset, centre.Z);
             }
             else
             {
                 start = new Point3D(Min, axes.GraphMax.Y, axes.GraphMin.Z);
                 end = new Point3D(Max, start.Y, start.Z);
                 centre = new Point3D((Max + Min) / 2.0, start.Y, start.Z);
-                offsetCentre = new Point3D(centre.X, centre.Y + offset, centre.Z);
+                offsetCentre = new Point3D(centre.X, centre.Y + Offset, centre.Z);
             }
         }
     }
@@ -455,7 +454,7 @@ namespace IronPlot.Plotting3D
             get { return axes.GraphMax.Y; }
         }
 
-        private double offset;
+        private double Offset;
 
         public YAxis3D(Axes3D axes, Axis3DCollection axisCollection)
             : base(axes, axisCollection)
@@ -480,31 +479,31 @@ namespace IronPlot.Plotting3D
 
         public override Point3D TickEndPoint(int i)
         {
-            offset = TickLength * (axes.GraphMax.X - axes.GraphMin.X);
+            Offset = TickLength * (axes.GraphMax.X - axes.GraphMin.X);
             Point3D tickEndPoint3D;
             if (axisType == YAxisType.MinusX)
-                tickEndPoint3D = new Point3D(axes.GraphMin.X - offset, Ticks[i], axes.GraphMin.Z);
+                tickEndPoint3D = new Point3D(axes.GraphMin.X - Offset, Ticks[i], axes.GraphMin.Z);
             else
-                tickEndPoint3D = new Point3D(axes.GraphMax.X + offset, Ticks[i], axes.GraphMin.Z);
+                tickEndPoint3D = new Point3D(axes.GraphMax.X + Offset, Ticks[i], axes.GraphMin.Z);
             return tickEndPoint3D;
         }
 
         public override void AxisProperties(ref Point3D start, ref Point3D end, ref Point3D centre, ref Point3D offsetCentre)
         {
-            offset = TickLength * (axes.GraphMax.X - axes.GraphMin.X);
+            Offset = TickLength * (axes.GraphMax.X - axes.GraphMin.X);
             if (axisType == YAxisType.MinusX)
             {
                 start = new Point3D(axes.GraphMin.X, Min, axes.GraphMin.Z);
                 end = new Point3D(start.X, Max, start.Z);
                 centre = new Point3D(start.X, (Max + Min) / 2.0, start.Z);
-                offsetCentre = new Point3D(centre.X - offset, centre.Y, centre.Z);
+                offsetCentre = new Point3D(centre.X - Offset, centre.Y, centre.Z);
             }
             else
             {
                 start = new Point3D(axes.GraphMax.X, Min, axes.GraphMin.Z);
                 end = new Point3D(start.X, Max, start.Z);
                 centre = new Point3D(start.X, (Max + Min) / 2.0, start.Z);
-                offsetCentre = new Point3D(centre.X + offset, centre.Y, centre.Z);
+                offsetCentre = new Point3D(centre.X + Offset, centre.Y, centre.Z);
             }
         }
     }

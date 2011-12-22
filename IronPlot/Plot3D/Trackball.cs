@@ -36,7 +36,7 @@ namespace IronPlot.Plotting3D
     /// <summary>
     ///     Trackball is a utility class which observes the mouse events
     ///     on a specified FrameworkElement and produces a Transform3D
-    ///     with the resultant rotation and scale.
+    ///     with the resultant rotation and Scale.
     /// 
     ///     Example Usage:
     /// 
@@ -122,7 +122,7 @@ namespace IronPlot.Plotting3D
 
         /// <summary>
         ///     A transform to move the camera or scene to the trackball's
-        ///     current orientation and scale.
+        ///     current orientation and Scale.
         /// </summary>
         public Transform3DGroup Transform
         {
@@ -132,7 +132,7 @@ namespace IronPlot.Plotting3D
 
         /// <summary>
         ///     A transform to move the camera or scene to the trackball's
-        ///     current orientation and scale.
+        ///     current orientation and Scale.
         /// </summary>
         public AxisAngleRotation3D Rotation
         {
@@ -277,9 +277,9 @@ namespace IronPlot.Plotting3D
 
             scale = Math.Exp(yDelta / 100);    // e^(yDelta/100) is fairly arbitrary.
 
-            _scale.ScaleX *= scale;
-            _scale.ScaleY *= scale;
-            _scale.ScaleZ *= scale;
+            _scale.ScaleX *= Scale;
+            _scale.ScaleY *= Scale;
+            _scale.ScaleZ *= Scale;
 
             RaiseZoomEvent(EventArgs.Empty);
 

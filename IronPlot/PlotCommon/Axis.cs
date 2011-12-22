@@ -19,15 +19,56 @@ using ILNumerics.BuiltInFunctions;
 
 namespace IronPlot
 {
-    public enum AxisType { Number, Date }
-    // The axis class deals with annotation of axes
-    // We need one for the horizontal and one for the vertical axes (even if each consists of two lines)
-    public class Axis : DependencyObject
+    public enum AxisType { Linear, Log, Date, LinearReversed }
+
+    public struct DecomposedNumber
     {
-        public double[] Ticks;
-        public double[] Coefficient;
-        public int[] Exponent;
-        public int[] RequiredDPs;
+        public double Value;
+        public double Coefficient;
+        public int Exponent;
+
+        public DecomposedNumber(double value, double coefficient, int exponent)
+        {
+            Value = value; Coefficient = coefficient; Exponent = exponent;
+        }
+    }
+
+    public struct Range
+    {
+        public double Min;
+        public double Max;
+
+        public Range(double min, double max)
+        {
+            Min = min;
+            Max = max;
+        }
+
+        public double Length
+        {
+            get { return Max - Min; }
+        }
+
+        public Range Union(Range otherRange)
+        {
+            return new Range(Math.Min(this.Min, otherRange.Min), Math.Max(this.Max, otherRange.Max));
+        }
+    }
+
+    /// <summary>
+    /// An Axis class is a Canvas on which the axis and annotations
+    /// are presented (one Canvas per Axis). The Canvas typically spans the entire plot region. 
+    /// This general approach is suitable for axes of 3D and 2D plots.
+    /// </summary>
+    public abstract class Axis : ContentControl
+    {
+        protected AxisCanvas canvas;
+        
+        internal double[] Ticks;
+        internal double[] Coefficient;
+        internal int[] Exponent;
+        internal int[] RequiredDPs;
+
         protected string[] labels;
         protected double[] cachedTicksOverride;
         protected double[] cachedCoefficientOverride;
@@ -37,9 +78,23 @@ namespace IronPlot
         protected double[] ticksOverride;
         protected string[] tickLabelsOverride;
 
+        private const double fractionalTolerance = 1e-6;
+
+        // The transform applied to graph coordinates before conversion to canvas coordinates.
+        internal Func<double, double> GraphTransform = value => value;
+
+        // The transform applied to canvas coordinates after conversion to graph coordinates, as final step.
+        internal Func<double, double> CanvasTransform = value => value;
+
+        // Transformed tick positions.
+        // The transform is a log10 transform for log axes and a multiplication be -1 for reversed axes.
+        internal double[] TicksTransformed;
+        internal double MinTransformed;
+        internal double MaxTransformed;
+
         public static DependencyProperty AxisTypeProperty =
             DependencyProperty.Register("AxisTypeProperty",
-            typeof(AxisType), typeof(Axis), new PropertyMetadata(AxisType.Number));
+            typeof(AxisType), typeof(Axis), new PropertyMetadata(AxisType.Linear, OnAxisTypeChanged));
 
         public static DependencyProperty NumberOfTicksProperty =
             DependencyProperty.Register("NumberOfTicksProperty",
@@ -104,14 +159,45 @@ namespace IronPlot
             get { return (bool)GetValue(TicksVisibleProperty); }
         }
 
-        //protected static void OnAxisTypeChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
-        //{
-        //    ((Axis)obj).
-        //}
+        public abstract double Min { get; set; }
+
+        public abstract double Max { get; set; }
+        
+        public Axis()
+        {
+            canvas = new AxisCanvas();
+            this.Content = canvas;
+        }
 
         protected static void OnNumberOfTicksChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
             ((Axis)obj).DeriveTicks();
+        }
+
+        protected static void OnAxisTypeChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
+        {
+            ((Axis)obj).OnAxisTypeChanged();
+        }
+
+        protected virtual void OnAxisTypeChanged()
+        {
+            switch (AxisType)
+            {
+                case AxisType.Log:
+                    GraphTransform = value => Math.Log10(value);
+                    CanvasTransform = value => Math.Pow(10.0, value);
+                    break;
+                case AxisType.LinearReversed:
+                    GraphTransform = value => -value;
+                    CanvasTransform = value => -value;
+                    break;
+                default:
+                    GraphTransform = value => value;
+                    CanvasTransform = value => value;
+                    break;
+            }
+            DeriveTicks();
+            UpdateTicksAndLabels();
         }
 
         public AxisType AxisType
@@ -120,10 +206,36 @@ namespace IronPlot
             set { SetValue(AxisTypeProperty, value); }
         }
 
+
         internal virtual void DeriveTicks()
         {
-            int n = NumberOfTicks;
-            if (n == 0)
+            MaxTransformed = GraphTransform(Max);
+            MinTransformed = GraphTransform(Min);
+            switch (AxisType)
+            {
+                case AxisType.Linear:
+                    DeriveTicksLinear();
+                    break;
+                case AxisType.Date:
+                    DeriveTicksLinear();
+                    break;
+                case AxisType.Log:
+                    DeriveTicksLog();
+                    break;
+                case AxisType.LinearReversed:
+                    DeriveTicksLinear();
+                    double temp = MaxTransformed;
+                    MaxTransformed = MinTransformed;
+                    MinTransformed = temp;
+                    Ticks = Ticks.Reverse().ToArray();
+                    TicksTransformed = TicksTransformed.Reverse().ToArray();
+                    break;
+            }
+        }
+
+        protected virtual void DeriveTicksLinear()
+        {
+            if (NumberOfTicks == 0)
             {
                 Ticks = new double[0];
                 Coefficient = new double[0];
@@ -136,66 +248,43 @@ namespace IronPlot
                 DeriveTicksFromOverrides();
                 return;
             }
-            const double fracTolerance = 1e-6;
+            
             // Algorithm to derive tick positions given that there should be at most n ticks on the axis
             // First the interval that gives exactly n ticks is found, then this is adjusted to give sensible
-            // tick points
+            // tick points.
             double max = Max; double min = Min;
             double delta = max - min;
-            if (delta == 0) delta = 1; // Check for improperly initialised axis size
-            if (n == 0) n = 1; // Check for improperly initialised n
-            double nd = (double)n;
-            double approxInterval = delta / nd;
-            // Exponent of the least significant figure of the interval
-            int intervalExp = (int)Math.Floor(Math.Log10(approxInterval));
-            int intervalIntCoeff = (int)Math.Floor(approxInterval / Math.Pow(10, intervalExp) + fracTolerance);
-            // LSF must be either 1, 2, 5 or 10, whichever is directly above the current value      
-            if (intervalIntCoeff > 5) { intervalIntCoeff = 1; intervalExp++; }
-            else if (intervalIntCoeff > 2) { intervalIntCoeff = 5; }
-            else if (intervalIntCoeff > 1) { intervalIntCoeff = 2; }
-            else { intervalIntCoeff = 1; }
-            //
-            double intervalCoeff = ((double)intervalIntCoeff);
-            double interval = intervalIntCoeff * Math.Pow(10, intervalExp);
-            //
-            double firstTick;
-            double absTolerance = fracTolerance * interval;
-            if ((min - absTolerance) < 0)
-            {
-                firstTick = (min - absTolerance) - ((min - absTolerance) % interval);
-            }
-            else
-            {
-                firstTick = interval - ((min - absTolerance) % interval) + (min - absTolerance);
-            }
-            int firstTickExp = (firstTick == 0) ? intervalExp : (int)Math.Floor(Math.Log10(Math.Abs(firstTick)));
-            double firstTickCoeff = firstTick / Math.Pow(10, firstTickExp);
-            //
-            int nTicks = (int)Math.Floor((max - firstTick + absTolerance) / interval) + 1;
+            if (delta <= 0) delta = 1; // Potect against improperly initialised axis size.
+            double approxInterval = delta / (double)NumberOfTicks;
+            
+            DecomposedNumber interval, firstTick;
+            IntervalFromRange(new Range(min, max), approxInterval, out interval, out firstTick);
+
+            double absTolerance = fractionalTolerance * interval.Value;
+            int nTicks = (int)Math.Floor((max - firstTick.Value + absTolerance) / interval.Value) + 1;
             Ticks = new double[nTicks];
             Coefficient = new double[nTicks];
             Exponent = new int[nTicks];
             RequiredDPs = new int[nTicks];
-            double tempTick = firstTick;
-            double tempCoeff = firstTickCoeff;
-            int tempExp = firstTickExp;
+            double tempTick = firstTick.Value;
+            double tempCoeff = firstTick.Coefficient;
+            int tempExp = firstTick.Exponent;
             for (int i = 0; i < nTicks; ++i)
             {
                 Ticks[i] = tempTick;
                 Coefficient[i] = tempCoeff;
                 Exponent[i] = tempExp;
-                tempTick += interval;
-                RequiredDPs[i] = Math.Abs(intervalExp - tempExp);
+                tempTick += interval.Value;
+                RequiredDPs[i] = Math.Abs(interval.Exponent - tempExp);
                 //
-                //requiredDPs = Math.Max(requiredDPs, Math.Abs(tempExp - intervalExp));
-                if (tempExp > intervalExp)
+                if (tempExp > interval.Exponent)
                 {
-                    tempCoeff += intervalCoeff / Math.Pow(10, (tempExp - intervalExp));
+                    tempCoeff += interval.Coefficient / Math.Pow(10, (tempExp - interval.Exponent));
                 }
                 else
                 {
-                    tempExp = intervalExp;
-                    tempCoeff = intervalCoeff + tempCoeff / Math.Pow(10, (intervalExp - tempExp));
+                    tempExp = interval.Exponent;
+                    tempCoeff = interval.Coefficient + tempCoeff / Math.Pow(10, (interval.Exponent - tempExp));
                 }
                 if (tempCoeff >= 10)
                 {
@@ -208,6 +297,129 @@ namespace IronPlot
                     tempExp--;
                 }
                 tempCoeff = Math.Round(tempCoeff, RequiredDPs[i]);
+            }
+            TicksTransformed = new double[Ticks.Length];
+            for (int i = 0; i < TicksTransformed.Length; ++i) TicksTransformed[i] = GraphTransform(Ticks[i]);
+        }
+
+        private void IntervalFromRange(Range range, double approxInterval, out DecomposedNumber interval, out DecomposedNumber firstTick) 
+        {
+            // Exponent of the least significant figure of the interval.
+            int intervalExponent = (int)Math.Floor(Math.Log10(approxInterval));
+            int intervalIntCoefficient = (int)Math.Floor(approxInterval / Math.Pow(10, intervalExponent) + fractionalTolerance);
+
+            // LSF must be either 1, 2, 5 or 10, whichever is directly above the current value.      
+            if (intervalIntCoefficient > 5) { intervalIntCoefficient = 1; intervalExponent++; }
+            else if (intervalIntCoefficient > 2) { intervalIntCoefficient = 5; }
+            else if (intervalIntCoefficient > 1) { intervalIntCoefficient = 2; }
+            else { intervalIntCoefficient = 1; }
+            //
+            interval = new DecomposedNumber(intervalIntCoefficient * Math.Pow(10, intervalExponent), (double)intervalIntCoefficient, intervalExponent);
+            //
+            // Now get the first tick
+            double firstTickValue;
+            double absoluteTolerance = fractionalTolerance * interval.Value;
+            if ((range.Min - absoluteTolerance) < 0)
+            {
+                firstTickValue = (range.Min - absoluteTolerance) - ((range.Min - absoluteTolerance) % interval.Value);
+            }
+            else
+            {
+                firstTickValue = interval.Value - ((range.Min - absoluteTolerance) % interval.Value) + (range.Min - absoluteTolerance);
+            }
+            int firstTickExp = (firstTickValue == 0) ? interval.Exponent : (int)Math.Floor(Math.Log10(Math.Abs(firstTickValue)));
+            firstTick = new DecomposedNumber(firstTickValue, firstTickValue / Math.Pow(10, firstTickExp), firstTickExp);
+        }
+
+        static double[] logsOfCountingNumbers = null;
+
+        protected void DeriveTicksLog()
+        {
+            if (Min == 0)
+            {
+
+            }
+            
+            // In this case, a transform of log10 has been applied to the max and min.
+            double min = MinTransformed;
+            double max = MaxTransformed;
+            // Within each integer range, we need points at the starting point + ln(2), ln(3), ln(4) etc
+            if (logsOfCountingNumbers == null)
+            {
+                logsOfCountingNumbers = new double[9];
+                for (int i = 1; i < 10; ++i) logsOfCountingNumbers[i - 1] = Math.Log10(i);
+            }
+            // Range is assumed to be inclusive.
+            int rangeStart = (int)Math.Ceiling(min - fractionalTolerance);
+            int rangeEnd = (int)Math.Floor(max + fractionalTolerance);
+
+            int nPossibleTicks = rangeEnd - rangeStart + 1;
+
+            if (nPossibleTicks < 2)
+            {
+                // We are back in a linear-(ish) regime, so use the normal algorithm, just adjust the positions of course. 
+                DeriveTicksLinear();
+                //for (int i = 0; i < Ticks.Length; ++i) TicksTransformed[i] = GraphTransform(Ticks[i]);
+            }
+            else
+            {
+                int firstTick = rangeStart;
+                int lastTick = rangeEnd;
+                int interval = 1;
+                if (nPossibleTicks > NumberOfTicks)
+                {
+                    double approxInterval = (double)nPossibleTicks / (double)NumberOfTicks;
+                    int intervalExponent = 0;
+                    // log10 of largest double is about 300:
+                    if (approxInterval > 100) { approxInterval /= 10; interval *= 10; intervalExponent++; }
+                    if (approxInterval > 10) { approxInterval /= 10; interval *= 10; intervalExponent++; }
+                    int intervalIntCoefficient = (int)Math.Floor(approxInterval);
+                    if (intervalIntCoefficient > 5) { intervalIntCoefficient = 1; interval *= 10; intervalExponent++; }
+                    else if (intervalIntCoefficient > 2) { intervalIntCoefficient = 5; }
+                    else if (intervalIntCoefficient > 1) { intervalIntCoefficient = 2; }
+                    else { intervalIntCoefficient = 1; }
+                    interval *= intervalIntCoefficient;
+                    int modulo = rangeStart % interval;
+
+                    if (firstTick < 0)
+                        firstTick = (modulo == 0) ? firstTick : firstTick - modulo;
+                    else firstTick = (modulo == 0) ? firstTick : firstTick + (interval - modulo);
+                   
+                    modulo = rangeEnd % interval;
+
+                    if (lastTick < 0)
+                        lastTick = (modulo == 0) ? lastTick : lastTick + modulo;
+                    else lastTick = (modulo == 0) ? lastTick : lastTick - modulo;
+                }
+
+                int nTicks = (lastTick - firstTick) / interval + 1;
+
+                TicksTransformed = new double[nTicks];
+                Ticks = new double[nTicks];
+                Coefficient = new double[nTicks];
+                Exponent = new int[nTicks];
+                RequiredDPs = new int[nTicks];
+
+                int index = 0;
+                for (int i = firstTick; i <= lastTick; i += interval)
+                {
+                    TicksTransformed[index] = i;
+                    Ticks[index] = Math.Pow(10, i);
+                    Coefficient[index] = 1;
+                    Exponent[index] = i;
+                    RequiredDPs[index] = 0;
+                    index++;
+                    //for (int j = 1; j < 10; ++j)
+                    //{
+                    //    double trial = i + logsOfCountingNumbers[j - 1];
+                    //    if (trial > MinTransformed && trial < MaxTransformed)
+                    //    {
+                    //        TicksTransformed[index] = i + logsOfCountingNumbers[j - 1];
+                    //        Ticks[index] = rangeUntransformed * j;
+                    //        index++;
+                    //    }
+                    //}
+                }
             }
         }
 
@@ -305,16 +517,6 @@ namespace IronPlot
             }
         }
 
-        public virtual double Min
-        {
-            set { }
-            get { return 0; }
-        }
-
-        public virtual double Max
-        {
-            set { }
-            get { return 10; }
-        }
+        protected abstract void UpdateTicksAndLabels();
     }
 }

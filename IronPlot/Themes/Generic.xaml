@@ -1,4 +1,4 @@
-﻿<ResourceDictionary
+<ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:IronPlot">
@@ -74,7 +74,7 @@
                     <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
                         <StackPanel Orientation="Horizontal">
                             <local:Title Content="{TemplateBinding Content}" VerticalAlignment="Center" Margin="0 0 2 0"/>
-                            <TextBlock x:Name="PART_ItemTitle" Text="{Binding Path=(local:LegendItem.Title), RelativeSource={RelativeSource TemplatedParent}, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" VerticalAlignment="Center" Margin="0 0 10 0"></TextBlock>
+                            <TextBlock x:Name="PART_ItemTitle" Text="{Binding Path=(local:LegendItem.Title), RelativeSource={RelativeSource TemplatedParent}, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" VerticalAlignment="Center" Margin="5 0 5 0"></TextBlock>
                             <!--
                             <TextBlock Text="{TemplateBinding Title}"></TextBlock>
                             -->

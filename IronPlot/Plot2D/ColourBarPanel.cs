@@ -26,31 +26,47 @@ namespace IronPlot
         
         internal ColourBarPanel() : base()
         {
-            // Assume vertical alignment for now
+            // Assume vertical alignment for now.
             axes.xAxisBottom.LabelsVisible = axes.xAxisTop.LabelsVisible = false;
             axes.xAxisBottom.TicksVisible = axes.xAxisTop.TicksVisible = false;
-            axes.xAxisBottom.desiredLength = axes.xAxisTop.desiredLength = 20;
+            var allAxes = axes.XAxes.Concat(axes.YAxes);
+            foreach (Axis2D axis in allAxes) axis.GridLines.Visibility = Visibility.Collapsed; 
+            axes.Width = 20;
         }
 
         protected override Size MeasureOverride(Size availableSize)
         {
+            foreach (Slider slider in sliderList) slider.Measure(availableSize);
+            double thumbWidth = sliderList[0].DesiredSize.Width;
+            double thumbSemiHeight = sliderList[0].DesiredSize.Height / 2;
+            axes.MinAxisMargin = new Thickness(thumbWidth, thumbSemiHeight, 0, thumbSemiHeight);
             return base.MeasureOverride(availableSize);
-        }
-
-        protected override void BeforeArrange()
-        {
-            foreach (Slider slider in sliderList)
-            {
-                slider.Height = canvasLocation.Height;
-                slider.SetValue(Canvas.TopProperty, canvasLocation.Top - axesCanvasLocation.Top);
-                minimumAxesMargin.Left = Math.Max(minimumAxesMargin.Left, slider.ActualWidth);
-            }
-            base.BeforeArrange();
         }
 
         protected override Size ArrangeOverride(Size finalSize)
         {
+            double thumbWidth = sliderList[0].DesiredSize.Width;
+            double thumbHeight = sliderList[0].DesiredSize.Height;
+            Rect sliderLocation = new Rect(new Point(canvasLocation.Left - thumbWidth, canvasLocation.Top - thumbHeight/2),
+                new Size(thumbWidth, canvasLocation.Height + thumbHeight));
+            foreach (Slider slider in sliderList) slider.Arrange(sliderLocation);
             return base.ArrangeOverride(finalSize);
+        }
+
+        internal void AddSliders(List<Slider> sliders)
+        {
+            this.sliderList = sliders;
+            foreach (Slider slider in sliderList)
+            {
+                this.Children.Add(slider);
+                slider.SetValue(Grid.ZIndexProperty, 400);
+            }
+        }
+
+        internal void RemoveSliders()
+        {
+            if (sliderList == null) return;
+            foreach (Slider slider in sliderList) this.Children.Remove(slider);
         }
     }
 }
