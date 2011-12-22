@@ -11,6 +11,7 @@ using System.Windows.Data;
 using System.Linq;
 using System.Text;
 using System.Windows.Documents;
+using System.ComponentModel;
 
 namespace IronPlot
 {
@@ -203,6 +204,17 @@ namespace IronPlot
             axisLine.Data = axisLineGeometry;
             axisTicks.Data = axisTicksGeometry;
             DeriveTicks();
+
+            DependencyPropertyDescriptor fontSizeDescr = DependencyPropertyDescriptor.
+                FromProperty(Control.FontSizeProperty, typeof(Axis2D));
+
+            if (fontSizeDescr != null)
+            {
+                fontSizeDescr.AddValueChanged(this, delegate
+                {
+                    TickLabelCache.Invalidate();
+                });
+            } 
         }
         
         static Axis2D()
@@ -295,7 +307,7 @@ namespace IronPlot
                     }       
                     AddTextToBlock(currentTextBlock, i);
                     currentTextBlock.Visibility = Visibility.Visible;
-                    TickLabelCache[i].AxisType = AxisType; TickLabelCache[i].Value = Ticks[i];
+                    TickLabelCache[i].AxisType = AxisType; TickLabelCache[i].Value = Ticks[i]; TickLabelCache[i].RequiredDPs = RequiredDPs[i];
                 }
                 currentTextBlock.Measure(new Size(Double.PositiveInfinity, double.PositiveInfinity));
             }

@@ -35,5 +35,11 @@ namespace IronPlot
         public bool IsShown = true;
     }
 
-    public class LabelCache : List<LabelCacheItem> { }
+    public class LabelCache : List<LabelCacheItem> 
+    {
+        public void Invalidate()
+        {
+            foreach (LabelCacheItem item in this) item.Value = Double.NaN;
+        }
+    }
 }
