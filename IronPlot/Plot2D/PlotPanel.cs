@@ -251,8 +251,6 @@ namespace IronPlot
             axesRegionLocation.Y += offsetY;
             canvasLocation.Y += offsetY;
 
-            axes.RenderEachAxis();
-            // 'Rendering' of plot items, i.e. recreating geometries is done in BeforeArrange.
             BeforeArrange();
 
             // The axes themselves (i.e. the rectangle around the plot canvas):
@@ -265,6 +263,9 @@ namespace IronPlot
             foreach (Axis2D axis in axes.YAxes) axis.Arrange(axesRegionLocation);
 
             BackgroundCanvas.Arrange(canvasLocation);
+            axes.RenderEachAxis();
+            // 'Rendering' of plot items, i.e. recreating geometries is done in BeforeArrange.
+
             Canvas.Arrange(canvasLocation);
             if (direct2DControl != null) direct2DControl.Arrange(canvasLocation);
             BackgroundCanvas.InvalidateVisual();

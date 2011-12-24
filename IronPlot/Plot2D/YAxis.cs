@@ -124,7 +124,6 @@ namespace IronPlot
 
         internal override void RenderAxis()
         {
-            base.RenderAxis();
             YAxisPosition position = (YAxisPosition)GetValue(YAxisPositionProperty);
             Point tickPosition;
 
@@ -165,6 +164,7 @@ namespace IronPlot
             else interactionPad.SetValue(Canvas.LeftProperty, xPosition);
             double yPosition = AxisTotalLength - MaxTransformed * Scale + Offset;
             interactionPad.SetValue(Canvas.TopProperty, yPosition);
+            base.RenderAxis();
         }
 
         internal override Transform1D GraphToAxesCanvasTransform()

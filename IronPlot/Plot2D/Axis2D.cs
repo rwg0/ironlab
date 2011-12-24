@@ -415,7 +415,7 @@ namespace IronPlot
         internal virtual void RenderAxis()
         {
             // Derived classes should render axes. Also cause GridLines to be re-rendered.
-            gridLines.InvalidateMeasure();
+            gridLines.InvalidateVisual();
         }
 
         internal abstract Transform1D GraphToAxesCanvasTransform();

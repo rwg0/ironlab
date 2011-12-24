@@ -118,7 +118,6 @@ namespace IronPlot
 
         internal override void RenderAxis()
         {
-            base.RenderAxis();
             XAxisPosition position = (XAxisPosition)GetValue(XAxisPositionProperty);
             Point tickPosition;
 
@@ -159,6 +158,7 @@ namespace IronPlot
             else interactionPad.SetValue(Canvas.TopProperty, yPosition - AxisThickness);
             double xPosition = Scale * MinTransformed - Offset;
             interactionPad.SetValue(Canvas.LeftProperty, xPosition);
+            base.RenderAxis();
         }
 
         internal override Transform1D GraphToAxesCanvasTransform()
