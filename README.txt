@@ -25,9 +25,4 @@ import ironplot as ip
 ip.plot(np.sin(np.arange(0, 10, 0.1)))
 then Examples\NumpyPlot content
 
-ILNumerics can still be used:
-copy ILabPythonLib\ilnumerics folder into bin\Lib\site-packages
-Try:
-import ilnumerics as il
-import ironplot as ip
-ip.plot(il.sin(il.counter(100) * 0.1))
+ILNumerics support is now deprecated.
