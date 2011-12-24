@@ -57,17 +57,11 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
-    <Reference Include="ILNumerics.Net, Version=1.4.11.30092, Culture=neutral, PublicKeyToken=100fa3190fad684e, processorArchitecture=x86">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\ILNumerics\RequiredLibraries\ILNumerics.Net.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="ReachFramework">
       <RequiredTargetFramework>3.0</RequiredTargetFramework>
     </Reference>
-    <Reference Include="SlimDX, Version=4.0.11.43, Culture=neutral, PublicKeyToken=b1b0c32fd1ffe4f9, processorArchitecture=x86">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>RequiredLibraries\SlimDX.dll</HintPath>
+    <Reference Include="SlimDX, Version=2.0.11.43, Culture=neutral, PublicKeyToken=b1b0c32fd1ffe4f9, processorArchitecture=x86">
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />

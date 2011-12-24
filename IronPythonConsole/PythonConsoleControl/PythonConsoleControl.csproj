@@ -54,15 +54,15 @@
     </Reference>
     <Reference Include="IronPython.Modules">
       <HintPath>RequiredLibraries\IronPython\IronPython.Modules.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.Dynamic">
       <HintPath>RequiredLibraries\IronPython\Microsoft.Dynamic.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.Scripting">
       <HintPath>RequiredLibraries\IronPython\Microsoft.Scripting.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Scripting.Debugging">
-      <HintPath>RequiredLibraries\IronPython\Microsoft.Scripting.Debugging.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
