@@ -99,6 +99,7 @@ namespace PythonConsoleControl
                     writeBuffer.Remove(0, writeBuffer.Length);
                     //writeBuffer.Clear();
                 }
+                MoveToEnd();
                 PerformTextInput(toWrite);
                 writeCompletedEvent.Set();
             });
@@ -132,13 +133,15 @@ namespace PythonConsoleControl
             if (text == "\n" || text == "\r\n")
             {
                 string newLine = TextUtilities.GetNewLineFromDocument(textArea.Document, textArea.Caret.Line);
-                using (textArea.Document.RunUpdate())
-                {
-                    textArea.Selection.ReplaceSelectionWithText(textArea, newLine);
-                }
+                this.textEditor.AppendText(newLine);
+                //using (textArea.Document.RunUpdate())
+                //{
+                   
+                //    textArea.Selection.ReplaceSelectionWithText(textArea, newLine);
+                //}
             }
             else
-                textArea.Selection.ReplaceSelectionWithText(textArea, text);
+                this.textEditor.AppendText(text);
             textArea.Caret.BringCaretToView();
         }
 

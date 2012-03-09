@@ -50,7 +50,8 @@ namespace PythonConsoleControl
                     //object value = commandLine.ScriptScope.Engine.CreateScriptSourceFromString(name, SourceCodeKind.Expression).Execute(commandLine.ScriptScope);
                     //IList<string> members = commandLine.ScriptScope.Engine.Operations.GetMemberNames(value);
                     Type type = TryGetType(name);
-                    if (type != null && type.Namespace != "IronPython.Runtime")
+                    // Use Reflection for everything except in-built Python types and COM pbjects. 
+                    if (type != null && type.Namespace != "IronPython.Runtime" && (type.Name != "__ComObject"))
                     {
                         PopulateFromCLRType(items, type, name);
                     }

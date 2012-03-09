@@ -40,21 +40,26 @@ namespace PythonConsoleControl
         ManualResetEvent lineReceivedEvent = new ManualResetEvent(false);
         ManualResetEvent disposedEvent = new ManualResetEvent(false);
         AutoResetEvent statementsExecutionRequestedEvent = new AutoResetEvent(false);
+        AutoResetEvent dispatcherCompleted = new AutoResetEvent(false);
         WaitHandle[] waitHandles;
         int promptLength = 4;
         List<string> previousLines = new List<string>();
         CommandLine commandLine;
         CommandLineHistory commandLineHistory = new CommandLineHistory();
-        Thread consoleThread;
-        Thread statementsExecutionThread;
-        volatile bool statementsExecuting = false;
-        string scriptText = "";
+
+        volatile bool executing = false;
+
+        // This is the thread upon which all commands execute unless the dipatcher is overridden.
+        Thread dispatcherThread;
+        Window dispatcherWindow;
+        Dispatcher dispatcher;
+
+        string scriptText = String.Empty;
         bool allowFullAutocompletion = false;
         bool allowCtrlSpaceAutocompletion = true;
         bool consoleInitialized = false;
         string prompt;
-        Window dispatcherWindow;
-
+      
         public event ConsoleInitializedEventHandler ConsoleInitialized;
 
         public ScriptScope ScriptScope
@@ -67,21 +72,20 @@ namespace PythonConsoleControl
             waitHandles = new WaitHandle[] { lineReceivedEvent, disposedEvent };
 
             this.commandLine = commandLine;
-
             this.textEditor = textEditor;
             textEditor.CompletionProvider = new PythonConsoleCompletionDataProvider(commandLine);
             textEditor.PreviewKeyDown += textEditor_PreviewKeyDown;
             textEditor.TextEntered += textEditor_TextEntered;
             textEditor.TextEntering += textEditor_TextEntering;
-            consoleThread = Thread.CurrentThread;
-            
-            statementsExecutionThread = new Thread(new ThreadStart(DispatcherThreadStartingPoint));
-            statementsExecutionThread.SetApartmentState(ApartmentState.STA);
-            statementsExecutionThread.IsBackground = true;
-            statementsExecutionThread.Start();
+            dispatcherThread = new Thread(new ThreadStart(DispatcherThreadStartingPoint));
+            dispatcherThread.SetApartmentState(ApartmentState.STA);
+            dispatcherThread.IsBackground = true;
+            dispatcherThread.Start();
 
-            // These definition is only required when running outside REP loop.
+            // Only required when running outside REP loop.
             prompt = ">>> ";
+
+            // Set commands:
             this.textEditor.textArea.Dispatcher.Invoke(new Action(delegate()
             {
                 CommandBinding pasteBinding = null;
@@ -112,20 +116,48 @@ namespace PythonConsoleControl
 			
             }));
             CodeContext codeContext = DefaultContext.Default;
+            // Set dispatcher to run on a UI thread independent of both the Control UI thread and thread running the REPL.
             ClrModule.SetCommandDispatcher(codeContext, DispatchCommand);
         }
 
         protected void DispatchCommand(Delegate command)
         {
+            dispatcherCompleted.Reset();
             if (command != null)
             {
-                dispatcherWindow.Dispatcher.Invoke(DispatcherPriority.Normal, command);
+                executing = true;
+                dispatcher.BeginInvoke(DispatcherPriority.Normal, command);
+                dispatcherCompleted.WaitOne();
+                executing = false;
+            }
+
+        }
+
+        private void DispatcherThreadStartingPoint()
+        {
+            dispatcherWindow = new Window();
+            dispatcher = dispatcherWindow.Dispatcher;
+            dispatcher.Hooks.OperationCompleted += delegate(object sender, DispatcherHookEventArgs e)
+            {
+                dispatcherCompleted.Set();
+            };
+            while (true)
+            {
+                try
+                {
+                    System.Windows.Threading.Dispatcher.Run();
+                }
+                catch (ThreadAbortException tae)
+                {
+                    dispatcherCompleted.Set();
+                    if (tae.ExceptionState is Microsoft.Scripting.KeyboardInterruptException) Thread.ResetAbort();
+                }
             }
         }
 
-        public void SetDispatcherWindow(Window dispatcherWindow)
+        public void SetDispatcher(Dispatcher dispatcher)
         {
-            this.dispatcherWindow = dispatcherWindow;
+            this.dispatcher = dispatcher;
         }
 
         public void Dispose()
@@ -246,16 +278,16 @@ namespace PythonConsoleControl
         protected void OnCopy(object target, ExecutedRoutedEventArgs args)
         {
             if (target != textEditor.textArea) return;
-            if (textEditor.SelectionLength == 0)
+            if (textEditor.SelectionLength == 0 && executing)
             {
                 // Send the 'Ctrl-C' abort 
-                if (!IsInReadOnlyRegion)
-                {
-                    textEditor.Column = GetLastTextEditorLine().Length + 1;
-                    textEditor.Write(Environment.NewLine);
-                }
-                if (statementsExecuting) statementsExecutionThread.Abort(new Microsoft.Scripting.KeyboardInterruptException(""));
-                else consoleThread.Abort(new Microsoft.Scripting.KeyboardInterruptException(""));
+                //if (!IsInReadOnlyRegion)
+                //{
+                    MoveToHomePosition();
+                    //textEditor.Column = GetLastTextEditorLine().Length + 1;
+                    //textEditor.Write(Environment.NewLine);
+                //}
+                dispatcherThread.Abort(new Microsoft.Scripting.KeyboardInterruptException(""));
                 args.Handled = true;
             }
             else PythonEditingCommandHandler.OnCopy(target, args);
@@ -279,15 +311,7 @@ namespace PythonConsoleControl
             {
                 this.scriptText = statements;
             }
-            TextArea textArea = textEditor.textArea;
-            textEditor.Write(TextUtilities.GetNewLineFromDocument(textArea.Document, textArea.Caret.Line));
-            dispatcherWindow.Dispatcher.BeginInvoke(new Action(delegate() { ExecuteStatements(); }));
-        }
-
-        private void DispatcherThreadStartingPoint()
-        {
-            dispatcherWindow = new Window();
-            System.Windows.Threading.Dispatcher.Run();
+            dispatcher.BeginInvoke(new Action(delegate() { ExecuteStatements(); }));
         }
 
         /// <summary>
@@ -297,13 +321,13 @@ namespace PythonConsoleControl
         {
             lock (scriptText)
             {
+                textEditor.Write("\r\n");
                 ScriptSource scriptSource = commandLine.ScriptScope.Engine.CreateScriptSourceFromString(scriptText, SourceCodeKind.Statements);
                 string error = "";
                 try
                 {
-                    statementsExecuting = true;
+                    executing = true;
                     scriptSource.Execute(commandLine.ScriptScope);
-                    statementsExecuting = false;
                 }
                 catch (ThreadAbortException tae)
                 {
@@ -322,7 +346,7 @@ namespace PythonConsoleControl
                     eo = commandLine.ScriptScope.Engine.GetService<ExceptionOperations>();
                     error = eo.FormatException(exception) + System.Environment.NewLine;
                 }
-                statementsExecuting = false;
+                executing = false;
                 if (error != "") textEditor.Write(error);
                 textEditor.Write(prompt);
             }
@@ -460,11 +484,11 @@ namespace PythonConsoleControl
                     e.Handled = true;
                     return;
                 case Key.Down:
-                    MoveToNextCommandLine();
+                    if (!IsInReadOnlyRegion) MoveToNextCommandLine();
                     e.Handled = true;
                     return;
                 case Key.Up:
-                    MoveToPreviousCommandLine();
+                    if (!IsInReadOnlyRegion) MoveToPreviousCommandLine();
                     e.Handled = true;
                     return;
             }

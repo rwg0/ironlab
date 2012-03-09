@@ -115,7 +115,7 @@ namespace PythonConsoleControl
             return srs;
         }
 
-        protected override void ParseHostOptions(string/*!*/[]/*!*/ args)
+        protected override void ParseHostOptions(string[] args)
         {
             // Python doesn't want any of the DLR base options.
             foreach (string s in args)
