@@ -23,7 +23,7 @@ namespace IronPlot
     /// </summary>
     public enum Position { Left, Right, Top, Bottom }
 
-    public partial class PlotPanel : Panel
+    public partial class PlotPanel : PlotPanelBase
     {
         // Canvas for plot content:
         internal Canvas Canvas;
@@ -38,28 +38,11 @@ namespace IronPlot
 
         internal Axes2D axes;
 
-        // Annotation regions
-        internal StackPanel annotationsLeft;
-        internal StackPanel annotationsRight;
-        internal StackPanel annotationsTop;
-        internal StackPanel annotationsBottom;
-
         protected DispatcherTimer marginChangeTimer;
-
-        // Arrangement
-        // whether or not legend is shown:
-        bool showAnnotationsLeft = false;
-        bool showAnnotationsRight = false;
-        bool showAnnotationsTop = false;
-        bool showAnnotationsBottom = false;
 
         protected Size axesRegionSize;
         // The location of canvas:
         protected Rect canvasLocation;
-        // Width and height of legends, axes and canvas combined: 
-        double entireWidth = 0, entireHeight = 0;
-        // Offset of combination of legends, axes and canvas in available area:
-        double offsetX = 0, offsetY = 0;
 
         public static readonly DependencyProperty EqualAxesProperty =
             DependencyProperty.Register("EqualAxesProperty",
@@ -83,6 +66,8 @@ namespace IronPlot
         protected static void OnEqualAxesChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
             PlotPanel plotPanelLocal = ((PlotPanel)obj);
+            if ((bool)e.NewValue == true) plotPanelLocal.axes.SetAxesEqual();
+            else plotPanelLocal.axes.ResetAxesEqual();
             plotPanelLocal.InvalidateMeasure();
         }
 
@@ -110,7 +95,7 @@ namespace IronPlot
             plotPanelLocal.InvalidateMeasure();
         }
 
-        public PlotPanel()
+        public PlotPanel() : base()
         {
             ClipToBounds = true;
             // Add Canvas objects
@@ -136,7 +121,7 @@ namespace IronPlot
             BackgroundCanvas.Background = background;
             direct2DControl = null;
             //
-            this.CreateLegends();
+            //this.CreateLegends();
             if (!(this is ColourBarPanel)) this.AddInteractionEvents();
             this.AddSelectionRectangle();
             this.InitialiseChildenCollection();
@@ -156,67 +141,35 @@ namespace IronPlot
                 axis.UpdateAndMeasureLabels();
             }
 
-            annotationsLeft.Measure(availableSize);
-            annotationsRight.Measure(availableSize);
-            annotationsTop.Measure(availableSize);
-            annotationsBottom.Measure(availableSize);
+            AnnotationsLeft.Measure(availableSize); AnnotationsRight.Measure(availableSize);
+            AnnotationsTop.Measure(availableSize); AnnotationsBottom.Measure(availableSize);
             
             availableSize.Height = Math.Min(availableSize.Height, 10000);
             availableSize.Width = Math.Min(availableSize.Width, 10000);
+            
             // Main measurement work:
-            MeasureAxes(availableSize);
+            // Return the region available for plotting and set legendRegion:
+            Rect available = PlaceAnnotations(availableSize);
+            // Place the axes using this region, setting axesRegionSize and canvasLocation:
+            PlaceAxes(available);
             
             Canvas.Measure(new Size(canvasLocation.Width, canvasLocation.Height));
             BackgroundCanvas.Measure(new Size(canvasLocation.Width, canvasLocation.Height));
-            availableSize.Height = axesRegionSize.Height + annotationsTop.DesiredSize.Height + annotationsBottom.DesiredSize.Height;
-            availableSize.Width = axesRegionSize.Width + annotationsLeft.DesiredSize.Width + annotationsRight.DesiredSize.Width;
+            availableSize.Height = axesRegionSize.Height + AnnotationsTop.DesiredSize.Height + AnnotationsBottom.DesiredSize.Height;
+            availableSize.Width = axesRegionSize.Width + AnnotationsLeft.DesiredSize.Width + AnnotationsRight.DesiredSize.Width;
             sizeAfterMeasure = availableSize;
             return availableSize;
         }
 
         /// <summary>
-        /// Render the Axes according to the room available.
+        /// Place the Axes according to the room available.
         /// </summary>
         /// <param name="availableSize"></param>
-        protected void MeasureAxes(Size availableSize)
+        protected void PlaceAxes(Rect available)
         {
             // Allow legends their widths.
-            axes.Measure(availableSize);
-            showAnnotationsLeft = false;
-            showAnnotationsRight = false;
-            showAnnotationsTop = false;
-            showAnnotationsBottom = false;
-            double startX = 0; double startY = 0;
-            double endX = availableSize.Width; double endY = availableSize.Height;
-            entireWidth = 0; entireHeight = 0;
-            offsetX = 0; offsetY = 0;
-            if ((endX - startX) > (annotationsLeft.DesiredSize.Width + 1))
-            {
-                showAnnotationsLeft = true;
-                startX += annotationsLeft.DesiredSize.Width;
-                entireWidth += annotationsLeft.DesiredSize.Width;
-                offsetX += annotationsLeft.DesiredSize.Width;
-            }
-            if ((endX - startX) > (annotationsRight.DesiredSize.Width + 1))
-            {
-                showAnnotationsRight = true;
-                endX -= annotationsRight.DesiredSize.Width;
-                entireWidth += annotationsRight.DesiredSize.Width;
-            }
-            if ((endY - startY) > (annotationsTop.DesiredSize.Height + 1))
-            {
-                showAnnotationsTop = true;
-                startY += annotationsTop.DesiredSize.Height;
-                entireHeight += annotationsTop.DesiredSize.Height;
-                offsetY += annotationsTop.DesiredSize.Height;
-            }
-            if ((endY - startY) > (annotationsBottom.DesiredSize.Height + 1))
-            {
-                showAnnotationsBottom = true;
-                endY -= annotationsBottom.DesiredSize.Height;
-                entireHeight += annotationsBottom.DesiredSize.Height;
-            }
-            Rect available = new Rect(startX, 0, endX - startX, endY - startY);
+            axes.Measure(new Size(available.Width, available.Height));
+
             bool axesEqual = (bool)this.GetValue(EqualAxesProperty);
             // Calculates the axes positions, positions labels, updates geometries.
             Rect canvasLocationWithinAxes;
@@ -224,7 +177,7 @@ namespace IronPlot
                 axes.UpdateAxisPositionsOffsetOnly(available, out canvasLocation, out axesRegionSize);
             else
             {
-                axes.MeasureAxesFull(new Size(available.Width, available.Height), out canvasLocationWithinAxes, out axesRegionSize);
+                axes.PlaceAxesFull(new Size(available.Width, available.Height), out canvasLocationWithinAxes, out axesRegionSize);
                 canvasLocation = canvasLocationWithinAxes;
             }
         }
@@ -234,14 +187,17 @@ namespace IronPlot
             Stopwatch watch = new Stopwatch(); watch.Start();
             if (!(finalSize == sizeOnMeasure || finalSize == sizeAfterMeasure))
             {
-                MeasureAxes(finalSize);
+                // Return the final region for plotting and set legendRegion:
+                Rect final = PlaceAnnotations(finalSize);
+                // Place axes using this region, setting axesRegionSize and canvasLocation:
+                PlaceAxes(final);
             }
             canvasLocation = new Rect(canvasLocation.X, canvasLocation.Y, canvasLocation.Width, canvasLocation.Height);
-            Rect axesRegionLocation = new Rect(0, 0, axesRegionSize.Width, axesRegionSize.Height);
-            double entireWidth = this.entireWidth;
-            double entireHeight = this.entireHeight;
-            double offsetX = this.offsetX;
-            double offsetY = this.offsetY;
+            axesRegionLocation = new Rect(0, 0, axesRegionSize.Width, axesRegionSize.Height);
+            double entireWidth = legendRegion.Left + legendRegion.Right;
+            double entireHeight = legendRegion.Top + legendRegion.Bottom;
+            double offsetX = legendRegion.Left;
+            double offsetY = legendRegion.Top;
             entireWidth += axesRegionSize.Width;
             entireHeight += axesRegionSize.Height;
             offsetX += (finalSize.Width - entireWidth) / 2;
@@ -254,7 +210,7 @@ namespace IronPlot
             BeforeArrange();
 
             // The axes themselves (i.e. the rectangle around the plot canvas):
-            axes.Arrange(canvasLocation);
+            axes.Arrange(axesRegionLocation);
             axes.InvalidateVisual();
 
             // Arrange each Axis. Arranged over the whole axes region, although of course the axis will typically
@@ -270,32 +226,8 @@ namespace IronPlot
             if (direct2DControl != null) direct2DControl.Arrange(canvasLocation);
             BackgroundCanvas.InvalidateVisual();
             Canvas.InvalidateVisual();
-
-            if (showAnnotationsLeft)
-            {
-                Rect annotationsLeftRect = new Rect(new Point(axesRegionLocation.Left - annotationsLeft.DesiredSize.Width, axesRegionLocation.Top),
-                    new Point(axesRegionLocation.Left, axesRegionLocation.Bottom));
-                annotationsLeft.Arrange(annotationsLeftRect);
-            }
-            if (showAnnotationsRight)
-            {
-                Rect annotationsRightRect = new Rect(new Point(axesRegionLocation.Right, axesRegionLocation.Top),
-                    new Point(axesRegionLocation.Right + annotationsRight.DesiredSize.Width, axesRegionLocation.Bottom));
-                annotationsRight.Arrange(annotationsRightRect);
-            }
-            else annotationsRight.Arrange(new Rect());
-            if (showAnnotationsTop)
-            {
-                Rect annotationsTopRect = new Rect(new Point(axesRegionLocation.Left, axesRegionLocation.Top - annotationsTop.DesiredSize.Height),
-                    new Point(axesRegionLocation.Right, axesRegionLocation.Top));
-                annotationsTop.Arrange(annotationsTopRect);
-            }
-            if (showAnnotationsBottom)
-            {
-                Rect annotationsBottomRect = new Rect(new Point(axesRegionLocation.Left, axesRegionLocation.Bottom),
-                    new Point(axesRegionLocation.Right, axesRegionLocation.Bottom + annotationsBottom.DesiredSize.Height));
-                annotationsBottom.Arrange(annotationsBottomRect);
-            }
+            
+            ArrangeAnnotations();
             return finalSize;
         }
 

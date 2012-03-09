@@ -253,7 +253,12 @@ namespace IronPlot
                 markersD2D.GraphToCanvas = graphToCanvas;
             }
             //
+            //line.PreviewMouseMove += new MouseEventHandler(line_PreviewMouseMove);
             UpdateMarkers();
+        }
+
+        void line_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
         }
 
         private void RemoveElements(bool removeDirect2DComponents)

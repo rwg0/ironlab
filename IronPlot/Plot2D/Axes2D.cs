@@ -73,6 +73,14 @@ namespace IronPlot
             EqualAxes = new AxisPair(XAxes.Bottom, YAxes.Left);
         }
 
+        /// <summary>
+        /// Set no axes to have equal scales.
+        /// </summary>
+        public void ResetAxesEqual()
+        {
+            EqualAxes = null;
+        }
+
         // Canvas containing axes.
         protected Canvas canvas;
 
@@ -138,7 +146,7 @@ namespace IronPlot
                 double canvasHeight = yAxisLeft.AxisTotalLength - yAxisLeft.AxisMargin.Total();
 
                 // Add in axes lines
-                Point contextPoint = new Point(0.0, 0.0);
+                Point contextPoint = new Point(xAxisBottom.AxisMargin.LowerMargin, yAxisLeft.AxisMargin.UpperMargin);
                 axesGeometryContext.BeginFigure(contextPoint, false, true);
                 contextPoint.Y = contextPoint.Y + canvasHeight; axesGeometryContext.LineTo(contextPoint, true, false);
                 contextPoint.X = contextPoint.X + canvasWidth; axesGeometryContext.LineTo(contextPoint, true, false);
@@ -171,7 +179,7 @@ namespace IronPlot
             // Calculate margins
             AxisMargin margin = new AxisMargin(alignedAxes.Max(axis => axis.AxisMargin.LowerMargin), alignedAxes.Max(axis => axis.AxisMargin.UpperMargin));
 
-            double plotLength = 1.0;
+            double plotLength;
             if (alignedAxes[0] is XAxis) plotLength = Double.IsNaN(lengthOverride) ? Width : lengthOverride;
             else plotLength = Double.IsNaN(lengthOverride) ? Height : lengthOverride;
             double minPlotLength = 1.0;
@@ -179,6 +187,10 @@ namespace IronPlot
             {
                 double newTotalLength = plotLength + margin.Total();
                 foreach (Axis2D axis in alignedAxes) axis.AxisTotalLength = newTotalLength;
+            }
+            else if ((alignedAxes[0].AxisTotalLength - margin.Total()) < minPlotLength)
+            {
+                foreach (Axis2D axis in alignedAxes) axis.AxisTotalLength = margin.Total() + minPlotLength;
             }
 
             // Set the margin and update Scale and Offset.
@@ -280,7 +292,7 @@ namespace IronPlot
         /// <param name="availableSize"></param>
         /// <param name="canvasPosition"></param>
         /// <param name="axesCanvasPositions"></param>
-        internal void MeasureAxesFull(Size availableSize, out Rect canvasPosition, out Size requiredSize)
+        internal void PlaceAxesFull(Size availableSize, out Rect canvasPosition, out Size requiredSize)
         {
             Stopwatch watch = new Stopwatch(); watch.Start();
             // The arrangement process is

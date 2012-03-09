@@ -77,28 +77,34 @@ namespace IronPlot.Plotting3D
         protected Transform3DGroup _transform;
         protected ScaleTransform3D _scale = new ScaleTransform3D();
         protected AxisAngleRotation3D _rotation = new AxisAngleRotation3D();
+        protected TranslateTransform3D _translate = new TranslateTransform3D();
 
         protected bool _mouseLeftDown, _mouseRightDown;
         
-        protected Vector3D cameraUpDirection;
-        protected Vector3D cameraLookDirection;
-
         Quaternion delta;
         double scale;
+        Point translation = new Point();
 
         public event TrackballEventHandler OnTrackBallMoved;
         public event TrackballEventHandler OnTrackBallZoom;
+        public event TrackballEventHandler OnTrackBallTranslate;
 
-        // Invoke the OnDraw event
         protected virtual void RaiseTrackballMovedEvent(EventArgs e)
         {
             if (OnTrackBallMoved != null)
                 OnTrackBallMoved(this, e);
         }
+
         protected virtual void RaiseZoomEvent(EventArgs e)
         {
             if (OnTrackBallZoom != null)
                 OnTrackBallZoom(this, e);
+        }
+
+        protected virtual void RaiseTranslateEvent(EventArgs e)
+        {
+            if (OnTrackBallTranslate != null)
+                OnTrackBallTranslate(this, e);
         }
 
         public Quaternion Delta
@@ -111,13 +117,16 @@ namespace IronPlot.Plotting3D
             get { return scale; }
         }
 
+        public Point Translation
+        {
+            get { return translation; }
+        }
+
         public Trackball()
         {
             _transform = new Transform3DGroup();
             _transform.Children.Add(_scale);
             _transform.Children.Add(new RotateTransform3D(_rotation));
-            cameraUpDirection = new Vector3D();
-            cameraLookDirection = new Vector3D();
         }
 
         /// <summary>
@@ -143,7 +152,7 @@ namespace IronPlot.Plotting3D
         #region Event Handling
 
         /// <summary>
-        ///     The FrameworkElement we listen to for mouse events.
+        /// The FrameworkElement we listen to for mouse events.
         /// </summary>
         public FrameworkElement EventSource
         {
@@ -156,6 +165,7 @@ namespace IronPlot.Plotting3D
                     _eventSource.MouseDown -= this.OnMouseDown;
                     _eventSource.MouseUp -= this.OnMouseUp;
                     _eventSource.MouseMove -= this.OnMouseMove;
+                    _eventSource.MouseWheel -= this.OnMouseWheel;
                 }
 
                 _eventSource = value;
@@ -163,6 +173,7 @@ namespace IronPlot.Plotting3D
                 _eventSource.MouseDown += this.OnMouseDown;
                 _eventSource.MouseUp += this.OnMouseUp;
                 _eventSource.MouseMove += this.OnMouseMove;
+                _eventSource.MouseWheel += this.OnMouseWheel;
             }
         }
 
@@ -181,12 +192,21 @@ namespace IronPlot.Plotting3D
             Mouse.Capture(EventSource, CaptureMode.None);
         }
 
+        protected virtual void OnMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            double delta = -e.Delta / 120;
+            scale = Math.Pow(1.4, delta);
+            Zoom(scale);
+        }
+
         protected virtual void OnMouseMove(object sender, MouseEventArgs e)
         {
             Point currentPosition = e.GetPosition(EventSource);
+            bool ctrlOrShift = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl) ||
+                Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.LeftShift);
 
             // Prefer tracking to zooming if both buttons are pressed.
-            if (e.LeftButton == MouseButtonState.Pressed)
+            if (e.LeftButton == MouseButtonState.Pressed && !ctrlOrShift)
             {
                 if (_mouseLeftDown)
                 {
@@ -203,12 +223,12 @@ namespace IronPlot.Plotting3D
                         _previousPosition2D);
                 }
             }
-            else if (e.RightButton == MouseButtonState.Pressed)
+            else if (e.RightButton == MouseButtonState.Pressed || (e.LeftButton == MouseButtonState.Pressed && ctrlOrShift))
             {
                 if (_mouseRightDown)
                 {
-                    if (Zoom(currentPosition)) e.Handled = true;
-
+                    //if (Zoom(currentPosition)) e.Handled = true;
+                    Translate(currentPosition);
                 }
                 else
                 {
@@ -274,16 +294,26 @@ namespace IronPlot.Plotting3D
         protected bool Zoom(Point currentPosition)
         {
             double yDelta = currentPosition.Y - _previousPosition2D.Y;
-
             scale = Math.Exp(yDelta / 100);    // e^(yDelta/100) is fairly arbitrary.
+            return Zoom(scale);
+        }
 
+        protected bool Zoom(double factor)
+        {
             _scale.ScaleX *= Scale;
             _scale.ScaleY *= Scale;
             _scale.ScaleZ *= Scale;
 
             RaiseZoomEvent(EventArgs.Empty);
 
-            return (yDelta != 0.0);
+            return (factor != 1.0);
+        }
+
+        protected void Translate(Point currentPosition)
+        {
+            translation = new Point((currentPosition.X - _previousPosition2D.X) / EventSource.ActualWidth, 
+                (currentPosition.Y - _previousPosition2D.Y) / EventSource.ActualHeight);
+            RaiseTranslateEvent(EventArgs.Empty);
         }
     }
 }

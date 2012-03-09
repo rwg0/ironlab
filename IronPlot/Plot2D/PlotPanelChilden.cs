@@ -19,7 +19,7 @@ using System.Collections.ObjectModel;
 
 namespace IronPlot
 {
-    public partial class PlotPanel : Panel
+    public partial class PlotPanel : PlotPanelBase
     {
         internal UniqueObservableCollection<Plot2DItem> plotItems;
 
@@ -28,9 +28,7 @@ namespace IronPlot
         protected void InitialiseChildenCollection()
         {
             plotItems = new UniqueObservableCollection<Plot2DItem>();
-            annotations = new UniqueObservableCollection<UIElement>();
             plotItems.CollectionChanged += new NotifyCollectionChangedEventHandler(plotItems_CollectionChanged);
-            annotations.CollectionChanged +=new NotifyCollectionChangedEventHandler(annotations_CollectionChanged);
         }
 
         protected void plotItems_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)

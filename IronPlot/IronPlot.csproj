@@ -122,6 +122,9 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Grid\ClipboardHelper.cs" />
+    <Compile Include="Grid\ConverterHelper.cs" />
+    <Compile Include="Grid\DataGrid.cs" />
     <Compile Include="Plot2D\Axes2D.cs" />
     <Compile Include="Plot2D\Axis2D.cs" />
     <Compile Include="Plot2D\Axis2DCollection.cs" />
@@ -198,6 +201,7 @@
     <Compile Include="PlotCommon\MathsHelper.cs" />
     <Compile Include="PlotCommon\ObservableCollectionListAdapter.cs" />
     <Compile Include="PlotCommon\PlotContext.cs" />
+    <Compile Include="PlotCommon\PlotPanelBase.cs" />
     <Compile Include="PlotCommon\Plotting.cs" />
     <Compile Include="PlotCommon\Slice.cs" />
     <Compile Include="PlotCommon\Title.cs" />
@@ -250,6 +254,7 @@
       <Name>XamlToys</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

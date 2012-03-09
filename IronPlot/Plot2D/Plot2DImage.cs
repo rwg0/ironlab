@@ -72,7 +72,7 @@ namespace IronPlot
             //imageRectangle.RenderTransform = host.graphToCanvas;
             if (colourBar != null)
             {
-                host.annotationsRight.Children.Add(colourBar);
+                host.AnnotationsRight.Children.Add(colourBar);
                 colourBar.VerticalAlignment = VerticalAlignment.Stretch;
                 colourBar.ColourMapChanged += new RoutedEventHandler(OnColourMapChanged);
             }

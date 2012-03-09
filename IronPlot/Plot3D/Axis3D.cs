@@ -147,7 +147,6 @@ namespace IronPlot.Plotting3D
                 axisLabel = new TextBlock();
                 axisCollection.AxisLabels.BindTextBlock(axisLabel);
                 axes.Layer2D.Canvas.Children.Add(axisLabel);
-                //axisLabel.Text = axisLabelText;
             }
             TextBlock currentTextBlock;
             for (int i = 0; i < Ticks.Length; ++i)
@@ -384,7 +383,6 @@ namespace IronPlot.Plotting3D
             : base(axes, axisCollection)
         {
             this.axisType = axisType;
-            //axisLabelText = "X";
         }
 
         public override Point3D TickStartPoint(int i)
@@ -464,7 +462,6 @@ namespace IronPlot.Plotting3D
             : base(axes, axisCollection)
         {
             this.axisType = axisType;
-            //axisLabelText = "Y";
         }
 
         public override Point3D TickStartPoint(int i)
@@ -544,7 +541,6 @@ namespace IronPlot.Plotting3D
             : base(axes, axisCollection)
         {
             this.axisType = axisType;
-            //axisLabelText = "Z";
         }
 
         public override Point3D TickStartPoint(int i)

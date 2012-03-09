@@ -122,10 +122,24 @@ namespace IronPlot.Plotting3D
             yAxisCollection.AxisLabels.Text = "Y";
             zAxisCollection.AxisLabels.Text = "Z";
 
+            sides = new LinesModel3D[6]; 
+            MinusX = new LinesModel3D(); sides[(int)GraphSides.MinusX] = MinusX;
+            MinusY = new LinesModel3D(); sides[(int)GraphSides.MinusY] = MinusY;
+            MinusZ = new LinesModel3D(); sides[(int)GraphSides.MinusZ] = MinusZ;
+            PlusX = new LinesModel3D(); sides[(int)GraphSides.PlusX] = PlusX;
+            PlusY = new LinesModel3D(); sides[(int)GraphSides.PlusY] = PlusY;
+            PlusZ = new LinesModel3D(); sides[(int)GraphSides.PlusZ] = PlusZ;
+
+            this.Children.Add(MinusX);
+            this.Children.Add(PlusX);
+            this.Children.Add(MinusY);
+            this.Children.Add(PlusY);
+            this.Children.Add(MinusZ);
+            this.Children.Add(PlusZ);
+
             xAxes = new XAxis3D[2];
             yAxes = new YAxis3D[2];
             zAxes = new ZAxis3D[4];
-            sides = new LinesModel3D[6]; 
             // X Axes
             xAxes[(int)XAxisType.MinusY] = new XAxis3D(this, xAxisCollection, XAxisType.MinusY);
             xAxes[(int)XAxisType.PlusY] = new XAxis3D(this, xAxisCollection, XAxisType.PlusY);
@@ -145,19 +159,6 @@ namespace IronPlot.Plotting3D
             zAxisCollection.AddAxis(zAxes[(int)ZAxisType.PlusXMinusY]); zAxisCollection.AddAxis(zAxes[(int)ZAxisType.PlusXPlusY]);
 
             Base = new LinesModel3D(); 
-            MinusX = new LinesModel3D(); sides[(int)GraphSides.MinusX] = MinusX;
-            MinusY = new LinesModel3D(); sides[(int)GraphSides.MinusY] = MinusY;
-            MinusZ = new LinesModel3D(); sides[(int)GraphSides.MinusZ] = MinusZ;
-            PlusX = new LinesModel3D(); sides[(int)GraphSides.PlusX] = PlusX;
-            PlusY = new LinesModel3D(); sides[(int)GraphSides.PlusY] = PlusY;
-            PlusZ = new LinesModel3D(); sides[(int)GraphSides.PlusZ] = PlusZ;
-
-            this.Children.Add(MinusX); 
-            this.Children.Add(PlusX);
-            this.Children.Add(MinusY); 
-            this.Children.Add(PlusY);
-            this.Children.Add(MinusZ);
-            this.Children.Add(PlusZ);
             this.Children.Add(Base); // Add base last so that this can overwrite other lines.
             PlusZ.IsVisible = false;
             // Note axes are already added as Children
@@ -286,6 +287,8 @@ namespace IronPlot.Plotting3D
                 if ((i != constIndex) && (i != ticksIndex)) { lineIndex = i; break; }
             }
             double[] ticksValue = axisList[ticksIndex].Ticks;
+            double min = axisList[ticksIndex].Min;
+            double max = axisList[ticksIndex].Max;
             double[] lineValue = new double[2];
             lineValue[0] = axisList[lineIndex].Min;
             lineValue[1] = axisList[lineIndex].Max;
@@ -297,8 +300,8 @@ namespace IronPlot.Plotting3D
             endPoint[lineIndex] = lineValue[1];
             for (int i = 0; i < ticksValue.Length; ++i)
             {
-                startPoint[ticksIndex] = ticksValue[i];
-                endPoint[ticksIndex] = ticksValue[i];
+                if (ticksValue[i] == min || ticksValue[i] == max) continue;
+                startPoint[ticksIndex] = endPoint[ticksIndex] = ticksValue[i];
                 points.Add(new Point3DColor(startPoint[0], startPoint[1], startPoint[2], gridColor));
                 points.Add(new Point3DColor(endPoint[0], endPoint[1], endPoint[2], gridColor));
             }
@@ -368,15 +371,6 @@ namespace IronPlot.Plotting3D
             AddGridLines(MinusZ.Points, Face.MinusZ, Ticks.YTicks, Colors.Gray);
             //
             PlusZ.Points.Clear();
-            //AddGridLines(PlusZ.Points, Face.PlusZ, Ticks.XTicks, Colors.Gray);
-            //AddGridLines(PlusZ.Points, Face.PlusZ, Ticks.YTicks, Colors.Gray);
-            //
-            //Base.Points.Add(new Point3DColor(graphMin.X, graphMax.Y, graphMin.Z));
-            //Base.Points.Add(new Point3DColor(graphMin.X, graphMax.Y, graphMax.Z));
-            //Base.Points.Add(new Point3DColor(graphMax.X, graphMax.Y, graphMin.Z));
-            //Base.Points.Add(new Point3DColor(graphMax.X, graphMax.Y, graphMax.Z));
-            //Base.Points.Add(new Point3DColor(graphMax.X, graphMin.Y, graphMin.Z));
-            //Base.Points.Add(new Point3DColor(graphMax.X, graphMin.Y, graphMax.Z));
             AddBase(graphMin, graphMax);
 
             RedrawAxesLines();

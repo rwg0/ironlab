@@ -55,7 +55,6 @@ namespace IronPlot.Plotting3D
         protected VertexBuffer vertexBuffer = null;
         protected IndexBuffer indexBuffer = null;
         private static Effect effect;
-        //SlimDX.Direct3D9.Line line;
         private bool pointsChanged = true;
         // Denotes where single pixel lines or thick lines should be drawn
         private bool thickLines = true;
@@ -76,7 +75,6 @@ namespace IronPlot.Plotting3D
             typeof(List<Point3DColor>),
             typeof(LinesModel3D),
             new PropertyMetadata(null));
-            //new PropertyMetadata(null, PointCollectionChanged));
 
         private static readonly DependencyProperty LineThicknessProperty =
             DependencyProperty.Register("LineThicknessProperty",
@@ -84,37 +82,13 @@ namespace IronPlot.Plotting3D
             typeof(LinesModel3D),
             new PropertyMetadata(1.5, LineThicknessChanged));
 
-
-        //public static readonly DependencyProperty ColourProperty = DependencyProperty.RegisterAttached(
-        //    "Colour",
-        //    typeof(System.Windows.Media.Color),
-        //    typeof(LinesModel3D),
-        //    new FrameworkPropertyMetadata(System.Windows.Media.Colors.Red, FrameworkPropertyMetadataOptions.Inherits)
-        //);
-
-        //// Consider property inheritance, but want to keep class light-weight.
-        //public static void SetColour(DependencyObject element, System.Windows.Media.Color value)
-        //{
-        //    element.SetValue(ColourProperty, value);
-        //}
-
-        //public static System.Windows.Media.Color GetColour(DependencyObject element)
-        //{
-        //    return (System.Windows.Media.Color)element.GetValue(ColourProperty);
-        //}
+        internal float DepthBias = 0f;
 
         public List<Point3DColor> Points
         {
             private set { SetValue(PointCollectionProperty, value); }
             get { return (List<Point3DColor>)GetValue(PointCollectionProperty); }
         }
-
-        //static void PointCollectionChanged(DependencyObject obj,
-        //                          DependencyPropertyChangedEventArgs args)
-        //{
-        //    LinesModel3D linebase = obj as LinesModel3D;
-        //    linebase.geometryChanged = true;
-        //}
 
         static void LineThicknessChanged(DependencyObject obj, DependencyPropertyChangedEventArgs args)
         {
@@ -150,7 +124,6 @@ namespace IronPlot.Plotting3D
             if (!viewportImage.GraphicsDeviceService.IsAntialiased) LineThickness = 1.0;
             viewportImage.GraphicsDeviceService.DeviceReset += new EventHandler(GraphicsDeviceService_DeviceReset);
             viewportImage.GraphicsDeviceService.DeviceResetting +=new EventHandler(GraphicsDeviceService_DeviceResetting);
-            //line = new SlimDX.Direct3D9.Line(graphicsDevice);
             if (effect == null)
             {
                 System.IO.Stream stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("IronPlot.Plot3D._3DPrimitives.Line.fx");
@@ -293,8 +266,7 @@ namespace IronPlot.Plotting3D
 
             graphicsDevice.SetRenderState(RenderState.MultisampleAntialias, true);
             graphicsDevice.SetRenderState(RenderState.FillMode, FillMode.Solid);
-            graphicsDevice.SetRenderState(RenderState.DepthBias, 0);
-            //graphicsDevice.SetRenderState(RenderState.AntialiasedLineEnable, true);
+            graphicsDevice.SetRenderState(RenderState.DepthBias, DepthBias);
             int primitiveCount;
             if (!thickLines)
             {
@@ -308,11 +280,9 @@ namespace IronPlot.Plotting3D
             else
             {
                 graphicsDevice.VertexDeclaration = vertexDeclaration;
-                //graphicsDevice.VertexFormat = VertexFormat.Position | VertexFormat.Texture0 | VertexFormat.Texture1 | VertexFormat.Diffuse;
                 graphicsDevice.SetStreamSource(0, vertexBuffer, 0, Marshal.SizeOf(typeof(ThickLinesVertex)));
                 graphicsDevice.Indices = indexBuffer;
                 effect.Technique = "Simplest";
-                //effect.SetValue("AspectRatioSquared", ((float)viewportImage.Height / (float)viewportImage.Width) * ((float)viewportImage.Height / (float)viewportImage.Width));
                 effect.SetValue("XPixels", (float)viewportImage.Width);
                 effect.SetValue("YPixels", (float)viewportImage.Height);
                 effect.SetValue("LineWidth", (float)LineThickness * (float)dpi / 96.0f);
@@ -327,15 +297,6 @@ namespace IronPlot.Plotting3D
                 }
                 effect.End();
             }
-            
-            //line.Width = 5.0f;
-            //Vector3[] linePair = new Vector3[2];
-            //for (int i = 0; i < verticesVectors.Length - 1; i += 2)
-            //{
-            //    linePair[0] = verticesVectors[i];
-            //    linePair[1] = verticesVectors[i + 1];
-            //    line.DrawTransformed(linePair, viewportImage.World * viewportImage.View * viewportImage.Projection, new Color4(0.5f, 0.5f, 0.5f));
-            //}
         }
 
         protected void GraphicsDeviceService_DeviceResetting(object sender, EventArgs e)

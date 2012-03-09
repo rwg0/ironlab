@@ -16,7 +16,7 @@ using System.Windows.Shapes;
 
 namespace IronPlot
 {
-    public partial class PlotPanel : Panel
+    public partial class PlotPanel : PlotPanelBase
     {
         // Mouse interaction
         private Point mouseDragStartPoint;
@@ -79,6 +79,14 @@ namespace IronPlot
 
         protected void LeftClickStart(object sender, MouseButtonEventArgs e)
         {
+            bool ctrlOrShift = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl) ||
+                Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.LeftShift);
+            if (ctrlOrShift)
+            {
+                canvas_RightClickStart(sender, e);
+                return;
+            }
+
             // either whole canvas or single axis
             bool isSingleAxis = (sender is Axis2D);
             if (e.ClickCount > 1)
@@ -162,6 +170,12 @@ namespace IronPlot
 
         protected void LeftClickEnd(object sender, MouseButtonEventArgs e)
         {
+            if (selectionStarted)
+            {
+                canvas_RightClickEnd(sender, e);
+                return;
+            }
+
             EndDrag(sender);
         }
 

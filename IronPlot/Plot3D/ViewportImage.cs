@@ -42,6 +42,7 @@ namespace IronPlot.Plotting3D
         Matrix view;
         Matrix projection;
         Matrix cameraTransform;
+        float fov, tanSemiFOV;
 
         I2DLayer layer2D;
 
@@ -59,6 +60,22 @@ namespace IronPlot.Plotting3D
         {
             get { return projection; }
         }
+
+        public float FOV
+        {
+            get { return fov; }
+
+            set
+            {
+                fov = value;
+                tanSemiFOV = (float)Math.Tan((double)fov / 2);
+            }
+        }
+
+         public float TanSemiFOV
+         {
+            get { return tanSemiFOV; }
+         }
 
         public I2DLayer Layer2D
         {
@@ -167,6 +184,7 @@ namespace IronPlot.Plotting3D
         {
             layer2D = null;
             CreateDevice(SurfaceType.DirectX9);
+            FOV = 0.75f;
         }
 
         protected override void Initialize()
@@ -194,7 +212,7 @@ namespace IronPlot.Plotting3D
             Vector3 cameraTarget = CameraTarget;
             Vector3 cameraUpVector = CameraUpVector;
             // TODO remove when unnecessary
-            projection = Matrix.PerspectiveFovRH(1, aspect, 0.1f, 100);
+            projection = Matrix.PerspectiveFovRH(fov, aspect, 0.01f, 10000f);
             //projection = Matrix.OrthoRH(5.0f*aspect, 5.0f, 1, 100);
             view = Matrix.LookAtRH(CameraPosition, CameraTarget, CameraUpVector);
             world = Matrix.Identity;

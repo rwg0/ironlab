@@ -21,7 +21,7 @@ using IronPlot.ManagedD3D;
 namespace IronPlot.Plotting3D
 {
     //[ContentProperty("ModelsProperty")]
-    public class Viewport3D : ContentControl
+    public class Viewport3D : PlotPanelBase
     {     
         private Grid grid;
         private ImageBrush sceneImage;
@@ -159,14 +159,46 @@ namespace IronPlot.Plotting3D
 
         #endregion
 
-        public Viewport3D()
+        public Viewport3D() : base()
         {
             Initialize();
+        }
+
+        protected override int VisualChildrenCount
+        {
+            get { return 1; }
+        }
+
+        protected override Size ArrangeOverride(Size finalSize)
+        {
+            Size size = base.ArrangeOverride(finalSize);
+            // Give annotations their deisred sizes
+            grid.Arrange(new Rect(0, 0, size.Width, size.Height));
+            return size;
+        }
+
+        protected override Visual GetVisualChild(int index)
+        {
+            if (index == 0) return grid;
+            else
+            {
+                throw new ArgumentOutOfRangeException("index");
+            }
+        }
+
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            AnnotationsLeft.Measure(availableSize); AnnotationsRight.Measure(availableSize);
+            AnnotationsTop.Measure(availableSize); AnnotationsBottom.Measure(availableSize);
+            grid.Measure(availableSize);
+            Rect available = PlaceAnnotations(availableSize);
+            return grid.DesiredSize;
         }
         
         public void Initialize()
         {
             grid = new Grid();
+            this.Children.Add(grid);
             try
             {
                 d3dImageViewport = new ViewportImage();
@@ -177,7 +209,6 @@ namespace IronPlot.Plotting3D
                 TextBlock messageBlock = new TextBlock();
                 messageBlock.Text = e.Message;
                 grid.Children.Add(messageBlock);
-                this.Content = grid;
                 SetValue(ModelsProperty, new Model3DCollection(null));
                 return;
             }
@@ -195,21 +226,20 @@ namespace IronPlot.Plotting3D
 
             d3dImageViewport.Models.Changed += new Model3DCollection.ItemEventHandler(Models_Changed);
 
-            this.Content = grid;
             grid.Children.Add(canvas);
-            grid.HorizontalAlignment = HorizontalAlignment.Stretch;
-            grid.VerticalAlignment = VerticalAlignment.Stretch;
             grid.SizeChanged += new SizeChangedEventHandler(d3dImageViewport.OnSizeChanged);
             trackball = new Trackball();
             trackball.EventSource = canvas;
             trackball.OnTrackBallMoved += new TrackballEventHandler(trackball_TrackBallMoved);
             trackball.OnTrackBallZoom += new TrackballEventHandler(trackball_OnTrackBallZoom);
+            trackball.OnTrackBallTranslate += new TrackballEventHandler(trackball_OnTrackBallTranslate);
 
             axes = new Axes3D();
             d3dImageViewport.Models.Add(axes);
 
             //axes.Base.OnDraw += new OnDrawEventHandler(Base_OnDraw);
             d3dImageViewport.CameraPosition = new Vector3(-3f, -3f, 2f);
+            d3dImageViewport.CameraTarget = new Vector3(0f, 0f, 0f);
             //
             Binding bindingGraphMin = new Binding("GraphMinProperty");
             bindingGraphMin.Source = this;
@@ -316,6 +346,23 @@ namespace IronPlot.Plotting3D
             d3dImageViewport.CameraPosition = Vector3.Multiply(d3dImageViewport.CameraPosition, (float)Scale);
         }
 
+        protected void trackball_OnTrackBallTranslate(Object sender, EventArgs e)
+        {
+            Point translation = ((Trackball)sender).Translation;
+            Vector3 cameraLookDirection = d3dImageViewport.CameraTarget - d3dImageViewport.CameraPosition;
+            float distance = cameraLookDirection.Length();
+            Vector3 cameraUpDirection = d3dImageViewport.CameraUpVector;
+            cameraLookDirection.Normalize();
+            // Subtract any component of cameraUpDirection along cameraLookDirection
+            cameraUpDirection = cameraUpDirection - Vector3.Multiply(cameraLookDirection, Vector3.Dot(cameraUpDirection, cameraLookDirection));
+            cameraUpDirection.Normalize();
+            Vector3 cameraX = Vector3.Cross(cameraLookDirection, cameraUpDirection);
+            float scalingFactor = d3dImageViewport.TanSemiFOV * distance * 2;
+            Vector3 pan = -cameraX * (float)translation.X * scalingFactor + cameraUpDirection * (float)translation.Y * scalingFactor;
+            d3dImageViewport.CameraPosition = d3dImageViewport.CameraPosition + pan;
+            d3dImageViewport.CameraTarget = d3dImageViewport.CameraTarget + pan;
+        }
+
         private double lastPhi = -10;
         /// <summary>
         /// Calculate azimuthal angle
@@ -337,7 +384,6 @@ namespace IronPlot.Plotting3D
             int width = (int)(grid.ActualWidth * dpi / 96.0);
             int height = (int)(grid.ActualHeight * dpi / 96.0);
             Models.SetModelResolution(dpi);
-            //d3dImageViewport.SetImageSize(width, height, dpi);
             d3dImageViewport.SetImageSize((int)grid.ActualWidth, (int)grid.ActualHeight, dpi);
             d3dImageViewport.RenderScene();
         }
