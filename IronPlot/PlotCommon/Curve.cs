@@ -22,10 +22,15 @@ using ILNumerics.Exceptions;
 
 namespace IronPlot
 {
+    public enum SortedValues { X, Y }
+    
     public partial class Curve
     {
         internal double[] x, y;
         internal double[] xTransformed, yTransformed;
+        internal SortedValues SortedValues;
+        internal double[] TransformedSorted;
+        internal int[] SortedToUnsorted;
 
         internal bool[] includeLinePoint; // Whether or not to include the point in the line Geometry.
         internal bool[] includeMarker; // Whether or not to include the marker in the Geometry.
@@ -50,6 +55,22 @@ namespace IronPlot
             Validate();
             Transform(null, null);
             PrepareLineData(x.Length);
+            DetermineSorted();
+        }
+
+        public Curve(IEnumerable<double> x, IEnumerable<double> y)
+        {
+            int count = Math.Min(x.Count(), y.Count());
+            this.x = new double[count];
+            this.y = new double[count];
+            for (int i = 0; i < count; ++i)
+            {
+                this.x[i] = x.ElementAt(i);
+                this.y[i] = y.ElementAt(i);
+            }
+            Transform(null, null);
+            PrepareLineData(count);
+            DetermineSorted();
         }
 
         public Rect Bounds()
@@ -68,6 +89,38 @@ namespace IronPlot
                 includeLinePoint[i] = true;
                 includeMarker[i] = true;
             }
+        }
+
+        /// <summary>
+        /// Determine if either x or y values are sorted; if neither, sort x.
+        /// </summary>
+        private void DetermineSorted()
+        {
+            SortedToUnsorted = Enumerable.Range(0, xTransformed.Length).ToArray();
+            if (IsSorted(xTransformed))
+            {
+                TransformedSorted = xTransformed;
+                SortedValues = SortedValues.X;
+            }
+            else if (IsSorted(yTransformed))
+            {
+                TransformedSorted = yTransformed;
+                SortedValues = SortedValues.Y;
+            }
+            else
+            {
+                TransformedSorted = (double[])xTransformed.Clone();
+                Array.Sort(TransformedSorted, SortedToUnsorted);
+            }
+        }
+
+        private bool IsSorted(double[] array)
+        {
+            for (int i = 1; i < array.Length - 1; ++i)
+            {
+                if (array[i] < array[i - 1]) return false;
+            }
+            return true;
         }
 
         protected void Validate()
@@ -100,20 +153,7 @@ namespace IronPlot
                 yTransformed = new double[length];
                 for (int i = 0; i < length; ++i) yTransformed[i] = graphTransformY(y[i]);
             }
-        }
-
-        public Curve(IEnumerable<double> x, IEnumerable<double> y)
-        {
-            int count = Math.Min(x.Count(), y.Count());
-            this.x = new double[count];
-            this.y = new double[count];
-            for (int i = 0; i < count; ++i)
-            {
-                this.x[i] = x.ElementAt(i);
-                this.y[i] = y.ElementAt(i);
-            }
-            Transform(null, null);
-            PrepareLineData(count);
+            DetermineSorted();
         }
 
         public StreamGeometry ToStreamGeometry(MatrixTransform graphToCanvas)
@@ -235,9 +275,7 @@ namespace IronPlot
 
         internal Geometry LegendMarkerGeometry(MarkersType markersType, double markersSize)
         {
-            //double width = 30; // width/2
             GeometryGroup legendMarkerGeometry = new GeometryGroup();
-            //legendGeometry.Children.Add(new LineGeometry(new Point(0, markersSize / 2), new Point(0, markersSize / 2)));
             switch (markersType)
             {
                 case MarkersType.None:

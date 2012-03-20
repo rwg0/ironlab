@@ -56,7 +56,7 @@ namespace IronPlot
     }
 
     /// <summary>
-    /// An Axis class is a Canvas on which the axis and annotations
+    /// An Axis class contains a Canvas on which the axis and annotations
     /// are presented (one Canvas per Axis). The Canvas typically spans the entire plot region. 
     /// This general approach is suitable for axes of 3D and 2D plots.
     /// </summary>

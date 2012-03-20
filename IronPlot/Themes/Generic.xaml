@@ -52,11 +52,8 @@
                                 <RowDefinition />
                             </Grid.RowDefinitions>
                             <local:Title Grid.Row="0" x:Name="HeaderContent" Content="{TemplateBinding Header}" ContentTemplate="{TemplateBinding HeaderTemplate}" Style="{TemplateBinding TitleStyle}" />
-                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" BorderThickness="0" Padding="0" IsTabStop="False">
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" BorderThickness="0" Padding="0" IsTabStop="False">
                                 <StackPanel IsItemsHost="True" x:Name="Items" Orientation="{TemplateBinding Orientation}" Margin="5,5,5,5"></StackPanel>
-                                <!--
-                                <ItemsPresenter x:Name="Items" Margin="10,0,10,10" />
-                                -->
                             </ScrollViewer>
                         </Grid>
                     </Border>
@@ -104,6 +101,27 @@
         <!--
         <Setter Property="FontSize" Value="10" />
         -->
-        <Setter Property="Background" Value="White" />
+        <Setter Property="Background" Value="Blue" />
+    </Style>
+    
+    <!-- PlotPointAnnotation -->
+    <Style TargetType="local:PlotPointAnnotation">
+        <Setter Property="BorderBrush" Value="Black" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Background" Value="LightYellow" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="local:PlotPointAnnotation">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                        <!--
+                        <Path Data="M3,2 L1,3 L1.5,2 L1,1 z" Stretch="Fill" Fill="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Curve.Stroke}" Stroke="Black" Width="20" Height="20"/>
+                        -->
+                        <!-- {Binding RelativeSource={RelativeSource TemplatedParent} -->
+                        <!-- {Binding RelativeSource={RelativeSource AncestorType={x:Type local:PlotPointAnnotation}}-->
+                        <TextBlock Text="{TemplateBinding Annotation}"></TextBlock>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 </ResourceDictionary>

@@ -126,6 +126,7 @@
     <Compile Include="Grid\ConverterHelper.cs" />
     <Compile Include="Grid\DataGrid.cs" />
     <Compile Include="Plot2D\Axes2D.cs" />
+    <Compile Include="Plot2D\AxesFrame.cs" />
     <Compile Include="Plot2D\Axis2D.cs" />
     <Compile Include="Plot2D\Axis2DCollection.cs" />
     <Compile Include="Plot2D\ColourBar.xaml.cs">
@@ -144,6 +145,7 @@
     <Compile Include="Plot2D\Plot2D.xaml.cs">
       <DependentUpon>Plot2D.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Plot2D\PlotPointAnnotation.cs" />
     <Compile Include="Plot2D\VisualLine.cs" />
     <Compile Include="Plot2D\Plot2DCurve.cs" />
     <Compile Include="Plot2D\Plot2DImage.cs" />

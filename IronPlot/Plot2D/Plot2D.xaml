@@ -4,7 +4,7 @@
     xmlns:local="clr-namespace:IronPlot"
     FontSize="14"
     Background="White">
-    <Grid >
+    <Grid Name="mainGrid">
         <Grid.Resources>
             <!--
             <Style TargetType="local:Label">

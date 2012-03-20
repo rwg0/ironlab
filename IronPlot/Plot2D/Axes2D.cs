@@ -24,22 +24,32 @@ namespace IronPlot
         }
     }
 
-    public class Axes2D : Shape
+    public class Axes2D : DependencyObject
     {
         public static readonly DependencyProperty AxisSpacingProperty =
-            DependencyProperty.Register("AxisSpacingProperty",
+            DependencyProperty.Register("AxisSpacing",
             typeof(double), typeof(Axes2D),
-            new PropertyMetadata((double)5));
+            new PropertyMetadata((double)5, UpdatePanel));
 
         public static readonly DependencyProperty MinAxisMarginProperty =
-           DependencyProperty.Register("MinAxisMarginProperty",
+           DependencyProperty.Register("MinAxisMargin",
            typeof(Thickness), typeof(Axes2D),
-           new PropertyMetadata(new Thickness(0)));
+           new PropertyMetadata(new Thickness(0), UpdatePanel));
+
+        public static readonly DependencyProperty WidthProperty =
+           DependencyProperty.Register("Width",
+           typeof(double), typeof(Axes2D),
+           new FrameworkPropertyMetadata(Double.NaN, UpdatePanel));
+
+        public static readonly DependencyProperty HeightProperty =
+           DependencyProperty.Register("Height",
+           typeof(double), typeof(Axes2D),
+           new PropertyMetadata(Double.NaN, UpdatePanel));
 
         public static readonly DependencyProperty EqualAxesProperty =
-            DependencyProperty.Register("EqualAxesProperty",
+            DependencyProperty.Register("EqualAxes",
             typeof(AxisPair), typeof(Axes2D),
-            new PropertyMetadata(null));
+            new PropertyMetadata(null, UpdatePanel));
 
         public double AxisSpacing
         {
@@ -65,6 +75,23 @@ namespace IronPlot
             get { return (AxisPair)GetValue(EqualAxesProperty); }
         }
 
+        public double Width
+        {
+            set { SetValue(WidthProperty, value); }
+            get { return (double)GetValue(WidthProperty); }
+        }
+        
+        public double Height
+        {
+            set { SetValue(HeightProperty, value); }
+            get { return (double)GetValue(HeightProperty); }
+        }
+
+        protected static void UpdatePanel(DependencyObject obj, DependencyPropertyChangedEventArgs e)
+        {
+            ((Axes2D)obj).plotPanel.InvalidateMeasure();
+        }
+
         /// <summary>
         /// Set the innermost bottom X Axis and innermost left Y Axis to have equal scales.
         /// </summary>
@@ -81,15 +108,9 @@ namespace IronPlot
             EqualAxes = null;
         }
 
-        // Canvas containing axes.
-        protected Canvas canvas;
-
         Size maxCanvasSize = new Size(10000, 10000);
+        PlotPanel plotPanel;
         
-        // Axes geometry and context
-        protected StreamGeometry axesGeometry;
-        protected StreamGeometryContext axesGeometryContext;
-        //
         internal XAxis xAxisBottom, xAxisTop; 
         internal YAxis yAxisLeft, yAxisRight;
 
@@ -101,10 +122,20 @@ namespace IronPlot
         public XAxis2DCollection XAxes { get { return xAxes as XAxis2DCollection; } }
         public YAxis2DCollection YAxes { get { return yAxes as YAxis2DCollection; } }
 
+        private AxesFrame frame;
+        /// <summary>
+        /// This is the basic box on which the axes are presented. 
+        /// </summary>
+        public Path Frame { get { return frame.Frame; } }
+
         public Axes2D(PlotPanel plotPanel)
         {
-            //ClipToBounds = false;
-            axesGeometry = new StreamGeometry();
+            this.plotPanel = plotPanel;
+            frame = new AxesFrame();
+            frame.SetValue(Grid.ZIndexProperty, 300);
+            // note that individual axes have index of 200
+            plotPanel.Children.Add(frame);
+
             xAxisBottom = new XAxis();
             xAxisBottom.SetValue(XAxis.XAxisPositionProperty, XAxisPosition.Bottom);
             xAxisTop = new XAxis();
@@ -131,36 +162,21 @@ namespace IronPlot
             yAxisRight.GridLines.Visibility = Visibility.Collapsed;
             yAxisRight.BindToAxis(yAxisLeft);
             //
-            UpdateTicks();
-            this.Stroke = Brushes.Black;
-            this.StrokeThickness = 1;
-            this.StrokeLineJoin = PenLineJoin.Miter;        
+            UpdateTicks();        
         }
 
-        protected override Geometry DefiningGeometry
+        internal void ArrangeEachAxisAndFrame(Rect axesRegionLocation)
         {
-            get 
-            {
-                axesGeometryContext = axesGeometry.Open();
-                double canvasWidth = xAxisBottom.AxisTotalLength - xAxisBottom.AxisMargin.Total();
-                double canvasHeight = yAxisLeft.AxisTotalLength - yAxisLeft.AxisMargin.Total();
-
-                // Add in axes lines
-                Point contextPoint = new Point(xAxisBottom.AxisMargin.LowerMargin, yAxisLeft.AxisMargin.UpperMargin);
-                axesGeometryContext.BeginFigure(contextPoint, false, true);
-                contextPoint.Y = contextPoint.Y + canvasHeight; axesGeometryContext.LineTo(contextPoint, true, false);
-                contextPoint.X = contextPoint.X + canvasWidth; axesGeometryContext.LineTo(contextPoint, true, false);
-                contextPoint.Y = contextPoint.Y - canvasHeight; axesGeometryContext.LineTo(contextPoint, true, false);
-                //
-                axesGeometryContext.Close();
-                return axesGeometry;
-            }
+            foreach (Axis2D axis in XAxes) axis.Arrange(axesRegionLocation);
+            foreach (Axis2D axis in YAxes) axis.Arrange(axesRegionLocation);
+            frame.Arrange(axesRegionLocation);
         }
 
-        internal void RenderEachAxis()
+        internal void RenderEachAxisAndFrame(Rect axesRegionLocation)
         {
             IEnumerable<Axis2D> allAxis = xAxes.Concat(yAxes);
             foreach (Axis2D axis in allAxis) axis.RenderAxis();
+            frame.Render(axesRegionLocation);
         }
 
         internal void UpdateTicks()
@@ -422,7 +438,8 @@ namespace IronPlot
                 axis.SetLabelVisibility(); 
             }
             requiredSize = new Size(xAxisBottom.AxisTotalLength, yAxisLeft.AxisTotalLength);
-            canvasPosition = new Rect(xAxisBottom.AxisMargin.LowerMargin, availableSize.Height - yAxisLeft.AxisTotalLength + yAxisLeft.AxisMargin.UpperMargin,
+            canvasPosition = new Rect(xAxisBottom.AxisMargin.LowerMargin, 
+                 yAxisLeft.AxisMargin.UpperMargin,
                 xAxisBottom.AxisTotalLength - xAxisBottom.AxisMargin.LowerMargin - xAxisBottom.AxisMargin.UpperMargin,
                 yAxisLeft.AxisTotalLength - yAxisLeft.AxisMargin.LowerMargin - yAxisLeft.AxisMargin.UpperMargin);
         }

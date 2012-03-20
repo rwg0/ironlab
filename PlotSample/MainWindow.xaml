@@ -21,6 +21,11 @@
             <TabItem Header="3D Plot">
                 <ironplot3d:Plot3D Name="plot3" Visibility="Visible"/>
             </TabItem>
+            <TabItem Header="2D Plot in ScrollViewer">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                    <ironplot:Plot2D Name="plot4" Visibility="Visible"/>
+                </ScrollViewer>
+            </TabItem>
         </TabControl>
     </Grid>
 </Window>

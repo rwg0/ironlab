@@ -34,12 +34,7 @@ namespace IronPlot
         /// </remarks>
         public void Sort()
         {
-            //double[] indices;
-            //double[] xSorted = ILMath.sort(x, out indices, 0, false);
             Array.Sort(x, y);
-            //double[] ySorted = y[indices];
-            //x = xSorted;
-            //y = ySorted;
         }
         
         // Calculation coefficients once, interpolate multiple times
@@ -74,6 +69,26 @@ namespace IronPlot
                 interpolatedValues[i] = linearSplineCoefficients[q] + xit * linearSplineCoefficients[q + 1];
             }
             return interpolatedValues;
+        }
+
+        /// <summary>
+        /// Return the lower index of the two indices of x that xi lies between.
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="xi"></param>
+        /// <returns></returns>
+        public static int GetInterpolatedIndex(double[] x, double xi)
+        {
+            if (xi < x[0]) return 0;
+            else if (xi >= x[x.Length - 1]) return x.Length - 1; 
+            int p = 0; int r = x.Length - 1; int q = 0;
+            while (p != r - 1)
+            {
+                q = (p + r) / 2;
+                if (x[q] >= xi) r = q;
+                else p = q;
+            }
+            return p;
         }
 
         /// <summary>Calculates interpolated values using default cubic interpolation which is Monotone Piecewise Cubic Hermite Interpolation</summary>
@@ -324,84 +339,6 @@ namespace IronPlot
                 }
             }
             monotoneCubicSplineCoefficients = GetHermiteSplineCoefficients(a2);
-        }
-
-        /// <summary>Calculates interpolated values using Numerical Recipes spline routine: for cross test only</summary>
-        /// <param name="x">X values at which interpolated values are required</param>
-        /// <returns>Interpolated Y values </returns>
-        /// <remarks><para></para>
-        /// </remarks>
-        public unsafe double[] GetValuesCubicSpline2(double[] xi)
-        {
-            int n = x.Length;
-            double[] y2 = new double[n + 1];
-            double[] xt = new double[n + 1];
-            double[] yt = new double[n + 1];
-            for (int i = 0; i < n; ++i)
-            {
-                xt[i + 1] = x[i];
-                yt[i + 1] = y[i];
-            }
-            nr_spline(xt, yt, n, 2e31, 2e31, ref y2);
-            double[] yout = new double[xi.Length];
-            fixed (double* youtp0 = &yout[0])
-            {
-                double* youtp = youtp0;
-                foreach (double xit in xi)
-                {
-                    splint(xt, yt, y2, n, xit, youtp);
-                    youtp++;
-                }
-            }
-            return yout;
-        }
-
-        private unsafe void nr_spline(double[] x, double[] y, int n, double yp1, double ypn, ref double[] y2)
-        {
-            int i,k;
-            double p, qn, sig, un;
-            double[] u = new double[n];
-            //u=vector(1,n-1);
-            if (yp1 > 0.99e30) 
-                y2[1]=u[1]=0.0;
-            else {
-                y2[1] = -0.5;
-                u[1]=(3.0/(x[2]-x[1]))*((y[2]-y[1])/(x[2]-x[1])-yp1);
-            }
-            for (i=2;i<=n-1;i++) {
-                sig=(x[i]-x[i-1])/(x[i+1]-x[i-1]);
-                p=sig*y2[i-1]+2.0;
-                y2[i]=(sig-1.0)/p;
-                u[i]=(y[i+1]-y[i])/(x[i+1]-x[i]) - (y[i]-y[i-1])/(x[i]-x[i-1]);
-                u[i]=(6.0*u[i]/(x[i+1]-x[i-1])-sig*u[i-1])/p;
-            }
-            if (ypn > 0.99e30)
-                qn=un=0.0; 
-            else {
-                qn=0.5;
-                un=(3.0/(x[n]-x[n-1]))*(ypn-(y[n]-y[n-1])/(x[n]-x[n-1]));
-            }
-            y2[n]=(un-qn*u[n-1])/(qn*y2[n-1]+1.0);
-            for (k=n-1;k>=1;k--) 
-                y2[k]=y2[k]*y2[k+1]+u[k]; 
-            //free_vector(u,1,n-1);
-        }
-
-        private unsafe void splint(double[] xa, double[] ya, double[] y2a, int n, double x, double* y)
-        {
-            int klo,khi,k;
-            double h, b, a;
-            klo=1; 
-            khi=n;
-            while (khi-klo > 1) {
-                k=(khi+klo) >> 1;
-                if (xa[k] > x) khi=k;
-                    else klo=k;
-            } 
-            h=xa[khi]-xa[klo];
-            a=(xa[khi]-x)/h; 
-            b=(x-xa[klo])/h; 
-            *y = a*ya[klo] + b*ya[khi] + ((a*a*a-a)*y2a[klo] + (b*b*b-b)*y2a[khi]) * (h*h)/6.0;
         }
     }
 }

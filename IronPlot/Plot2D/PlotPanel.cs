@@ -109,9 +109,6 @@ namespace IronPlot
             Canvas.SetValue(Grid.ZIndexProperty, 100);
             BackgroundCanvas.SetValue(Grid.ZIndexProperty, 50);
             axes = new Axes2D(this);
-            this.Children.Add(axes);
-            axes.SetValue(Grid.ZIndexProperty, 300);
-            // note that individual axes have index of 200
 
             LinearGradientBrush background = new LinearGradientBrush();
             background.StartPoint = new Point(0, 0); background.EndPoint = new Point(1, 1);
@@ -135,7 +132,6 @@ namespace IronPlot
         {
             sizeOnMeasure = availableSize;
             var allAxes = axes.XAxes.Concat(axes.YAxes);
-            axes.Measure(availableSize);
             foreach (Axis2D axis in allAxes)
             {
                 axis.UpdateAndMeasureLabels();
@@ -155,9 +151,15 @@ namespace IronPlot
             
             Canvas.Measure(new Size(canvasLocation.Width, canvasLocation.Height));
             BackgroundCanvas.Measure(new Size(canvasLocation.Width, canvasLocation.Height));
-            availableSize.Height = axesRegionSize.Height + AnnotationsTop.DesiredSize.Height + AnnotationsBottom.DesiredSize.Height;
-            availableSize.Width = axesRegionSize.Width + AnnotationsLeft.DesiredSize.Width + AnnotationsRight.DesiredSize.Width;
+            availableSize.Height = Math.Max(Math.Max(axesRegionSize.Height + AnnotationsTop.DesiredSize.Height + AnnotationsBottom.DesiredSize.Height, AnnotationsLeft.DesiredSize.Height), AnnotationsRight.DesiredSize.Height);
+            // axesRegionSize.Height + AnnotationsTop.DesiredSize.Height + AnnotationsBottom.DesiredSize.Height;
+            availableSize.Width = Math.Max(Math.Max(axesRegionSize.Width + AnnotationsLeft.DesiredSize.Width + AnnotationsRight.DesiredSize.Width, AnnotationsTop.DesiredSize.Width), AnnotationsBottom.DesiredSize.Width);
+            // axesRegionSize.Width + AnnotationsLeft.DesiredSize.Width + AnnotationsRight.DesiredSize.Width;
             sizeAfterMeasure = availableSize;
+
+            //AnnotationsRight.Measure(new Size(AnnotationsRight.DesiredSize.Width, axesRegionSize.Height));
+
+            
             return availableSize;
         }
 
@@ -168,8 +170,6 @@ namespace IronPlot
         protected void PlaceAxes(Rect available)
         {
             // Allow legends their widths.
-            axes.Measure(new Size(available.Width, available.Height));
-
             bool axesEqual = (bool)this.GetValue(EqualAxesProperty);
             // Calculates the axes positions, positions labels, updates geometries.
             Rect canvasLocationWithinAxes;
@@ -184,7 +184,7 @@ namespace IronPlot
 
         protected override Size ArrangeOverride(Size finalSize)
         {
-            Stopwatch watch = new Stopwatch(); watch.Start();
+            //Stopwatch watch = new Stopwatch(); watch.Start();
             if (!(finalSize == sizeOnMeasure || finalSize == sizeAfterMeasure))
             {
                 // Return the final region for plotting and set legendRegion:
@@ -192,7 +192,6 @@ namespace IronPlot
                 // Place axes using this region, setting axesRegionSize and canvasLocation:
                 PlaceAxes(final);
             }
-            canvasLocation = new Rect(canvasLocation.X, canvasLocation.Y, canvasLocation.Width, canvasLocation.Height);
             axesRegionLocation = new Rect(0, 0, axesRegionSize.Width, axesRegionSize.Height);
             double entireWidth = legendRegion.Left + legendRegion.Right;
             double entireHeight = legendRegion.Top + legendRegion.Bottom;
@@ -209,17 +208,14 @@ namespace IronPlot
 
             BeforeArrange();
 
-            // The axes themselves (i.e. the rectangle around the plot canvas):
-            axes.Arrange(axesRegionLocation);
-            axes.InvalidateVisual();
-
             // Arrange each Axis. Arranged over the whole axes region, although of course the axis will typically
             // only cover a potion of this.
-            foreach (Axis2D axis in axes.XAxes) axis.Arrange(axesRegionLocation);
-            foreach (Axis2D axis in axes.YAxes) axis.Arrange(axesRegionLocation);
+            axes.ArrangeEachAxisAndFrame(axesRegionLocation);
 
             BackgroundCanvas.Arrange(canvasLocation);
-            axes.RenderEachAxis();
+            Rect canvasRelativeToAxesRegion = new Rect(canvasLocation.X - axesRegionLocation.X,
+                canvasLocation.Y - axesRegionLocation.Y, canvasLocation.Width, canvasLocation.Height);
+            axes.RenderEachAxisAndFrame(canvasRelativeToAxesRegion);
             // 'Rendering' of plot items, i.e. recreating geometries is done in BeforeArrange.
 
             Canvas.Arrange(canvasLocation);
@@ -227,7 +223,7 @@ namespace IronPlot
             BackgroundCanvas.InvalidateVisual();
             Canvas.InvalidateVisual();
             
-            ArrangeAnnotations();
+            ArrangeAnnotations(finalSize);
             return finalSize;
         }
 

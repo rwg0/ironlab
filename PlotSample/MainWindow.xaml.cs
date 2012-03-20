@@ -11,6 +11,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Data; 
 using IronPlot;
 using IronPlot.Plotting3D;
 
@@ -53,6 +54,7 @@ namespace PlotTest
             plot1.Children.Add(curve3);
             // Can use Direct2D acceleration, but requires DirectX10 (Windows 7)
             //plot1.UseDirect2D = true; 
+            //plot1.EqualAxes = true;
 
             // If you want to lose the gradient background:
             //plot1.Legend.Background = Brushes.White;
@@ -63,19 +65,26 @@ namespace PlotTest
             //plot1.LeftLabel.Text = "Left label";
             plot1.FontSize = 14;
             plot1.Axes.XAxes[0].AxisLabel.Text = "Innermost X Axis";
+            plot1.Axes.YAxes[0].AxisLabel.Text = "Innermost Y Axis";
             XAxis xAxisOuter = new XAxis(); YAxis yAxisOuter = new YAxis();
             xAxisOuter.AxisLabel.Text = "Added X Axis";
             yAxisOuter.AxisLabel.Text = "Added Y Axis";
             plot1.Axes.XAxes.Add(xAxisOuter);
             plot1.Axes.YAxes.Add(yAxisOuter);
-            yAxisOuter.Position = YAxisPosition.Right;
+            yAxisOuter.Position = YAxisPosition.Left;
+            //plot1.Axes.Height = 100;
             plot1.Axes.XAxes[0].FontStyle = plot1.Axes.YAxes[0].FontStyle = FontStyles.Oblique;
             //curve3.XAxis = xAxisOuter;
             curve3.YAxis = yAxisOuter;
             //plot1.Axes.EqualAxes = new AxisPair(plot1.Axes.XAxes.Bottom, plot1.Axes.YAxes.Left);
+            
             //plot1.Axes.SetAxesEqual();
-            //plot1.Axes.Width = 200;
+            //plot1.Axes.Width = 500;
             //plot1.Axes.MinAxisMargin = new Thickness(200, 0, 0, 0);
+            plot1.Axes.XAxes.Top.TickLength = 5;
+            plot1.Axes.YAxes.Left.TickLength = 5;
+            //plot1.BottomLabel.Text = "Bottom label";
+            plot1.LeftLabel.Text = "Left label";
 
             xAxisOuter.Min = 6.5e-5;
             xAxisOuter.Max = 7.3e-3;
@@ -97,15 +106,16 @@ namespace PlotTest
             var y2 = MathHelper.MeshGridY(Enumerable.Range(1, ny).Select(t => (double)t), nx);
             //var z2 = x2.Zip(y2, (u, v) => u*u + v*v); // .NET4 method
             var z2 = x2.Select(u => u * u);
-            plot1.Axes.XAxes.Top.TickLength = 5;
-            plot1.Axes.YAxes.Left.TickLength = 5;
             SurfaceModel3D surface = new SurfaceModel3D(x2, y2, z2, nx, ny);
             surface.Transparency = 20;
             surface.MeshLines = MeshLines.None;
             plot3.Viewport3D.Models.Add(surface);
-
             // Some events.
             //plot1.Axes.YAxes.Right.MouseEnter += new MouseEventHandler(Bottom_MouseEnter);
+
+            Plot2DCurve curve4 = plot4.AddLine(new double[] { 1.2, 1.3, 2.8, 5.6, 1.9, -5.9 });
+            plot4.Axes.Height = plot4.Axes.Width = 500;
+            //plot4.Height = plot4.Width = 500;
         }
 
         void Bottom_MouseEnter(object sender, MouseEventArgs e)
@@ -113,5 +123,6 @@ namespace PlotTest
             plot1.Axes.XAxes.Bottom.TickLength = 15;
             plot1.Axes.XAxes.Bottom.FontSize = 20;
         }
+
     }
 }

@@ -13,6 +13,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
+using System.Windows.Controls.Primitives;
 
 namespace IronPlot
 {
@@ -31,6 +33,9 @@ namespace IronPlot
 
         protected Rect cachedRegion;
 
+        private Point currentPosition;
+        DispatcherTimer mousePositionTimer = new DispatcherTimer();
+
         protected void AddInteractionEvents()
         {
             Canvas.MouseLeftButtonUp += new MouseButtonEventHandler(LeftClickEnd);
@@ -40,15 +45,9 @@ namespace IronPlot
             Canvas.MouseMove += new MouseEventHandler(element_MouseMove);
             Canvas.MouseWheel += new MouseWheelEventHandler(element_MouseWheel);
             var allAxes = axes.XAxes.Concat(axes.YAxes);
-        }
 
-        internal void RemoveAxisInteractionEvents(IEnumerable<Axis2D> axes)
-        {
-            if (this is ColourBarPanel) return;
-            foreach (Axis2D axis in axes) axis.MouseLeftButtonDown -= new MouseButtonEventHandler(LeftClickStart);
-            foreach (Axis2D axis in axes) axis.MouseMove -= new MouseEventHandler(element_MouseMove);
-            foreach (Axis2D axis in axes) axis.MouseLeftButtonUp -= new MouseButtonEventHandler(LeftClickEnd);
-            foreach (Axis2D axis in axes) axis.MouseWheel -= new MouseWheelEventHandler(element_MouseWheel);
+            mousePositionTimer.Interval = TimeSpan.FromSeconds(0.05);
+            mousePositionTimer.Tick += new EventHandler(mousePositionTimer_Tick);
         }
 
         internal void AddAxisInteractionEvents(IEnumerable<Axis2D> axes)
@@ -58,6 +57,15 @@ namespace IronPlot
             foreach (Axis2D axis in axes) axis.MouseMove += new MouseEventHandler(element_MouseMove);
             foreach (Axis2D axis in axes) axis.MouseLeftButtonUp += new MouseButtonEventHandler(LeftClickEnd);
             foreach (Axis2D axis in axes) axis.MouseWheel += new MouseWheelEventHandler(element_MouseWheel);
+        }
+
+        internal void RemoveAxisInteractionEvents(IEnumerable<Axis2D> axes)
+        {
+            if (this is ColourBarPanel) return;
+            foreach (Axis2D axis in axes) axis.MouseLeftButtonDown -= new MouseButtonEventHandler(LeftClickStart);
+            foreach (Axis2D axis in axes) axis.MouseMove -= new MouseEventHandler(element_MouseMove);
+            foreach (Axis2D axis in axes) axis.MouseLeftButtonUp -= new MouseButtonEventHandler(LeftClickEnd);
+            foreach (Axis2D axis in axes) axis.MouseWheel -= new MouseWheelEventHandler(element_MouseWheel);
         }
 
         protected void AddSelectionRectangle()
@@ -79,6 +87,14 @@ namespace IronPlot
 
         protected void LeftClickStart(object sender, MouseButtonEventArgs e)
         {
+            foreach (Plot2DItem item in plotItems)
+            {
+                if (item is Plot2DCurve && !Double.IsNaN((item as Plot2DCurve).AnnotationPosition.X))
+                {
+                    (item as Plot2DCurve).AnnotationPosition = new Point(Double.NaN, Double.NaN);
+                }
+            }
+            
             bool ctrlOrShift = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl) ||
                 Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.LeftShift);
             if (ctrlOrShift)
@@ -236,6 +252,7 @@ namespace IronPlot
 
         protected void element_MouseMove(object sender, MouseEventArgs e)
         {
+            currentPosition = e.GetPosition(Canvas);
             if (Canvas.IsMouseCaptured)
             {
                 if (dragging)
@@ -244,11 +261,16 @@ namespace IronPlot
                 }
                 if (selectionStarted)
                 {
-                    Rect rect = new Rect(selectionStart, e.GetPosition(Canvas));
+                    Rect rect = new Rect(selectionStart, currentPosition);
                     selection.RenderTransform = new TranslateTransform(rect.X, rect.Y);
                     selection.Width = rect.Width;
                     selection.Height = rect.Height;
                 }
+            }
+            mousePositionTimer.Stop(); mousePositionTimer.Start();
+            foreach (Plot2DItem item in plotItems)
+            {
+                if ((item is Plot2DCurve) && !Double.IsNaN((item as Plot2DCurve).AnnotationPosition.X)) (item as Plot2DCurve).AnnotationPosition = currentPosition;
             }
         }
 
@@ -257,6 +279,23 @@ namespace IronPlot
             marginChangeTimer.Stop();
             marginChangeTimer.Interval = TimeSpan.FromSeconds(0.0);
             this.InvalidateMeasure();
+        }
+
+        void mousePositionTimer_Tick(object sender, EventArgs e)
+        {
+            foreach (Plot2DItem item in plotItems)
+            {
+                if (item is Plot2DCurve)
+                {
+                    if (Double.IsNaN((item as Plot2DCurve).AnnotationPosition.X))
+                    {
+                        if (((item as Plot2DCurve).Line.IsMouseOver || (item as Plot2DCurve).Markers.IsMouseOver))
+                        {
+                            (item as Plot2DCurve).AnnotationPosition = currentPosition;
+                        }
+                    }
+                }
+            }
         }
     }
 }

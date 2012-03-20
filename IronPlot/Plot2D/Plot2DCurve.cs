@@ -14,8 +14,6 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Xps;
-//using System.Windows.Xps.Packaging;
-//using System.Windows.Xps.Serialization;
 using System.Printing;
 using System.Threading;
 using System.Windows.Threading;
@@ -43,6 +41,9 @@ namespace IronPlot
         private PlotPath legendLine;
         private PlotPath legendMarker;
         private LegendItem legendItem;
+
+        // An annotation marker for displaying coordinates of a position.
+        PlotPointAnnotation annotation; 
         
         // Direct2D elements:
         private DirectPath lineD2D;
@@ -91,7 +92,18 @@ namespace IronPlot
         public static readonly DependencyProperty TitleProperty =
             DependencyProperty.Register("TitleProperty",
             typeof(string), typeof(Plot2DCurve),
-            new PropertyMetadata(""));
+            new PropertyMetadata(String.Empty));
+
+        public static readonly DependencyProperty AnnotationPositionProperty =
+            DependencyProperty.Register("AnnotationPositionProperty",
+            typeof(Point), typeof(Plot2DCurve),
+            new PropertyMetadata(new Point(Double.NaN, Double.NaN),
+                OnAnnotationPositionChanged));
+
+        public static readonly DependencyProperty AnnotationPositionStringProperty =
+            DependencyProperty.Register("AnnotationPositionStringProperty",
+            typeof(string), typeof(Plot2DCurve),
+            new PropertyMetadata("Test"));
 
         /// <summary>
         /// Get or set line in <line><markers><colour> notation, e.g. --sr for dashed red line with square markers
@@ -171,6 +183,24 @@ namespace IronPlot
             get { return (string)GetValue(TitleProperty); }
         }
 
+        public Point AnnotationPosition
+        {
+            set
+            {
+                SetValue(AnnotationPositionProperty, value);
+            }
+            get { return (Point)GetValue(AnnotationPositionProperty); }
+        }
+
+        public string AnnotationPositionString
+        {
+            set
+            {
+                SetValue(AnnotationPositionStringProperty, value);
+            }
+            get { return (string)GetValue(AnnotationPositionStringProperty); }
+        }
+
         protected static void OnMarkersChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
             if ((MarkersType)e.NewValue == MarkersType.None)
@@ -192,6 +222,18 @@ namespace IronPlot
         protected static void OnQuickStrokeDashPropertyChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
             ((Plot2DCurve)obj).line.QuickStrokeDash = (QuickStrokeDash)(e.NewValue);
+        }
+
+        protected static void OnAnnotationPositionChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
+        {
+            Point canvasPosition = (Point)e.NewValue;
+            Plot2DCurve localCurve = (Plot2DCurve)obj;
+            if (Double.IsNaN(canvasPosition.X)) localCurve.annotation.Visibility = Visibility.Collapsed;
+            else localCurve.annotation.Visibility = Visibility.Visible;
+            Point curveCanvas = localCurve.SnappedCanvasPoint(canvasPosition);
+            localCurve.annotation.SetValue(Canvas.LeftProperty, curveCanvas.X);
+            localCurve.annotation.SetValue(Canvas.TopProperty, curveCanvas.Y);
+            localCurve.annotation.InvalidateVisual();
         }
 
         public static readonly DependencyProperty UseDirect2DProperty =
@@ -243,8 +285,8 @@ namespace IronPlot
                 line.SetValue(Canvas.ZIndexProperty, 200);
                 line.Data.Transform = graphToCanvas;
                 markers.SetValue(Canvas.ZIndexProperty, 200);
-                host.Canvas.Children.Add(Line);
-                host.Canvas.Children.Add(Markers);
+                host.Canvas.Children.Add(line);
+                host.Canvas.Children.Add(markers);
             }
             else
             {
@@ -252,6 +294,9 @@ namespace IronPlot
                 host.direct2DControl.AddPath(markersD2D);
                 markersD2D.GraphToCanvas = graphToCanvas;
             }
+            annotation.SetValue(Canvas.ZIndexProperty, 201);
+            annotation.Visibility = Visibility.Collapsed;
+            host.Canvas.Children.Add(annotation);
             //
             //line.PreviewMouseMove += new MouseEventHandler(line_PreviewMouseMove);
             UpdateMarkers();
@@ -273,6 +318,7 @@ namespace IronPlot
                 host.Canvas.Children.Remove(line);
                 host.Canvas.Children.Remove(markers);
             }
+            host.Canvas.Children.Remove(annotation);
         }
 
         public Plot2DCurve(Curve curve)
@@ -297,6 +343,8 @@ namespace IronPlot
             //
             lineD2D = new DirectPath();
             markersD2D = new DirectPathScatter() { Curve = curve };
+            //
+            annotation = new PlotPointAnnotation();
             //
             legendLine = new PlotPath();
             legendMarker = new PlotPath();
@@ -349,10 +397,28 @@ namespace IronPlot
             {
                 line.Data = Curve.ToPathGeometry(graphToCanvas);
             }
-            //line.Data.Transform = graphToCanvas;
-            //SetBounds();
-            //visualLine.InvalidateVisual();
+            Point annotationPoint = graphToCanvas.Transform(new Point(curve.xTransformed[0], curve.yTransformed[0]));
+            annotation.SetValue(Canvas.TopProperty, annotationPoint.Y); annotation.SetValue(Canvas.LeftProperty, annotationPoint.X);
             UpdateMarkers();
+        }
+
+        internal Point SnappedCanvasPoint(Point canvasPoint)
+        {
+            int index = CurveIndexFromCanvasPoint(canvasPoint);
+            annotation.Annotation = curve.x[index].ToString() + "," + curve.y[index].ToString();
+            return graphToCanvas.Transform(new Point(curve.xTransformed[index], curve.yTransformed[index]));
+        }
+
+        internal int CurveIndexFromCanvasPoint(Point canvasPoint)
+        {
+            Point graphPoint = canvasToGraph.Transform(canvasPoint);
+            double value = curve.SortedValues == SortedValues.X ? graphPoint.X : graphPoint.Y;
+            int index = Curve.GetInterpolatedIndex(curve.TransformedSorted, value);
+            if (index == (curve.xTransformed.Length - 1)) return curve.SortedToUnsorted[curve.xTransformed.Length - 1]; 
+            // otherwise return nearest:
+            if ((curve.TransformedSorted[index + 1] - value) < (value - curve.TransformedSorted[index]))
+                return curve.SortedToUnsorted[index + 1];
+            else return curve.SortedToUnsorted[index];
         }
 
         private void SetBounds()

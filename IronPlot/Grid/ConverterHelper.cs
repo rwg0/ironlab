@@ -6,6 +6,7 @@ using System.Windows.Data;
 using System.Globalization;
 using System.ComponentModel;
 using System.Windows.Media;
+using System.Data;
 
 namespace IronPlot
 {
@@ -54,4 +55,27 @@ namespace IronPlot
     }
 
     #endregion Converters
+
+    public class GridHelpers
+    {
+        public static DataView ArrayToView(double[,] array)
+        {
+            int rows = array.GetLength(0);
+            int cols = array.GetLength(1);
+
+            DataTable table = new DataTable();
+            for (int j = 0; j < cols; ++j)
+                table.Columns.Add(new DataColumn(j.ToString(), typeof(Double)));
+
+            for (int i = 0; i < rows; ++i)
+            {
+                object[] rowData = new object[cols];
+                for (int j = 0; j < cols; ++j) rowData[j] = (object)(array[i, j]);
+                DataRow row = table.LoadDataRow(rowData, false);
+            }
+            DataView view = table.DefaultView;
+            view.AllowNew = false;
+            return view;
+        }
+    }
 }
