@@ -195,7 +195,7 @@ namespace IronPlot.Plotting3D
         protected virtual void OnMouseWheel(object sender, MouseWheelEventArgs e)
         {
             double delta = -e.Delta / 120;
-            scale = Math.Pow(1.4, delta);
+            scale = Math.Pow(1.1, delta);
             Zoom(scale);
         }
 
