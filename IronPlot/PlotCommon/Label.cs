@@ -22,7 +22,7 @@ namespace IronPlot
 
         private void OnTextChanged(object sender, EventArgs args)
         {
-            if (Text == "") this.Visibility = Visibility.Collapsed;
+            if (Text == String.Empty && Text == "") this.Visibility = Visibility.Collapsed;
             else this.Visibility = Visibility.Visible;
         }
     }

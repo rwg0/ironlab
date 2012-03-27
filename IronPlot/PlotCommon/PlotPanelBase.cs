@@ -61,7 +61,7 @@ namespace IronPlot
 
         private static void OnPositionPropertyChanged(DependencyObject element, DependencyPropertyChangedEventArgs e)
         {
-            PlotPanel parent = VisualTreeHelper.GetParent(VisualTreeHelper.GetParent(element)) as PlotPanel;
+            PlotPanelBase parent = VisualTreeHelper.GetParent(VisualTreeHelper.GetParent(element)) as PlotPanelBase;
             if (parent != null)
             {
                 parent.AddOrRemoveAnnotation((UIElement)element, (Position)e.OldValue, AddOrRemove.Remove);
@@ -159,14 +159,12 @@ namespace IronPlot
             annotations.CollectionChanged += new NotifyCollectionChangedEventHandler(annotations_CollectionChanged);
             
             // Left annotations
-            AnnotationsLeft = new StackPanel();
-            AnnotationsLeft.Orientation = Orientation.Horizontal;
+            AnnotationsLeft = new StackPanel() { Orientation = Orientation.Horizontal };
             //AnnotationsLeft.FlowDirection = FlowDirection.RightToLeft;
             this.Children.Add(AnnotationsLeft);
             //
             // Right legend
-            AnnotationsRight = new StackPanel();
-            AnnotationsRight.Orientation = Orientation.Horizontal;
+            AnnotationsRight = new StackPanel() { Orientation = Orientation.Horizontal };
             this.Children.Add(AnnotationsRight);
             //
             // Top legend
@@ -177,6 +175,12 @@ namespace IronPlot
             AnnotationsBottom = new StackPanel();
             this.Children.Add(AnnotationsBottom);
             //
+        }
+
+        protected void MeasureAnnotations(Size availableSize)
+        {
+            AnnotationsLeft.Measure(availableSize); AnnotationsRight.Measure(availableSize);
+            AnnotationsTop.Measure(availableSize); AnnotationsBottom.Measure(availableSize);
         }
 
         /// <summary>
@@ -205,30 +209,6 @@ namespace IronPlot
             legendRegion.Bottom += AnnotationsBottom.DesiredSize.Height;
             showAnnotationsLeft = showAnnotationsRight = showAnnotationsTop = showAnnotationsBottom = true;
 
-            //if ((endX - startX) > (AnnotationsLeft.DesiredSize.Width + 1))
-            //{
-            //    showAnnotationsLeft = true;
-            //    startX += AnnotationsLeft.DesiredSize.Width;
-            //    legendRegion.Left += AnnotationsLeft.DesiredSize.Width;
-            //}
-            //if ((endX - startX) > (AnnotationsRight.DesiredSize.Width + 1))
-            //{
-            //    showAnnotationsRight = true;
-            //    endX -= AnnotationsRight.DesiredSize.Width;
-            //    legendRegion.Right += AnnotationsRight.DesiredSize.Width;            
-            //}
-            //if ((endY - startY) > (AnnotationsTop.DesiredSize.Height + 1))
-            //{
-            //    showAnnotationsTop = true;
-            //    startY += AnnotationsTop.DesiredSize.Height;
-            //    legendRegion.Top += AnnotationsTop.DesiredSize.Height;
-            //}
-            //if ((endY - startY) > (AnnotationsBottom.DesiredSize.Height + 1))
-            //{
-            //    showAnnotationsBottom = true;
-            //    endY -= AnnotationsBottom.DesiredSize.Height;
-            //    legendRegion.Bottom += AnnotationsBottom.DesiredSize.Height;
-            //}
             Rect available = new Rect(startX, startY, Math.Max(endX - startX, 1), Math.Max(endY - startY, 1)); // new Rect(startX, 0, endX - startX, endY - startY);
             return available;
         }
@@ -241,16 +221,12 @@ namespace IronPlot
         {
             if (showAnnotationsLeft)
             {
-                //Rect annotationsLeftRect = new Rect(new Point(axesRegionLocation.Left - AnnotationsLeft.DesiredSize.Width, axesRegionLocation.Top),
-                //    new Point(axesRegionLocation.Left, axesRegionLocation.Bottom));
                 Rect annotationsLeftRect = new Rect(new Point(0, 0),
                     new Point(axesRegionLocation.Left, finalSize.Height));
                 AnnotationsLeft.Arrange(annotationsLeftRect);
             }
             if (showAnnotationsRight)
             {
-                //Rect annotationsRightRect = new Rect(new Point(axesRegionLocation.Right, axesRegionLocation.Top),
-                //    new Point(axesRegionLocation.Right + AnnotationsRight.DesiredSize.Width, axesRegionLocation.Bottom));
                 Rect annotationsRightRect = new Rect(new Point(axesRegionLocation.Right, 0),
                     new Point(finalSize.Width, finalSize.Height));
                 AnnotationsRight.Arrange(annotationsRightRect);
@@ -258,16 +234,12 @@ namespace IronPlot
             else AnnotationsRight.Arrange(new Rect());
             if (showAnnotationsTop)
             {
-                //Rect annotationsTopRect = new Rect(new Point(axesRegionLocation.Left, axesRegionLocation.Top - AnnotationsTop.DesiredSize.Height),
-                //    new Point(axesRegionLocation.Right, axesRegionLocation.Top));
                 Rect annotationsTopRect = new Rect(new Point(0, 0),
                     new Point(finalSize.Width, axesRegionLocation.Top));
                 AnnotationsTop.Arrange(annotationsTopRect);
             }
             if (showAnnotationsBottom)
             {
-                //Rect annotationsBottomRect = new Rect(new Point(axesRegionLocation.Left, axesRegionLocation.Bottom),
-                //    new Point(axesRegionLocation.Right, axesRegionLocation.Bottom + AnnotationsBottom.DesiredSize.Height));
                 Rect annotationsBottomRect = new Rect(new Point(0, axesRegionLocation.Bottom),
                     new Point(finalSize.Width, finalSize.Height));
                 AnnotationsBottom.Arrange(annotationsBottomRect);

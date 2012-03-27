@@ -118,7 +118,6 @@ namespace IronPlot
             BackgroundCanvas.Background = background;
             direct2DControl = null;
             //
-            //this.CreateLegends();
             if (!(this is ColourBarPanel)) this.AddInteractionEvents();
             this.AddSelectionRectangle();
             this.InitialiseChildenCollection();
@@ -137,13 +136,11 @@ namespace IronPlot
                 axis.UpdateAndMeasureLabels();
             }
 
-            AnnotationsLeft.Measure(availableSize); AnnotationsRight.Measure(availableSize);
-            AnnotationsTop.Measure(availableSize); AnnotationsBottom.Measure(availableSize);
-            
             availableSize.Height = Math.Min(availableSize.Height, 10000);
             availableSize.Width = Math.Min(availableSize.Width, 10000);
             
             // Main measurement work:
+            MeasureAnnotations(availableSize);
             // Return the region available for plotting and set legendRegion:
             Rect available = PlaceAnnotations(availableSize);
             // Place the axes using this region, setting axesRegionSize and canvasLocation:

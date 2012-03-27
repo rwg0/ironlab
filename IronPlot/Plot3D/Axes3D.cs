@@ -165,10 +165,11 @@ namespace IronPlot.Plotting3D
             Generate();
         }
 
-        internal override void Initialize()
+        internal override void OnViewportImageChanged(ViewportImage newViewportImage)
         {
-            base.Initialize();
+ 	        base.OnViewportImageChanged(newViewportImage);
             UpdateLabels();
+            this.OnDraw -= new OnDrawEventHandler(OnDrawUpdate);
             this.OnDraw += new OnDrawEventHandler(OnDrawUpdate);
         }
 

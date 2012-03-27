@@ -87,6 +87,8 @@ namespace IronPlot.Plotting3D
             layer2D = new SlimDXLayer2D(canvas, this, modelToWorld);
         }
 
+        internal Viewport3D ViewPort3D { get; set; }
+
         #endregion
 
         #region DependencyProperties

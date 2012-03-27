@@ -143,16 +143,32 @@ namespace IronPlot
 
         protected void CopyToEMF(object sender, EventArgs e)
         {
-            EMFCopy.CopyVisualToWmfClipboard((Visual)this, Window.GetWindow(this));
+            try
+            {
+                EMFCopy.CopyVisualToWmfClipboard((Visual)this, Window.GetWindow(this));
+            }
+            catch (Exception)
+            {
+                throw new Exception("Writing to enhanced metafile failed for plot.");
+            }
         }
 
         public void ToClipboard(int dpi)
         {
+            DrawingVisual drawingVisual = new DrawingVisual();
+            DrawingContext drawingContext = drawingVisual.RenderOpen();
+            VisualBrush sourceBrush = new VisualBrush(this);
+            double scale = dpi / 96.0;
+            double actualWidth = this.RenderSize.Width;
+            double actualHeight = this.RenderSize.Height;
+            using (drawingContext)
+            {
+                drawingContext.PushTransform(new ScaleTransform(scale, scale));
+                drawingContext.DrawRectangle(sourceBrush, null, new Rect(new Point(0, 0), new Point(actualWidth, actualHeight)));
+            }  
             this.InvalidateVisual();
-            int width = (int)(this.ActualWidth * (double)dpi / 96.0);
-            int height = (int)(this.ActualHeight * (double)dpi / 96.0);
-            RenderTargetBitmap renderBitmap = new RenderTargetBitmap(width, height, dpi, dpi, PixelFormats.Pbgra32);
-            renderBitmap.Render(this);
+            RenderTargetBitmap renderBitmap = new RenderTargetBitmap((int)(actualWidth * scale), (int)(actualHeight * scale), 96, 96, PixelFormats.Pbgra32);
+            renderBitmap.Render(drawingVisual);
             Clipboard.SetImage(renderBitmap);
         }
 

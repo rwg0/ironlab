@@ -117,13 +117,19 @@ namespace IronPlot.Plotting3D
             Points = new List<Point3DColor>();
             pointsChanged = true;
         }
-        
-        internal override void Initialize()
+
+        internal override void OnViewportImageChanged(ViewportImage newViewportImage)
         {
-            base.Initialize();
+            ViewportImage oldViewportImage = viewportImage;
+            if (oldViewportImage != null)
+            {
+                viewportImage.GraphicsDeviceService.DeviceReset -= new EventHandler(GraphicsDeviceService_DeviceReset);
+                viewportImage.GraphicsDeviceService.DeviceResetting -= new EventHandler(GraphicsDeviceService_DeviceResetting);
+            }
+            base.OnViewportImageChanged(newViewportImage);
             if (!viewportImage.GraphicsDeviceService.IsAntialiased) LineThickness = 1.0;
             viewportImage.GraphicsDeviceService.DeviceReset += new EventHandler(GraphicsDeviceService_DeviceReset);
-            viewportImage.GraphicsDeviceService.DeviceResetting +=new EventHandler(GraphicsDeviceService_DeviceResetting);
+            viewportImage.GraphicsDeviceService.DeviceResetting += new EventHandler(GraphicsDeviceService_DeviceResetting);
             if (effect == null)
             {
                 System.IO.Stream stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("IronPlot.Plot3D._3DPrimitives.Line.fx");

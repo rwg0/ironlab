@@ -178,5 +178,152 @@ namespace IronPlot.Plotting3D
                 }
             }
         }
+
+        protected void UpdateVertsAndIndsSmooth(bool updateVerticesOnly, bool oneSided)
+        {
+            //oneSided = true;
+            int index = 0;
+            int indexOff = lengthU * lengthV;
+            Point3D worldPoint;
+            MatrixTransform3D modelToWorld = ModelToWorld;
+            for (int i = 0; i < indexOff; ++i)
+            {
+                worldPoint = modelToWorld.Transform(modelVertices[i]);
+                vertices[i].Position = new Vector3((float)worldPoint.X, (float)worldPoint.Y, (float)worldPoint.Z);
+                vertices[i].Normal = new Vector3(0f, 0f, 0f);
+            }
+            // Add triangles
+            int reverseSideOffset = 6 * (lengthU - 1) * (lengthV - 1);
+            if (!updateVerticesOnly)
+            {
+                index = 0;
+                indexOff = 0;
+                for (int v = 0; v < lengthV - 1; v++)
+                {
+                    for (int u = 0; u < lengthU - 1; u++)
+                    {
+                        indices[index] = indexOff + u;
+                        indices[index + 1] = indexOff + u + lengthU + 1;
+                        indices[index + 2] = indexOff + u + 1;
+                        indices[index + 3] = indexOff + u;
+                        indices[index + 4] = indexOff + u + lengthU;
+                        indices[index + 5] = indexOff + u + lengthU + 1;
+                        index += 6;
+                    }
+                    indexOff += lengthU;
+                }
+                if (!oneSided)
+                {
+                    index = 0;
+                    indexOff = lengthU * lengthV;
+                    for (int v = 0; v < lengthV - 1; v++)
+                    {
+                        for (int u = 0; u < lengthU - 1; u++)
+                        {
+                            indices[index + reverseSideOffset] = indexOff + u + 1;
+                            indices[index + 1 + reverseSideOffset] = indexOff + u + lengthU + 1;
+                            indices[index + 2 + reverseSideOffset] = indexOff + u;
+                            indices[index + 3 + reverseSideOffset] = indexOff + u + lengthU;
+                            indices[index + 4 + reverseSideOffset] = indexOff + u;
+                            indices[index + 5 + reverseSideOffset] = indexOff + u + lengthU + 1;
+                            index += 6;
+                        }
+                        indexOff += lengthU;
+                    }
+                }
+            }
+            // Go through triangles and add normal to all vertices
+            Vector3 normal;
+            for (int i = 0; i <= reverseSideOffset - 3; i += 3)
+            {
+                Vector3 vec1, vec2;
+                vec1 = vertices[indices[i + 2]].Position - vertices[indices[i + 1]].Position;
+                vec2 = vertices[indices[i + 2]].Position - vertices[indices[i]].Position;
+                normal = Vector3.Cross(vec1, vec2);
+                normal.Normalize();
+                vertices[indices[i]].Normal += normal;
+                vertices[indices[i + 1]].Normal += normal;
+                vertices[indices[i + 2]].Normal += normal;
+            }
+            if (!oneSided)
+            {
+                indexOff = lengthU * lengthV;
+                for (int i = 0; i < indexOff; ++i)
+                {
+                    vertices[i + indexOff].Position = vertices[i].Position;
+                    vertices[i + indexOff].Normal = -vertices[i].Normal;
+                }
+            }
+        }
+
+        protected void SetColorFromIndices()
+        {
+            lock (updateLocker)
+            {
+                SurfaceShading surfaceShading = SurfaceShading.Smooth;
+                byte opacity = 255;
+                Dispatcher.Invoke(new Action(delegate()
+                {
+                    surfaceShading = SurfaceShading;
+                    opacity = (byte)(255 - (byte)GetValue(TransparencyProperty));
+                }));
+                SetColorFromIndices(surfaceShading, opacity);
+            }
+        }
+
+        protected void SetColorFromIndices(SurfaceShading surfaceShading, byte opacity)
+        {
+            int[] cmap = colourMap.ToIntArray();
+            if (surfaceShading == SurfaceShading.Smooth)
+            {
+                int index = 0;
+                int indexOff = colourMapIndices.Length;
+                foreach (UInt16 magnitude in colourMapIndices)
+                {
+                    vertices[index].Color = (opacity << 24) | cmap[magnitude];
+                    vertices[index + indexOff].Color = (opacity << 24) | cmap[magnitude];
+                    index++;
+                }
+            }
+            else
+            {
+                int currentVertInd = 0;
+                UInt16 magnitude;
+                int index = 0;
+                int colour1, colour2, colour3, colour4;
+                for (int v = 0; v < lengthV - 1; v++)
+                {
+                    for (int u = 0; u < lengthU - 1; u++)
+                    {
+                        bool interpolateColourInFacets = true;
+
+                        if (interpolateColourInFacets)
+                        {
+                            magnitude = colourMapIndices[index];
+                            colour1 = (opacity << 24) | cmap[magnitude];
+                            magnitude = colourMapIndices[index + 1];
+                            colour2 = (opacity << 24) | cmap[magnitude];
+                            magnitude = colourMapIndices[index + lengthU + 1];
+                            colour3 = (opacity << 24) | cmap[magnitude];
+                            magnitude = colourMapIndices[index + lengthU];
+                            colour4 = (opacity << 24) | cmap[magnitude];
+                            vertices[currentVertInd + 0].Color = colour1;
+                            vertices[currentVertInd + 1].Color = colour2;
+                            vertices[currentVertInd + 2].Color = colour3;
+                            vertices[currentVertInd + 3].Color = colour3;
+                            vertices[currentVertInd + 4].Color = colour4;
+                            vertices[currentVertInd + 5].Color = colour1;
+                            currentVertInd += 6;
+                        }
+                        else
+                        {
+
+                        }
+                        index++;
+                    }
+                    index++;
+                }
+            }
+        }
     }
 }

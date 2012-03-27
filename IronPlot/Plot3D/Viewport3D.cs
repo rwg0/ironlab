@@ -126,9 +126,6 @@ namespace IronPlot.Plotting3D
 
         protected enum UpdateType { UpdateWorldMin, UpdateWorldMax, AlreadyUpdated };
 
-        //protected override void OnRender(DrawingContext drawingContext) { }
-        //protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo) { }
-
         protected static void OnGraphToWorldChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
         }
@@ -164,35 +161,22 @@ namespace IronPlot.Plotting3D
             Initialize();
         }
 
-        protected override int VisualChildrenCount
+        protected override Size MeasureOverride(Size availableSize)
         {
-            get { return 1; }
+            MeasureAnnotations(availableSize);
+            // Return the region available for plotting and set legendRegion:
+            Rect available = PlaceAnnotations(availableSize);
+            grid.Measure(new Size(available.Width, available.Height));
+            return availableSize;
         }
 
         protected override Size ArrangeOverride(Size finalSize)
         {
-            Size size = base.ArrangeOverride(finalSize);
-            // Give annotations their deisred sizes
-            grid.Arrange(new Rect(0, 0, size.Width, size.Height));
-            return size;
-        }
-
-        protected override Visual GetVisualChild(int index)
-        {
-            if (index == 0) return grid;
-            else
-            {
-                throw new ArgumentOutOfRangeException("index");
-            }
-        }
-
-        protected override Size MeasureOverride(Size availableSize)
-        {
-            AnnotationsLeft.Measure(availableSize); AnnotationsRight.Measure(availableSize);
-            AnnotationsTop.Measure(availableSize); AnnotationsBottom.Measure(availableSize);
-            grid.Measure(availableSize);
-            Rect available = PlaceAnnotations(availableSize);
-            return grid.DesiredSize;
+            Rect final = PlaceAnnotations(finalSize);
+            axesRegionLocation = final;
+            grid.Arrange(final);
+            ArrangeAnnotations(finalSize);
+            return finalSize;
         }
         
         public void Initialize()
@@ -201,7 +185,7 @@ namespace IronPlot.Plotting3D
             this.Children.Add(grid);
             try
             {
-                d3dImageViewport = new ViewportImage();
+                d3dImageViewport = new ViewportImage() { ViewPort3D = this };
             }
             catch (Exception e)
             {
@@ -220,8 +204,7 @@ namespace IronPlot.Plotting3D
             sceneImage.TileMode = TileMode.None;
             grid.Background = sceneImage;
 
-            Canvas canvas = new Canvas();
-            canvas.Background = Brushes.Transparent;
+            Canvas canvas = new Canvas() { ClipToBounds = true, Background = Brushes.Transparent };
             d3dImageViewport.SetLayer2D(canvas, GraphToWorld);
 
             d3dImageViewport.Models.Changed += new Model3DCollection.ItemEventHandler(Models_Changed);
@@ -237,7 +220,6 @@ namespace IronPlot.Plotting3D
             axes = new Axes3D();
             d3dImageViewport.Models.Add(axes);
 
-            //axes.Base.OnDraw += new OnDrawEventHandler(Base_OnDraw);
             d3dImageViewport.CameraPosition = new Vector3(-3f, -3f, 2f);
             d3dImageViewport.CameraTarget = new Vector3(0f, 0f, 0f);
             //

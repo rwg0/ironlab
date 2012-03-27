@@ -65,19 +65,20 @@ namespace IronPlot.Plotting3D
         {
             if (viewportImage == null)
             {
+                this.DisposeDisposables();
                 this.viewportImage = null;
                 this.graphicsDevice = null;
                 this.layer2D = null;
                 Children.viewportImage = null;
             }
             else
-            {
-                this.viewportImage = viewportImage;
+            {                
                 this.graphicsDevice = viewportImage.GraphicsDevice;
                 this.layer2D = viewportImage.Layer2D;
-                Initialize();
+                OnViewportImageChanged(viewportImage);
                 BindToViewportImage();
                 Children.viewportImage = viewportImage;
+                this.RecreateDisposables();
             }
             foreach (Model3D model in this.Children)
             {
@@ -121,6 +122,15 @@ namespace IronPlot.Plotting3D
             bindingTransform.Mode = BindingMode.OneWay;
             BindingOperations.SetBinding(this, Model3D.ModelToWorldProperty, bindingTransform);
             OnRequestRender += new OnRequestRenderEventHandler(viewportImage.OnRequestRender);
+        }
+
+        internal void RemoveBindToViewportImage()
+        {
+            if (viewportImage != null)
+            {
+                BindingOperations.ClearBinding(this, Model3D.ModelToWorldProperty);
+                OnRequestRender -= new OnRequestRenderEventHandler(viewportImage.OnRequestRender);
+            }
         }
         #endregion
 
@@ -189,15 +199,20 @@ namespace IronPlot.Plotting3D
             SetValue(ChildrenProperty, new Model3DCollection(this));
         }
 
-        public Model3D(Device graphicsDevice)
-        {
-            SetValue(ChildrenProperty, new Model3DCollection(this));
-            Initialize();
-        }
+        //public Model3D(Device graphicsDevice)
+        //{
+        //    SetValue(ChildrenProperty, new Model3DCollection(this));
+        //    Initialize();
+        //}
 
-        internal virtual void Initialize()
+        internal virtual void OnViewportImageChanged(ViewportImage newViewportImage)
         {
-            // Create a BasicEffect, which will be used to render the primitive.
+            RemoveBindToViewportImage();
+            viewportImage = newViewportImage;
+            this.graphicsDevice = (viewportImage == null) ? null : viewportImage.GraphicsDevice;
+            this.layer2D = (viewportImage == null) ? null : viewportImage.Layer2D;
+            BindToViewportImage();
+            Children.viewportImage = (viewportImage == null) ? null : viewportImage;
             geometryChanged = false;
         }
 

@@ -100,16 +100,18 @@ namespace PlotTest
             //plot2.Axes.YAxes.GridLines.Visibility = Visibility.Collapsed;
 
             // Example surface plot:
-            int nx = 20;
-            int ny = 30;
-            var x2 = MathHelper.MeshGridX(Enumerable.Range(1, nx).Select(t => (double)t), ny);
-            var y2 = MathHelper.MeshGridY(Enumerable.Range(1, ny).Select(t => (double)t), nx);
-            //var z2 = x2.Zip(y2, (u, v) => u*u + v*v); // .NET4 method
-            var z2 = x2.Select(u => u * u);
+            int nx = 96;
+            int ny = 96;
+            var x2 = MathHelper.MeshGridX(Enumerable.Range(1, nx).Select(t => (double)t - nx/2), ny);
+            var y2 = MathHelper.MeshGridY(Enumerable.Range(1, ny).Select(t => (double)t - ny/2), nx);
+            var z2 = x2.Zip(y2, (u, v) => Math.Exp((-u*u - v*v) / 400)); // .NET4 method
+            //var z2 = x2.Select(u => u * u);
             SurfaceModel3D surface = new SurfaceModel3D(x2, y2, z2, nx, ny);
-            surface.Transparency = 20;
+            surface.Transparency = 5;
             surface.MeshLines = MeshLines.None;
+            surface.SurfaceShading = SurfaceShading.Smooth;
             plot3.Viewport3D.Models.Add(surface);
+            //plot3.LeftLabel.Text = "Left Label"; plot3.BottomLabel.Text = "Bottom Label";
             // Some events.
             //plot1.Axes.YAxes.Right.MouseEnter += new MouseEventHandler(Bottom_MouseEnter);
 

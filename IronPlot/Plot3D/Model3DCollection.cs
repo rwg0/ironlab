@@ -56,6 +56,7 @@ namespace IronPlot.Plotting3D
         protected override void SetItem(int index, Model3D newItem)
         {
             base.SetItem(index, newItem);
+            newItem.RecursiveSetViewportImage(null);
             newItem.RecursiveSetViewportImage(viewportImage);
             OnChanged(new ItemEventArgs(newItem));
         }

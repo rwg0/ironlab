@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Windows;
+using System.Windows.Media;
 #if ILNumerics
 using ILNumerics;
 using ILNumerics.Storage;
@@ -98,9 +99,7 @@ namespace IronPlot
 
         static internal Window CreateNewWindow()
         {
-            Window window = new Window();
-            window.Height = 640;
-            window.Width = 640;
+            Window window = new Window() { Height = 640, Width = 640, Background = Brushes.White };
             window.Show();
             return window;
         }

@@ -14,8 +14,6 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Xps;
-//using System.Windows.Xps.Packaging;
-//using System.Windows.Xps.Serialization;
 using System.Printing;
 using System.Threading;
 using System.Windows.Threading;
@@ -62,6 +60,7 @@ namespace IronPlot
                 try
                 {
                     host.Canvas.Children.Remove(Rectangle);
+                    if (colourBar != null) host.Annotations.Remove(colourBar);
                 }
                 catch (Exception) 
                 { 
@@ -69,11 +68,9 @@ namespace IronPlot
                 }
             }
             this.host = host;
-            //imageRectangle.RenderTransform = host.graphToCanvas;
             if (colourBar != null)
             {
-                host.AnnotationsRight.Children.Add(colourBar);
-                colourBar.VerticalAlignment = VerticalAlignment.Stretch;
+                host.Annotations.Add(colourBar);
                 colourBar.ColourMapChanged += new RoutedEventHandler(OnColourMapChanged);
             }
             colourMapUpdateTimer.Tick += OnColourMapUpdateTimerElapsed;
@@ -221,7 +218,7 @@ namespace IronPlot
         protected void Initialize(bool newColourBar)
         {
             colourMapUpdateTimer = new DispatcherTimer();
-            colourMapUpdateTimer.Interval = new TimeSpan(2000); // 2/10 s
+            colourMapUpdateTimer.Interval = TimeSpan.FromSeconds(0.2);
             colourMap = new ColourMap(ColourMapType.Jet, 256);
             imageRectangle = new Path();
             Geometry geometry = new RectangleGeometry(bounds);

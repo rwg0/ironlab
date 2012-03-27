@@ -54,6 +54,11 @@ namespace IronPlot.Plotting3D
             item1.Items.Add(item1b);
             item1b.Click += OnClipboardCopy_192dpi;
 
+            MenuItem item1c = new MenuItem();
+            item1c.Header = "288 dpi";
+            item1.Items.Add(item1c);
+            item1c.Click += OnClipboardCopy_288dpi;
+
             //MenuItem item2 = new MenuItem();
             //item2.Header = "Print...";
             //mainMenu.Items.Add(item2);
@@ -88,26 +93,29 @@ namespace IronPlot.Plotting3D
             ToClipboard(192);
         }
 
+        protected void OnClipboardCopy_288dpi(object sender, EventArgs e)
+        {
+            ToClipboard(288);
+        }
+
         public void ToClipboard(int dpi)
         {
-            int width = (int)(this.ActualWidth * (double)dpi / 96.0);
-            int height = (int)(this.ActualHeight * (double)dpi / 96.0);
-
-            RenderTargetBitmap renderBitmap = new RenderTargetBitmap(width, height, dpi, dpi, PixelFormats.Pbgra32);
-            // All WPF elements will take care of themselves when the RenderTargetBitmap Render method is called.
-            // However, we need to tell the DirectX components that they need to re-render for the different 
-            // resolution (this includes scaling of lines etc: resolution-dependent items)
+            DrawingVisual drawingVisual = new DrawingVisual();
+            DrawingContext drawingContext = drawingVisual.RenderOpen();
+            VisualBrush sourceBrush = new VisualBrush(Viewport3D);
+            double scale = dpi / 96.0;
+            double actualWidth = Viewport3D.RenderSize.Width;
+            double actualHeight = Viewport3D.RenderSize.Height;
+            using (drawingContext)
+            {
+                drawingContext.PushTransform(new ScaleTransform(scale, scale));
+                drawingContext.DrawRectangle(sourceBrush, null, new Rect(new Point(0, 0), new Point(actualWidth, actualHeight)));
+            }
             Viewport3D.SetResolution(dpi);
             Viewport3D.InvalidateVisual();
-            
-            // Interesting alternative:
-            //BitmapSource source
-            //MethodInfo method = image.GetType().GetMethod("CopyBackBuffer", BindingFlags.Instance | BindingFlags.NonPublic);
-            //BitmapSource source = (BitmapSource)method.Invoke(image, null);
-           
-            renderBitmap.Render(Viewport3D);
+            RenderTargetBitmap renderBitmap = new RenderTargetBitmap((int)(actualWidth * scale), (int)(actualHeight * scale), 96, 96, PixelFormats.Pbgra32);
+            renderBitmap.Render(drawingVisual);
             Clipboard.SetImage(renderBitmap);
-
             Viewport3D.SetResolution(96);
         }
     }

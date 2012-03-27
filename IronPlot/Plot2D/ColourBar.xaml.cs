@@ -40,7 +40,7 @@ namespace IronPlot
             {
                 colourBarPanel.axes.YAxes[0].Min = value;
                 Rect newBounds = image.Bounds;
-                image.Bounds = new Rect(newBounds.Left, value, newBounds.Width, newBounds.Height);
+                image.Bounds = new Rect(newBounds.Left, value, newBounds.Width, newBounds.Bottom - value);
             }
             get { return colourBarPanel.axes.YAxes[0].Min; }
         }

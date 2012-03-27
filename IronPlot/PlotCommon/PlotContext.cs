@@ -14,8 +14,6 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Xps;
-//using System.Windows.Xps.Packaging;
-//using System.Windows.Xps.Serialization;
 using System.Printing;
 using System.Threading;
 using System.Windows.Threading;
@@ -142,11 +140,9 @@ namespace IronPlot
                 }
                 else
                 {
-                    Window newWindow = new Window();
+                    Window newWindow = new Window() { Width = 640, Height = 480, Background = Brushes.White };
                     newWindow.Closed += new EventHandler(window_Closed);
                     newWindow.Title = "Plot Window " + value.ToString();
-                    newWindow.Width = 640;
-                    newWindow.Height = 480;
                     newWindow.Show();
                     windowDictionary.Add(value, newWindow);
                     currentWindow = newWindow;
