@@ -160,6 +160,7 @@ namespace IronPlot.Plotting3D
                     axisLabels.Add(currentTextBlock);
                 }
                 else currentTextBlock = axisLabels[i];
+                UpdateLabelText(i);
                 AddTextToBlock(currentTextBlock, i);
                 currentTextBlock.TextAlignment = TextAlignment.Center;
                 currentTextBlock.UpdateLayout();

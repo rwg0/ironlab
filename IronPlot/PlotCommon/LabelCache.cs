@@ -12,7 +12,9 @@ namespace IronPlot
         /// The label
         /// </summary>
         public TextBlock Label = new TextBlock();
-        
+
+        public string CacheKey = String.Empty;
+
         /// <summary>
         /// If AxisType and Value are the same, Label does not require alteration.
         /// </summary>
@@ -23,9 +25,9 @@ namespace IronPlot
         public double Value = Double.NaN;
         public int RequiredDPs = 0;
 
-        public bool TextRequiresChange(AxisType newType, double newValue, int requiredDPs)
+        public bool TextRequiresChange(string newKey)
         {
-            return newType != AxisType || newValue != Value || requiredDPs != RequiredDPs;
+            return newKey != CacheKey;
         }
 
         /// <summary>
@@ -39,7 +41,7 @@ namespace IronPlot
     {
         public void Invalidate()
         {
-            foreach (LabelCacheItem item in this) item.Value = Double.NaN;
+            foreach (LabelCacheItem item in this) item.CacheKey = String.Empty;
         }
     }
 }

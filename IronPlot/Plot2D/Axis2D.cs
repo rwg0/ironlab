@@ -152,6 +152,11 @@ namespace IronPlot
                 if (desiredRange.Min <= 0 || desiredRange.Max <= 0)
                     axis2DLocal.SetValue(RangeProperty, e.OldValue);  
             }
+            else if (axis2DLocal.AxisType == AxisType.Date)
+            {
+               if (desiredRange.Min < Axis.minDate || desiredRange.Max >= Axis.maxDate)
+                   axis2DLocal.SetValue(RangeProperty, e.OldValue); 
+            }
             double length = Math.Abs(desiredRange.Length);
             if ((Math.Abs(desiredRange.Min) / length > 1e10) || (Math.Abs(desiredRange.Max) / length > 1e10)) axis2DLocal.SetValue(RangeProperty, e.OldValue);    
             axis2DLocal.DeriveTicks();
@@ -296,7 +301,8 @@ namespace IronPlot
                     TickLabelCache.Add(newItem);
                 }
                 else currentTextBlock = TickLabelCache[i].Label;
-                if (TickLabelCache[i].TextRequiresChange(AxisType, Ticks[i], RequiredDPs[i]))
+                UpdateLabelText(i);
+                if (TickLabelCache[i].TextRequiresChange(LabelText[i].Key))
                 {
                     if (isFirstNewItem)
                     {
@@ -307,11 +313,11 @@ namespace IronPlot
                     }       
                     AddTextToBlock(currentTextBlock, i);
                     currentTextBlock.Visibility = Visibility.Visible;
-                    TickLabelCache[i].AxisType = AxisType; TickLabelCache[i].Value = Ticks[i]; TickLabelCache[i].RequiredDPs = RequiredDPs[i];
+                    TickLabelCache[i].CacheKey = LabelText[i].Key;
                 }
-                currentTextBlock.Measure(new Size(Double.PositiveInfinity, double.PositiveInfinity));
+                currentTextBlock.Measure(new Size(Double.PositiveInfinity, Double.PositiveInfinity));
             }
-            axisLabel.Measure(new Size(Double.PositiveInfinity, double.PositiveInfinity));
+            axisLabel.Measure(new Size(Double.PositiveInfinity, Double.PositiveInfinity));
             SetToShowAllLabels();
         }
 

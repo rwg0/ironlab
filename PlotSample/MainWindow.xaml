@@ -12,7 +12,16 @@
                         <RowDefinition Height="Auto"></RowDefinition>
                         <RowDefinition Height="*"></RowDefinition>
                     </Grid.RowDefinitions>
-                    <ironplot:Plot2D Name="plot1" Grid.Row="1" Visibility="Visible"/>
+                    <ironplot:Plot2D Name="plotMultipleAxes" Grid.Row="1" Visibility="Visible"/>
+                </Grid>
+            </TabItem>
+            <TabItem Header="2D with dates">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"></RowDefinition>
+                        <RowDefinition Height="*"></RowDefinition>
+                    </Grid.RowDefinitions>
+                    <ironplot:Plot2D Name="datesPlot" Grid.Row="1" Visibility="Visible"/>
                 </Grid>
             </TabItem>
             <TabItem Header="2D False Colour Plot">

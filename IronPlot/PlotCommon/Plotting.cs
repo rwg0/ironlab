@@ -107,7 +107,9 @@ namespace IronPlot
         public static double[] Array(object convertible)
         {
             if (convertible is double[]) return convertible as double[];
+            else if (convertible is DateTime[]) return (convertible as DateTime[]).Select(t => t.ToOADate()).ToArray();
             else if (convertible is IEnumerable<double>) return (convertible as IEnumerable<double>).ToArray();
+            else if (convertible is IEnumerable<DateTime>) return (convertible as IEnumerable<DateTime>).Select(t => t.ToOADate()).ToArray();
             else if ((convertible is IEnumerable<object>) || (convertible is IEnumerable))
             {
                 System.Array array = GeneralArray.ToDoubleArray(convertible);

@@ -87,7 +87,7 @@ namespace IronPlot
             // Cycle through any now redundant TextBlocks and make invisible.
             for (int i = TicksTransformed.Length; i < TickLabelCache.Count; ++i)
             {
-                TickLabelCache[i].Label.Text = ""; TickLabelCache[i].Value = Double.NaN;
+                TickLabelCache[i].IsShown = false;
             }
             // Finally, position axisLabel.
             if ((YAxisPosition)GetValue(YAxisPositionProperty) == YAxisPosition.Left)

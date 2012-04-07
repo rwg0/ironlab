@@ -125,7 +125,11 @@ namespace IronPlot
         void Direct2DControl_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
             directImage.Visible = (bool)e.NewValue;
-            if (directImage.Visible == true) foreach (DirectPath path in Paths) path.RecreateDisposables();
+            if (directImage.Visible == true)
+            {
+                foreach (DirectPath path in Paths) path.RecreateDisposables();
+                if (Parent is FrameworkElement) (Parent as FrameworkElement).InvalidateMeasure();
+            }
             //else foreach (DirectPath path in Paths) path.DisposeDisposables();
         }
     }
