@@ -2,22 +2,20 @@
 # using Microsoft Chart Controls to make a polar plot
 import clr
 clr.AddReferenceByPartialName("System.Windows.Forms.DataVisualization")
-clr.AddReferenceByPartialName("WindowsFormsIntegration")
 clr.AddReferenceByPartialName("System.Drawing")
+clr.AddReferenceByPartialName("IronPlot")
 import System.Windows.Forms.DataVisualization as dv
-import System.Windows.Forms.Integration as int
 import System.Drawing as dr
 import IronPlot as ip
 import System
 import numpy as np
 
-chart = dv.Charting.Chart()
-host = int.WindowsFormsHost()
-host.Child = chart
+host = ip.MSChartHost()
+chart = host.Chart
 ip.PlotContext.OpenNextWindow()
 ip.PlotContext.AddPlot(host)
 
-chart.BackColor = System.Drawing.Color.White
+chart.BackColor = dr.Color.White
 chartArea = dv.Charting.ChartArea()
 chartArea.Name = "Default"
 chart.ChartAreas.Add(chartArea);
@@ -28,14 +26,17 @@ series.ChartType = dv.Charting.SeriesChartType.Polar;
 chart.Series.Add(series)
 series.ChartArea = "Default"
 series.MarkerBorderColor = dr.Color.Blue
-series.MarkerColor = dr.Color.Blue
-series.MarkerSize = 7
-series.MarkerStyle = dv.Charting.MarkerStyle.Diamond
+series.MarkerColor = dr.Color.Transparent
+series.MarkerSize = 10
+series.MarkerStyle = dv.Charting.MarkerStyle.Square
 
 chartArea.BackColor = System.Drawing.Color.White
 legend = dv.Charting.Legend()
 legend.Name = "Default";
 chart.Legends.Add(legend)
+
+font = dr.Font("Segoe UI", 10)
+chartArea.AxisX.LabelStyle.Font = chartArea.AxisY.LabelStyle.Font = legend.Font = font
 
 for angle in np.arange(0, 360, 10):
     val = (1.0 + np.sin(angle / 180.0 * np.pi)) * 10.0;

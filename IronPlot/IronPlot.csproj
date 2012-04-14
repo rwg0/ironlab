@@ -73,6 +73,7 @@
       <RequiredTargetFramework>3.0</RequiredTargetFramework>
     </Reference>
     <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Windows.Forms.DataVisualization" />
     <Reference Include="System.Xaml" />
     <Reference Include="System.Xml.Linq">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
@@ -94,6 +95,7 @@
     <Reference Include="PresentationFramework">
       <RequiredTargetFramework>3.0</RequiredTargetFramework>
     </Reference>
+    <Reference Include="WindowsFormsIntegration" />
   </ItemGroup>
   <ItemGroup>
     <Page Include="Plot2D\ColourBar.xaml">
@@ -113,6 +115,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
+    </Page>
+    <Page Include="PlotCommon\MSChartHost.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Themes\Generic.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -140,6 +146,7 @@
     <Compile Include="Plot2D\GridLines.cs" />
     <Compile Include="Plot2D\IBoundable.cs" />
     <Compile Include="Plot2D\AxisCanvas.cs" />
+    <Compile Include="Plot2D\Plot2DGrid.cs" />
     <Compile Include="Plot2D\PlotPath.cs" />
     <Compile Include="Plot2D\Lines.cs" />
     <Compile Include="Plot2D\Plot2D.xaml.cs">
@@ -207,7 +214,9 @@
     <Compile Include="PlotCommon\Plotting.cs" />
     <Compile Include="PlotCommon\Slice.cs" />
     <Compile Include="PlotCommon\Title.cs" />
-    <Compile Include="PlotCommon\VisualHost.cs" />
+    <Compile Include="PlotCommon\MSChartHost.xaml.cs">
+      <DependentUpon>MSChartHost.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>

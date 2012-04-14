@@ -190,14 +190,11 @@ namespace IronPlot
         /// for labels and that the necessary axes are aligned.
         /// </summary>
         /// <param name="alignedAxes">List of axes that need to be aligned.</param>
-        private void ExpandAxisMargins(List<Axis2D> alignedAxes, double lengthOverride)
+        private static void ExpandAxisMargins(List<Axis2D> alignedAxes, double plotLength)
         {
             // Calculate margins
             AxisMargin margin = new AxisMargin(alignedAxes.Max(axis => axis.AxisMargin.LowerMargin), alignedAxes.Max(axis => axis.AxisMargin.UpperMargin));
 
-            double plotLength;
-            if (alignedAxes[0] is XAxis) plotLength = Double.IsNaN(lengthOverride) ? Width : lengthOverride;
-            else plotLength = Double.IsNaN(lengthOverride) ? Height : lengthOverride;
             double minPlotLength = 1.0;
             if (plotLength > minPlotLength)
             {
@@ -300,6 +297,12 @@ namespace IronPlot
             }
         }
 
+        IEnumerable<Axis2D> xAxesBottom; 
+        IEnumerable<Axis2D> xAxesTop; 
+        IEnumerable<Axis2D> yAxesLeft;
+        IEnumerable<Axis2D> yAxesRight;
+        IEnumerable<Axis2D> allAxes;
+
         /// <summary>
         /// Given the available size for the plot area and axes, determine the
         /// required size and the position of the plot region within this region.
@@ -320,15 +323,7 @@ namespace IronPlot
             requiredSize = availableSize;
             canvasPosition = new Rect();
             int iter = 0;
-            var xAxesBottom = xAxes.Where(axis => (axis as XAxis).Position == XAxisPosition.Bottom);
-            var xAxesTop = xAxes.Where(axis => (axis as XAxis).Position == XAxisPosition.Top);
-            var yAxesLeft = yAxes.Where(axis => (axis as YAxis).Position == YAxisPosition.Left);
-            var yAxesRight = yAxes.Where(axis => (axis as YAxis).Position == YAxisPosition.Right);
-            var allAxes = xAxes.Concat(yAxes);
-            if (xAxesBottom.First() != null) xAxesBottom.First().IsInnermost = true;
-            if (xAxesTop.First() != null) xAxesTop.First().IsInnermost = true;
-            if (yAxesLeft.First() != null) yAxesLeft.First().IsInnermost = true;
-            if (yAxesRight.First() != null) yAxesRight.First().IsInnermost = true;
+            UpdateAxisPositions();
             while (iter <= 1)
             {
                 // Step 1: calculate axis thicknesses (given any removed labels)
@@ -345,10 +340,11 @@ namespace IronPlot
                 ResetMarginsXAxes(availableSize, margin);
                 ResetMarginsYAxes(availableSize, margin);
 
-                // Step 2: expand axis margins if necessary
-                ExpandAxisMargins(xAxes.ToList(), Double.NaN);
-                ExpandAxisMargins(yAxes.ToList(), Double.NaN);
-                //foreach (Axis2D axis in allAxes) axis.ExpandMarginsAsRequired();
+                // Step 2: expand axis margins if necessary,
+                // taking account of any specified Width and/or Height
+                ExpandAxisMargins(xAxes.ToList(), Width);
+                ExpandAxisMargins(yAxes.ToList(), Height);
+  
 
                 // Step 3: take account of equal axes
                 // This is only done on the second (and final iteration)
@@ -406,6 +402,24 @@ namespace IronPlot
             canvasPosition = new Rect(new Point(xAxes[0].AxisMargin.LowerMargin, yAxes[0].AxisMargin.UpperMargin),
                 new Point(requiredSize.Width - xAxes[0].AxisMargin.UpperMargin, requiredSize.Height - yAxes[0].AxisMargin.LowerMargin));
             watch.Stop();
+        }
+
+        internal void UpdateAxisPositions()
+        {
+            xAxesBottom = xAxes.Where(axis => (axis as XAxis).Position == XAxisPosition.Bottom);
+            xAxesTop = xAxes.Where(axis => (axis as XAxis).Position == XAxisPosition.Top);
+            yAxesLeft = yAxes.Where(axis => (axis as YAxis).Position == YAxisPosition.Left);
+            yAxesRight = yAxes.Where(axis => (axis as YAxis).Position == YAxisPosition.Right);
+            allAxes = xAxes.Concat(yAxes);
+            if (xAxesBottom.First() != null) xAxesBottom.First().IsInnermost = true;
+            if (xAxesTop.First() != null) xAxesTop.First().IsInnermost = true;
+            if (yAxesLeft.First() != null) yAxesLeft.First().IsInnermost = true;
+            if (yAxesRight.First() != null) yAxesRight.First().IsInnermost = true;
+        }
+
+        internal Thickness CalculateInitialAxesMargin()
+        {
+            return new Thickness();
         }
 
         private void ResetMarginsXAxes(Size availableSize, Thickness margin)

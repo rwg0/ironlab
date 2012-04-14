@@ -203,14 +203,9 @@ namespace IronPlot
 
         protected static void OnMarkersChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
-            if ((MarkersType)e.NewValue == MarkersType.None)
-            {
-                ((Plot2DCurve)obj).UpdateMarkers();
-            }
-            else
-            {
-                ((Plot2DCurve)obj).UpdateMarkers();
-            }
+            ((Plot2DCurve)obj).UpdateLegendMarkers();
+            if (((Plot2DCurve)obj).Plot != null)
+                ((Plot2DCurve)obj).Plot.PlotPanel.InvalidateArrange();
         }
 
         protected static void OnQuickLinePropertyChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
@@ -298,8 +293,7 @@ namespace IronPlot
             annotation.Visibility = Visibility.Collapsed;
             host.Canvas.Children.Add(annotation);
             //
-            //line.PreviewMouseMove += new MouseEventHandler(line_PreviewMouseMove);
-            UpdateMarkers();
+            UpdateLegendMarkers();
         }
 
         void line_PreviewMouseMove(object sender, MouseEventArgs e)
@@ -391,15 +385,16 @@ namespace IronPlot
             if (host.UseDirect2D == true)
             {
                 lineD2D.Geometry = curve.ToDirect2DPathGeometry(lineD2D.Factory, graphToCanvas);
+                markersD2D.SetGeometry((MarkersType)GetValue(MarkersTypeProperty), (double)GetValue(MarkersSizeProperty));
                 host.direct2DControl.RequestRender();
             }
             else
             {
                 line.Data = Curve.ToPathGeometry(graphToCanvas);
+                markers.Data = curve.MarkersAsGeometry(graphToCanvas, (MarkersType)GetValue(MarkersTypeProperty), (double)GetValue(MarkersSizeProperty));
             }
             Point annotationPoint = graphToCanvas.Transform(new Point(curve.xTransformed[0], curve.yTransformed[0]));
             annotation.SetValue(Canvas.TopProperty, annotationPoint.Y); annotation.SetValue(Canvas.LeftProperty, annotationPoint.X);
-            UpdateMarkers();
         }
 
         internal Point SnappedCanvasPoint(Point canvasPoint)
@@ -592,11 +587,8 @@ namespace IronPlot
             }
         }
 
-        internal void UpdateMarkers()
+        internal void UpdateLegendMarkers()
         {
-            markers.Data = curve.MarkersAsGeometry(graphToCanvas, (MarkersType)GetValue(MarkersTypeProperty), (double)GetValue(MarkersSizeProperty));
-            markersD2D.SetGeometry((MarkersType)GetValue(MarkersTypeProperty), (double)GetValue(MarkersSizeProperty));
-            //markers.Data.Transform = graphToCanvas;
             legendMarker.Data = curve.LegendMarkerGeometry((MarkersType)GetValue(MarkersTypeProperty), (double)GetValue(MarkersSizeProperty));
         }
     }
