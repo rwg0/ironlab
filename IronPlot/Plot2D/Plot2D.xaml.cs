@@ -149,27 +149,36 @@ namespace IronPlot
             }
             catch (Exception)
             {
-                throw new Exception("Writing to enhanced metafile failed for plot.");
+                // Swallow exception
+                //throw new Exception("Writing to enhanced metafile failed for plot.");
             }
         }
 
         public void ToClipboard(int dpi)
         {
-            DrawingVisual drawingVisual = new DrawingVisual();
-            DrawingContext drawingContext = drawingVisual.RenderOpen();
-            VisualBrush sourceBrush = new VisualBrush(this);
-            double scale = dpi / 96.0;
-            double actualWidth = this.RenderSize.Width;
-            double actualHeight = this.RenderSize.Height;
-            using (drawingContext)
+            try
             {
-                drawingContext.PushTransform(new ScaleTransform(scale, scale));
-                drawingContext.DrawRectangle(sourceBrush, null, new Rect(new Point(0, 0), new Point(actualWidth, actualHeight)));
-            }  
-            this.InvalidateVisual();
-            RenderTargetBitmap renderBitmap = new RenderTargetBitmap((int)(actualWidth * scale), (int)(actualHeight * scale), 96, 96, PixelFormats.Pbgra32);
-            renderBitmap.Render(drawingVisual);
-            Clipboard.SetImage(renderBitmap);
+                DrawingVisual drawingVisual = new DrawingVisual();
+                DrawingContext drawingContext = drawingVisual.RenderOpen();
+                VisualBrush sourceBrush = new VisualBrush(this);
+                double scale = dpi / 96.0;
+                double actualWidth = this.RenderSize.Width;
+                double actualHeight = this.RenderSize.Height;
+                using (drawingContext)
+                {
+                    drawingContext.PushTransform(new ScaleTransform(scale, scale));
+                    drawingContext.DrawRectangle(sourceBrush, null, new Rect(new Point(0, 0), new Point(actualWidth, actualHeight)));
+                }
+                this.InvalidateVisual();
+                RenderTargetBitmap renderBitmap = new RenderTargetBitmap((int)(actualWidth * scale), (int)(actualHeight * scale), 96, 96, PixelFormats.Pbgra32);
+                renderBitmap.Render(drawingVisual);
+                Clipboard.SetImage(renderBitmap);
+            }
+            catch (Exception)
+            {
+                // Swallow exception
+                //throw new Exception("Creating image failed for plot.");
+            }
         }
 
         private bool? print;
