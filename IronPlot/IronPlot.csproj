@@ -61,8 +61,26 @@
     <Reference Include="ReachFramework">
       <RequiredTargetFramework>3.0</RequiredTargetFramework>
     </Reference>
-    <Reference Include="SlimDX, Version=2.0.11.43, Culture=neutral, PublicKeyToken=b1b0c32fd1ffe4f9, processorArchitecture=x86">
-      <Private>True</Private>
+    <Reference Include="SharpDX">
+      <HintPath>RequiredLibraries\SharpDX.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpDX.D3DCompiler">
+      <HintPath>RequiredLibraries\SharpDX.D3DCompiler.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpDX.Direct2D1">
+      <HintPath>RequiredLibraries\SharpDX.Direct2D1.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpDX.Direct3D10">
+      <HintPath>RequiredLibraries\SharpDX.Direct3D10.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpDX.Direct3D11">
+      <HintPath>RequiredLibraries\SharpDX.Direct3D11.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpDX.Direct3D9">
+      <HintPath>RequiredLibraries\SharpDX.Direct3D9.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpDX.DXGI">
+      <HintPath>RequiredLibraries\SharpDX.DXGI.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
@@ -180,9 +198,9 @@
     </Compile>
     <Compile Include="Plot3D\ServiceContainer.cs" />
     <Compile Include="PlotCommon\CurveIDirect2D.cs" />
-    <Compile Include="PlotCommon\DirectXSupport\SlimDXGraphicsDeviceService10.cs" />
-    <Compile Include="PlotCommon\DirectXSupport\SlimDXGraphicsDeviceService9.cs" />
-    <Compile Include="PlotCommon\DirectXSupport\SlimDXLayer2D.cs" />
+    <Compile Include="PlotCommon\DirectXSupport\SharpDXGraphicsDeviceService10.cs" />
+    <Compile Include="PlotCommon\DirectXSupport\SharpDXGraphicsDeviceService9.cs" />
+    <Compile Include="PlotCommon\DirectXSupport\SharpDXLayer2D.cs" />
     <Compile Include="Plot3D\Trackball.cs" />
     <Compile Include="Plot3D\VertexPositionColor.cs" />
     <Compile Include="Plot3D\VertexPositionNormalColor.cs" />

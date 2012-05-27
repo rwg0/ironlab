@@ -11,8 +11,8 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
 using System.Windows.Navigation;
-using SlimDX;
-using SlimDX.Direct3D9;
+using SharpDX;
+using SharpDX.Direct3D9;
 using System.ComponentModel;
 using System.Windows.Data;
 using System.Windows.Markup;
@@ -176,6 +176,7 @@ namespace IronPlot.Plotting3D
             axesRegionLocation = final;
             grid.Arrange(final);
             ArrangeAnnotations(finalSize);
+            d3dImageViewport.RequestRender();
             return finalSize;
         }
         
@@ -197,7 +198,6 @@ namespace IronPlot.Plotting3D
                 return;
             }
             SetValue(ModelsProperty, d3dImageViewport.Models);
-            d3dImageViewport.D3DImageRecreated += new EventHandler(OnD3DImageRecreated);
             // Set the owner of the Model3DCollection to be the D3DImageViewport
             // This ensures that the Model3D objects are rendered by the D3DImageViewport
             sceneImage = d3dImageViewport.ImageBrush;
@@ -277,14 +277,6 @@ namespace IronPlot.Plotting3D
             GraphMin = bounds.Minimum;
             GraphMax = bounds.Maximum;
         }
-
-
-        protected void OnD3DImageRecreated(Object sender, EventArgs e)
-        {
-            sceneImage = d3dImageViewport.ImageBrush;
-            sceneImage.TileMode = TileMode.None;
-            grid.Background = sceneImage;
-        }
         
         protected void Base_OnDraw(Object sender, EventArgs e)
         {
@@ -310,7 +302,7 @@ namespace IronPlot.Plotting3D
             Vector3 deltaAxisWorld = Vector3.Multiply(cameraX, deltaAxis.X) +
                 Vector3.Multiply(cameraUpDirection, deltaAxis.Y) +
                 Vector3.Multiply(cameraLookDirection, -deltaAxis.Z);
-            SlimDX.Matrix cameraTransform = SlimDX.Matrix.RotationAxis(deltaAxisWorld, (float)(delta.Angle * Math.PI / 180.0));
+            SharpDX.Matrix cameraTransform = SharpDX.Matrix.RotationAxis(deltaAxisWorld, (float)(delta.Angle * Math.PI / 180.0));
             d3dImageViewport.CameraTarget = Vector3.Transform(d3dImageViewport.CameraTarget, cameraTransform).ToVector3();
             d3dImageViewport.CameraPosition = Vector3.Transform(d3dImageViewport.CameraPosition, cameraTransform).ToVector3();
             d3dImageViewport.CameraUpVector = Vector3.Transform(d3dImageViewport.CameraUpVector, cameraTransform).ToVector3();

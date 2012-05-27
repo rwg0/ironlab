@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Drawing;
-using SlimDX;
-using SlimDX.Direct2D;
+using SharpDX;
+using SharpDX.Direct2D1;
 
 namespace IronPlot
 {

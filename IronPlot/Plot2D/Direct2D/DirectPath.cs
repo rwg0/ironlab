@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using SlimDX;
-using SlimDX.Direct2D;
+using SharpDX;
+using SharpDX.Direct2D1;
 using System.Windows;
 using Brushes = System.Windows.Media.Brushes;
 
@@ -126,13 +126,13 @@ namespace IronPlot
         private void SetBrush(System.Windows.Media.Color colour)
         {
             if (brush != null) brush.Dispose();
-            if (directImage != null) brush = new SolidColorBrush(directImage.RenderTarget, new Color4(colour.ScA, colour.ScR, colour.ScG, colour.ScB));
+            if (directImage != null) brush = new SolidColorBrush(directImage.RenderTarget, new Color4(colour.ScR, colour.ScG, colour.ScB, colour.ScA));
         }
 
         private void SetFillBrush(System.Windows.Media.Color colour)
         {
             if (fillBrush != null) fillBrush.Dispose();
-            if (directImage != null) fillBrush = new SolidColorBrush(directImage.RenderTarget, new Color4(colour.ScA, colour.ScR, colour.ScG, colour.ScB));
+            if (directImage != null) fillBrush = new SolidColorBrush(directImage.RenderTarget, new Color4(colour.ScR, colour.ScG, colour.ScB, colour.ScA));
         }
 
         public DirectPath()

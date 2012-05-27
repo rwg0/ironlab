@@ -4,17 +4,17 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using SlimDX;
-using SlimDX.Direct3D9;
+using SharpDX;
+using SharpDX.Direct3D9;
 using System.Windows;
 
 namespace IronPlot.ManagedD3D
 {
     public static class Extensions
     {
-        public static SlimDX.Vector3 ToVector3(this SlimDX.Vector4 vector4)
+        public static SharpDX.Vector3 ToVector3(this SharpDX.Vector4 vector4)
         {
-            return new SlimDX.Vector3(vector4.X, vector4.Y, vector4.Z);
+            return new SharpDX.Vector3(vector4.X, vector4.Y, vector4.Z);
         }
     }
 }

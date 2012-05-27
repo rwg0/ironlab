@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using SlimDX;
-using SlimDX.Direct2D;
+using SharpDX;
+using SharpDX.Direct2D1;
 using System.Windows;
 using System.Drawing;
 using Brushes = System.Windows.Media.Brushes;
@@ -44,7 +44,7 @@ namespace IronPlot
             {
                 if (include[i])
                 {
-                    renderTarget.Transform = Matrix3x2.Translation((float)(x[i] * xScale + xOffset), (float)(y[i] * yScale + yOffset));
+                    renderTarget.Transform = (Matrix3x2)Matrix.Translation((float)(x[i] * xScale + xOffset), (float)(y[i] * yScale + yOffset), 0);
                     renderTarget.FillGeometry(Geometry, FillBrush);
                     renderTarget.DrawGeometry(Geometry, Brush, (float)StrokeThickness, strokeStyle);
                 }
@@ -80,9 +80,9 @@ namespace IronPlot
                 case MarkersType.Circle:
                     this.Geometry = new EllipseGeometry(Factory, new Ellipse()
                        {
-                           Center = new System.Drawing.PointF(width / 2, height / 2),
+                           Point = new System.Drawing.PointF(width / 2, height / 2),
                            RadiusX = width / 2,
-                           RadiusY = height / 2
+                           RadiusY = height / 2,
                        });
                     break;
                 case MarkersType.Triangle:

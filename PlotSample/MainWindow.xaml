@@ -44,6 +44,16 @@
                     <ironplot:Plot2D Name="scrollViewerPlot" Visibility="Visible"/>
                 </ScrollViewer>
             </TabItem>
+            <TabItem Header="2D Plot alignment">
+                <ironplot:Plot2DGrid Name="aligningGrid">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <ironplot:Plot2D Name="plot1" Grid.Row="0"></ironplot:Plot2D>
+                    <ironplot:Plot2D Name="plot2" Grid.Row="1"></ironplot:Plot2D>
+                </ironplot:Plot2DGrid>
+            </TabItem>
         </TabControl>
     </Grid>
 </Window>

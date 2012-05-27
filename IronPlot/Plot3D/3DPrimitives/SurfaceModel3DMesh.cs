@@ -8,8 +8,8 @@ using System.Linq;
 using System.Text;
 //using Microsoft.Xna.Framework;
 //using Microsoft.Xna.Framework.Graphics;
-using SlimDX;
-using SlimDX.Direct3D9;
+using SharpDX;
+using SharpDX.Direct3D9;
 using System.Windows.Media.Media3D;
 #if ILNumerics
 using ILNumerics;

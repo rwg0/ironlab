@@ -135,7 +135,7 @@ namespace IronPlot
             {
                 axis.UpdateAndMeasureLabels();
             }
-
+            if (direct2DControl != null) direct2DControl.Measure(availableSize);
             availableSize.Height = Math.Min(availableSize.Height, 10000);
             availableSize.Width = Math.Min(availableSize.Width, 10000);
             
@@ -156,7 +156,6 @@ namespace IronPlot
 
             //AnnotationsRight.Measure(new Size(AnnotationsRight.DesiredSize.Width, axesRegionSize.Height));
 
-            
             return availableSize;
         }
 
@@ -170,7 +169,7 @@ namespace IronPlot
             bool axesEqual = (bool)this.GetValue(EqualAxesProperty);
             // Calculates the axes positions, positions labels, updates geometries.
             Rect canvasLocationWithinAxes;
-            if (dragging)
+            if (dragging) 
                 axes.UpdateAxisPositionsOffsetOnly(available, out canvasLocation, out axesRegionSize);
             else
             {
@@ -216,11 +215,16 @@ namespace IronPlot
             // 'Rendering' of plot items, i.e. recreating geometries is done in BeforeArrange.
 
             Canvas.Arrange(canvasLocation);
-            if (direct2DControl != null) direct2DControl.Arrange(canvasLocation);
             BackgroundCanvas.InvalidateVisual();
             Canvas.InvalidateVisual();
             
             ArrangeAnnotations(finalSize);
+
+            if (direct2DControl != null)
+            {
+                direct2DControl.Arrange(canvasLocation);
+                direct2DControl.RequestRender();
+            }
             return finalSize;
         }
 

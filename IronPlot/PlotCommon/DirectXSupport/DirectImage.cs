@@ -5,8 +5,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Windows.Controls;
-using SlimDX;
-using SlimDX.Direct3D9;
+using SharpDX;
+using SharpDX.Direct3D9;
 using System.Windows.Forms;
 using System.Reflection;
 using System.Windows.Interop;
@@ -25,7 +25,7 @@ namespace IronPlot
     public enum SurfaceType { DirectX9, Direct2D };
     
     /// <summary>
-    /// Class uses SlimDX to render onto an ImageBrush using D3DImage,
+    /// Class uses SharpDX to render onto an ImageBrush using D3DImage,
     /// and optionally onto a Canvas that can be overlaid for 2D vector annotation.
     /// Base contains just basic rendering capability.
     /// Rendering is either Direct3D9 for 3D or Direct2D for 2D, controlled by surfaceType field.
@@ -43,15 +43,13 @@ namespace IronPlot
             get { return (bool)GetValue(VisibleProperty); }
         }
 
-        public event EventHandler D3DImageRecreated;
-
         protected SurfaceType surfaceType;
         Texture SharedTexture;
 
         // All  GraphicsDevices, managed by this helper service.
-        protected SlimDXGraphicsDeviceService9 graphicsDeviceService9;
+        protected SharpDXGraphicsDeviceService9 graphicsDeviceService9;
         // And this one for Direct3D10 (needed for Direct2D)
-        protected SlimDXGraphicsDeviceService10 graphicsDeviceService10;
+        protected SharpDXGraphicsDeviceService10 graphicsDeviceService10;
         //DeviceEx graphicsDeviceTemp;
         // The D3DImage...
         internal D3DImage d3dImage;
@@ -75,7 +73,7 @@ namespace IronPlot
         /// <summary>
         /// Indicates whether rendering is required on the next pass.
         /// </summary>
-        protected bool renderRequired = true;
+        protected bool renderRequired = false;
 
         public unsafe DirectImage()
         {
@@ -102,11 +100,9 @@ namespace IronPlot
             this.surfaceType = surfaceType;
             if (surfaceType == SurfaceType.Direct2D)
             {
-                graphicsDeviceService9 = SlimDXGraphicsDeviceService9.AddRef(0, 0);
-                //graphicsDeviceService9 = SlimDXGraphicsDeviceService9.RefToNew(0, 0);
-                // Use shared Direct3D10 resources.
-                graphicsDeviceService10 = SlimDXGraphicsDeviceService10.AddRef();
-                //graphicsDeviceService10 = SlimDXGraphicsDeviceService10.RefToNew();
+                // Use shared devices resources.
+                graphicsDeviceService9 = SharpDXGraphicsDeviceService9.RefToNew(0, 0);
+                graphicsDeviceService10 = SharpDXGraphicsDeviceService10.AddRef();
 
                 graphicsDeviceService10.DeviceResized += new EventHandler(graphicsDeviceService10_DeviceResized);
                 graphicsDeviceService10.ResizeDevice(bufferWidth, bufferHeight);
@@ -115,10 +111,8 @@ namespace IronPlot
             }
             else if (surfaceType == SurfaceType.DirectX9)
             {
-                //graphicsDeviceService9 = SlimDXGraphicsDeviceService9.AddRef(bufferWidth, bufferHeight);
-                // D3DImage FrontBuffer does not return if it shares a device: make a new one each time.
-                // TODO: Consider sharing a Texture?
-                graphicsDeviceService9 = SlimDXGraphicsDeviceService9.RefToNew(bufferWidth, bufferHeight);
+                // Use shared devices resources.
+                graphicsDeviceService9 = SharpDXGraphicsDeviceService9.AddRef(bufferWidth, bufferHeight);
                 graphicsDeviceService9.DeviceResetting += new EventHandler(graphicsDeviceService_DeviceResetting);
                 graphicsDeviceService9.DeviceReset += new EventHandler(graphicsDeviceService_DeviceReset);
                 ResetDevice();
@@ -127,6 +121,7 @@ namespace IronPlot
             if (d3dImage.IsFrontBufferAvailable)
             {
                 SetBackBuffer();
+                //renderRequired = true;
             }
             CompositionTarget.Rendering += OnRendering;
             d3dImage.IsFrontBufferAvailableChanged += new DependencyPropertyChangedEventHandler(OnIsFrontBufferAvailableChanged);
@@ -147,14 +142,14 @@ namespace IronPlot
                 d3dImage.Lock();
                 using (backBufferSurface = GraphicsDevice.GetBackBuffer(0, 0))
                 {
-                    d3dImage.SetBackBuffer(D3DResourceType.IDirect3DSurface9, backBufferSurface.ComPointer);
+                    d3dImage.SetBackBuffer(D3DResourceType.IDirect3DSurface9, backBufferSurface.NativePointer);
                 }
                 d3dImage.Unlock();
             }
             else if (surfaceType == SurfaceType.Direct2D) SetBackBuffer(graphicsDeviceService10.Texture); 
         }
 
-        public void SetBackBuffer(SlimDX.Direct3D10.Texture2D Texture)
+        public void SetBackBuffer(SharpDX.Direct3D10.Texture2D Texture)
         {
             if (SharedTexture != null)
             {
@@ -186,7 +181,7 @@ namespace IronPlot
                 using (Surface Surface = SharedTexture.GetSurfaceLevel(0))
                 {
                     d3dImage.Lock();
-                    d3dImage.SetBackBuffer(D3DResourceType.IDirect3DSurface9, Surface.ComPointer);
+                    d3dImage.SetBackBuffer(D3DResourceType.IDirect3DSurface9, Surface.NativePointer);
                     d3dImage.Unlock();
                 }
             }
@@ -194,37 +189,35 @@ namespace IronPlot
                 throw new ArgumentException("Texture must be created with ResourceOptionFlags.Shared");
         }
 
-        IntPtr GetSharedHandle(SlimDX.Direct3D10.Texture2D Texture)
+        IntPtr GetSharedHandle(SharpDX.Direct3D10.Texture2D Texture)
         {
-            SlimDX.DXGI.Resource resource = new SlimDX.DXGI.Resource(Texture);
+            SharpDX.DXGI.Resource resource = Texture.QueryInterface<SharpDX.DXGI.Resource>();
             IntPtr result = resource.SharedHandle;
-
             resource.Dispose();
-
             return result;
         }
 
-        Format TranslateFormat(SlimDX.Direct3D10.Texture2D Texture)
+        Format TranslateFormat(SharpDX.Direct3D10.Texture2D Texture)
         {
             switch (Texture.Description.Format)
             {
-                case SlimDX.DXGI.Format.R10G10B10A2_UNorm:
-                    return SlimDX.Direct3D9.Format.A2B10G10R10;
+                case SharpDX.DXGI.Format.R10G10B10A2_UNorm:
+                    return SharpDX.Direct3D9.Format.A2B10G10R10;
 
-                case SlimDX.DXGI.Format.R16G16B16A16_Float:
-                    return SlimDX.Direct3D9.Format.A16B16G16R16F;
+                case SharpDX.DXGI.Format.R16G16B16A16_Float:
+                    return SharpDX.Direct3D9.Format.A16B16G16R16F;
 
-                case SlimDX.DXGI.Format.B8G8R8A8_UNorm:
-                    return SlimDX.Direct3D9.Format.A8R8G8B8;
+                case SharpDX.DXGI.Format.B8G8R8A8_UNorm:
+                    return SharpDX.Direct3D9.Format.A8R8G8B8;
 
                 default:
-                    return SlimDX.Direct3D9.Format.Unknown;
+                    return SharpDX.Direct3D9.Format.Unknown;
             }
         }
 
-        bool IsShareable(SlimDX.Direct3D10.Texture2D Texture)
+        bool IsShareable(SharpDX.Direct3D10.Texture2D Texture)
         {
-            return (Texture.Description.OptionFlags & SlimDX.Direct3D10.ResourceOptionFlags.Shared) != 0;
+            return (Texture.Description.OptionFlags & SharpDX.Direct3D10.ResourceOptionFlags.Shared) != 0;
         }
 
         protected unsafe void ReleaseBackBuffer()
@@ -245,7 +238,7 @@ namespace IronPlot
         /// <summary>
         /// Gets a 2D RenderTarget.
         /// </summary>
-        public SlimDX.Direct2D.RenderTarget RenderTarget
+        public SharpDX.Direct2D1.RenderTarget RenderTarget
         {
             get { return graphicsDeviceService10.RenderTarget; }
         }
@@ -253,7 +246,7 @@ namespace IronPlot
         /// <summary>
         /// Gets a GraphicsDeviceService.
         /// </summary>
-        public SlimDXGraphicsDeviceService9 GraphicsDeviceService
+        public SharpDXGraphicsDeviceService9 GraphicsDeviceService
         {
             get { return graphicsDeviceService9; }
         }
@@ -287,13 +280,12 @@ namespace IronPlot
 
         private unsafe void OnIsFrontBufferAvailableChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
-            // if the front buffer is available, then WPF has just created a new
-            // D3D device, so we need to start rendering our custom scene
+            // If the front buffer is available, we need to start rendering our custom scene
             if (d3dImage.IsFrontBufferAvailable)
             {
-                if (graphicsDeviceService9.UseDeviceEx == false) SetBackBuffer();
+                SetBackBuffer();
                 RenderScene();
-                renderRequired = false;
+                renderRequired = true;
                 CompositionTarget.Rendering += OnRendering;
             }
             else
@@ -312,7 +304,7 @@ namespace IronPlot
 
         protected virtual void RecreateBuffers()
         {
-            //Do nothing in base.
+            // Do nothing in base.
         }
 
         protected unsafe void OnLoaded(object sender, RoutedEventArgs e)
@@ -336,6 +328,11 @@ namespace IronPlot
                 graphicsDeviceService9.Release(disposing);
                 graphicsDeviceService9 = null;
             }
+            if (graphicsDeviceService10 != null)
+            {
+                graphicsDeviceService10.Release(disposing);
+                graphicsDeviceService10 = null;
+            }
         }
 
         object locker = new object();
@@ -354,7 +351,7 @@ namespace IronPlot
 
         public void RenderScene()
         {
-            lock (locker)
+            lock (graphicsDeviceService9)
             {
                 d3dImage.Lock();
                 string beginDrawError = BeginDraw();
@@ -408,12 +405,12 @@ namespace IronPlot
 
             if (surfaceType == SurfaceType.Direct2D)
             {
-                var viewport2D = new SlimDX.Direct3D10.Viewport();
+                var viewport2D = new SharpDX.Direct3D10.Viewport();
                 viewport2D.Height = viewportHeight;
-                viewport2D.MaxZ = 1;
-                viewport2D.MinZ = 0;
-                viewport2D.X = 0;
-                viewport2D.Y = 0;
+                viewport2D.MaxDepth = 1;
+                viewport2D.MinDepth = 0;
+                viewport2D.TopLeftX = 0;
+                viewport2D.TopLeftY = 0;
                 viewport2D.Width = viewportWidth;
                 graphicsDeviceService10.SetViewport(viewport2D);
             }
@@ -430,12 +427,12 @@ namespace IronPlot
         {
             try
             {
-                Result result = graphicsDeviceService9.GraphicsDevice.Present();
-                if (result.Name == "S_PRESENT_MODE_CHANGED")
-                {
-                    ResetDevice();
+                graphicsDeviceService9.GraphicsDevice.Present();
+                //if (result.Name == "S_PRESENT_MODE_CHANGED")
+                //{
+                //    ResetDevice();
                     //RecreateD3DImage();
-                }
+                //}
             }
             catch
             {
@@ -480,8 +477,6 @@ namespace IronPlot
                         {
 
                         }
-                        //SetBackBuffer(graphicsDeviceService10.Texture);
-                        //SetImageSize((int)imageWidth, (int)imageHeight, 96);
                     }
                 }
                 if (surfaceType == SurfaceType.Direct2D)
@@ -516,7 +511,7 @@ namespace IronPlot
         protected void graphicsDeviceService_DeviceResetting(object sender, EventArgs e)
         {
             ReleaseBackBuffer();
-            if (backBufferSurface != null && !backBufferSurface.Disposed)
+            if (backBufferSurface != null && !backBufferSurface.IsDisposed)
             {
                 backBufferSurface.Dispose();
                 backBufferSurface = null;
@@ -551,7 +546,7 @@ namespace IronPlot
             imageBrush.TileMode = TileMode.None;
             imageBrush.Stretch = Stretch.Fill;
             imageBrush.SetValue(RenderOptions.BitmapScalingModeProperty, BitmapScalingMode.HighQuality);
-            renderRequired = true;
+            //renderRequired = true;
         }
 
         protected virtual void Initialize()
@@ -564,38 +559,7 @@ namespace IronPlot
         /// </summary>
         protected virtual void Draw()
         {
-            //graphicsDeviceService9.GraphicsDevice.Clear(ClearFlags.Target | ClearFlags.ZBuffer, new Color4(System.Drawing.Color.CornflowerBlue), 0, 0);
-        }
-
-
-        private void RecreateD3DImage()
-        {
-            d3dImage.IsFrontBufferAvailableChanged -= OnIsFrontBufferAvailableChanged;
-            d3dImage = new D3DImage();
-            imageBrush = new ImageBrush(d3dImage);
-            d3dImage.IsFrontBufferAvailableChanged += new DependencyPropertyChangedEventHandler(OnIsFrontBufferAvailableChanged);
-            if (d3dImage.IsFrontBufferAvailable)
-            {
-                SetBackBuffer();
-            }
-            imageBrush.Viewbox = new Rect(0, 0, (double)viewportWidth / (double)bufferWidth, (double)viewportHeight / (double)bufferHeight);
-            imageBrush.ViewportUnits = BrushMappingMode.RelativeToBoundingBox;
-            imageBrush.TileMode = TileMode.None;
-            imageBrush.Stretch = Stretch.Fill;
-            renderRequired = true;
-            if (D3DImageRecreated != null) D3DImageRecreated(this, EventArgs.Empty);
-        }
-
-        private DeviceEx GetD3D9Device()
-        {
-            var D3DContext = new Direct3DEx();
-            PresentParameters presentparams = new PresentParameters();
-            presentparams.Windowed = true;
-            presentparams.SwapEffect = SwapEffect.Discard;
-            presentparams.DeviceWindowHandle = GetDesktopWindow();
-            presentparams.PresentationInterval = PresentInterval.Immediate;
-            var D3DDevice = new DeviceEx(D3DContext, 0, DeviceType.Hardware, IntPtr.Zero, CreateFlags.HardwareVertexProcessing | CreateFlags.Multithreaded | CreateFlags.FpuPreserve, presentparams);
-            return D3DDevice;
+            // Do nothing in base
         }
 
         [DllImport("user32.dll", SetLastError = false)]

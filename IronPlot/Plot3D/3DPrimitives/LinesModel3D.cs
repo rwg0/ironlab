@@ -6,8 +6,8 @@ using System.Collections.Generic;
 using System.Windows.Media;
 using System.Linq;
 using System.Text;
-using SlimDX;
-using SlimDX.Direct3D9;
+using SharpDX;
+using SharpDX.Direct3D9;
 using System.Windows.Media.Media3D;
 using System.Runtime.InteropServices;
 using System.Windows.Markup;
@@ -281,7 +281,7 @@ namespace IronPlot.Plotting3D
                 graphicsDevice.SetStreamSource(0, vertexBuffer, 0, Marshal.SizeOf(typeof(VertexPositionColor)));
                 graphicsDevice.Indices = indexBuffer;
                 primitiveCount = indices.Length / 2;
-                graphicsDevice.DrawIndexedPrimitives(PrimitiveType.LineList, 0, 0, vertices.Length, 0, primitiveCount);
+                graphicsDevice.DrawIndexedPrimitive(PrimitiveType.LineList, 0, 0, vertices.Length, 0, primitiveCount);
             }
             else
             {
@@ -298,7 +298,7 @@ namespace IronPlot.Plotting3D
                 for (int i = 0; i < numpasses; i++)
                 {
                     effect.BeginPass(i);
-                    graphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, thickVertices.Length, 0, primitiveCount);
+                    graphicsDevice.DrawIndexedPrimitive(PrimitiveType.TriangleList, 0, 0, thickVertices.Length, 0, primitiveCount);
                     effect.EndPass();
                 }
                 effect.End();
@@ -317,7 +317,7 @@ namespace IronPlot.Plotting3D
 
         protected void GraphicsDeviceService_DeviceReset(object sender, EventArgs e)
         {
-            //line = new SlimDX.Direct3D9.Line(graphicsDevice);
+            //line = new SharpDX.Direct3D9.Line(graphicsDevice);
             if (effect == null)
             {
                 System.IO.Stream stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("IronPlot.Plot3D._3DPrimitives.Line.fx");

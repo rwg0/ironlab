@@ -7,8 +7,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using SlimDX;
-using SlimDX.Direct3D9;
+using SharpDX;
+using SharpDX.Direct3D9;
 using System.Windows.Media.Media3D;
 using System.Runtime.InteropServices;
 using System.Drawing;
@@ -48,7 +48,7 @@ namespace IronPlot.Plotting3D
         DispatcherTimer colourMapUpdateTimer = new DispatcherTimer();
 
         protected UInt16[] colourMapIndices;
-        protected List<SlimDX.Direct3D9.Light> lights;
+        protected List<SharpDX.Direct3D9.Light> lights;
 
         private static readonly DependencyProperty SurfaceShadingProperty =
             DependencyProperty.Register("SurfaceShadingProperty",
@@ -68,7 +68,7 @@ namespace IronPlot.Plotting3D
             typeof(SurfaceModel3D),
             new PropertyMetadata((byte)0, OnTransparencyChanged));
 
-        public List<SlimDX.Direct3D9.Light> Lights
+        public List<SharpDX.Direct3D9.Light> Lights
         {
             get 
             {
@@ -77,8 +77,8 @@ namespace IronPlot.Plotting3D
             }
         }
 
-        SlimDX.Direct3D9.Material material;
-        public SlimDX.Direct3D9.Material Material { get { return material; } set { material = value; } }
+        SharpDX.Direct3D9.Material material;
+        public SharpDX.Direct3D9.Material Material { get { return material; } set { material = value; } }
 
         public SurfaceShading SurfaceShading
         {
@@ -237,23 +237,23 @@ namespace IronPlot.Plotting3D
             colourMapUpdateTimer = new DispatcherTimer() { Interval = TimeSpan.FromSeconds(0.2) };
             colourMapUpdateTimer.Tick += new EventHandler(colourMapUpdateTimer_Tick);
 
-            lights = new List<SlimDX.Direct3D9.Light>();
-            SlimDX.Direct3D9.Light light = new SlimDX.Direct3D9.Light() { Type = LightType.Directional };
-            light.Diffuse = new Color4(0.4f, 0.4f, 0.4f);
+            lights = new List<SharpDX.Direct3D9.Light>();
+            SharpDX.Direct3D9.Light light = new SharpDX.Direct3D9.Light() { Type = LightType.Directional };
+            light.Diffuse = new Color4(0.4f, 0.4f, 0.4f, 1.0f);
             light.Direction = new Vector3(0.3f, 0.3f, -0.7f);
-            light.Specular = new Color4(0.05f, 0.05f, 0.05f);
+            light.Specular = new Color4(0.05f, 0.05f, 0.05f, 1.0f);
             lights.Add(light);
 
-            light = new SlimDX.Direct3D9.Light() { Type = LightType.Directional };
-            light.Diffuse = new Color4(0.4f, 0.4f, 0.4f);
+            light = new SharpDX.Direct3D9.Light() { Type = LightType.Directional };
+            light.Diffuse = new Color4(0.4f, 0.4f, 0.4f, 1.0f);
             light.Direction = new Vector3(-0.3f, -0.3f, -0.7f);
-            light.Specular = new Color4(0.05f, 0.05f, 0.05f);
+            light.Specular = new Color4(0.05f, 0.05f, 0.05f, 1.0f);
             lights.Add(light);
 
-            material = new SlimDX.Direct3D9.Material();
-            material.Specular = new Color4(0.0f, 0.0f, 0.0f);
-            material.Diffuse = new Color4(0.0f, 0.0f, 0.0f);
-            material.Ambient = new Color4(0.0f, 0.0f, 0.0f);
+            material = new SharpDX.Direct3D9.Material();
+            material.Specular = new Color4(0.0f, 0.0f, 0.0f, 1.0f);
+            material.Diffuse = new Color4(0.0f, 0.0f, 0.0f, 1.0f);
+            material.Ambient = new Color4(0.0f, 0.0f, 0.0f, 1.0f);
             material.Power = 10;
         }
 
@@ -435,7 +435,8 @@ namespace IronPlot.Plotting3D
 
             for (int i = 0; i < lights.Count; ++i)
             {
-                graphicsDevice.SetLight(i, lights[i]);
+                SharpDX.Direct3D9.Light light = lights[i];
+                graphicsDevice.SetLight(i, ref light);
                 graphicsDevice.EnableLight(i, true);
             }
 
@@ -462,7 +463,7 @@ namespace IronPlot.Plotting3D
                 graphicsDevice.SetRenderState(RenderState.FillMode, FillMode.Wireframe);
                 if (MeshLines == MeshLines.Triangles)
                 {
-                    graphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, vertices.Length, 0, primitiveCount);
+                    graphicsDevice.DrawIndexedPrimitive(PrimitiveType.TriangleList, 0, 0, vertices.Length, 0, primitiveCount);
                 }
                 //else graphicsDevice.DrawIndexedPrimitives(PrimitiveType.LineStrip, 0, 0, vertices.Length, 0, 1);
             }
@@ -473,7 +474,7 @@ namespace IronPlot.Plotting3D
                 graphicsDevice.SetRenderState(RenderState.DiffuseMaterialSource, ColorSource.Color1);
                 graphicsDevice.SetRenderState(RenderState.SpecularMaterialSource, ColorSource.Color1);
                 graphicsDevice.SetRenderState(RenderState.FillMode, FillMode.Solid);
-                graphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, vertices.Length, 0, primitiveCount);
+                graphicsDevice.DrawIndexedPrimitive(PrimitiveType.TriangleList, 0, 0, vertices.Length, 0, primitiveCount);
             }
         }
 

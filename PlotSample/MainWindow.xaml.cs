@@ -11,7 +11,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using System.Data; 
+using System.Data;
 using IronPlot;
 using IronPlot.Plotting3D;
 
@@ -100,6 +100,7 @@ namespace PlotTest
             xAxisOuter.Max = 7.3e-3;
             xAxisOuter.AxisType = AxisType.Log;
             plotMultipleAxes.Children.Add(new Plot2DCurve(new Curve(new double[] { 0.01, 10 }, new double[] { 5, 6 })) { XAxis = xAxisOuter });
+            plotMultipleAxes.UseDirect2D = true;
         }
 
         void DatesPlot()
@@ -110,7 +111,7 @@ namespace PlotTest
             double[] values = Enumerable.Range(0, 100).Select(t => random.NextDouble()).ToArray();
             var curve = datesPlot.AddLine(dates, values);
             curve.XAxis.AxisType = AxisType.Date;
-            datesPlot.UseDirect2D = false;
+            datesPlot.UseDirect2D = true;
         }
 
         void EqualAxesPlot()
@@ -118,6 +119,8 @@ namespace PlotTest
             var x = Enumerable.Range(0, 1000).Select(t => (double)t * 10 / 1000);
             var y = x.Select(t => 5 * Math.Exp(-t * t / 5));
             equalAxesPlot.AddLine(x, y).Title = "Test";
+            //equalAxesPlot.Axes.YAxes.Left.FormatOverride = FormatOverrides.Currency;
+            //equalAxesPlot.Axes.YAxes.Left.FormatOverride = value => value.ToString("N");
         }
 
         void FalseColourPlot()

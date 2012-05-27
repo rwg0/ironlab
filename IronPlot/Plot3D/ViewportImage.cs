@@ -1,8 +1,8 @@
 ﻿// Copyright (c) 2010 Joe Moorhouse
 
 using System.Collections.Generic;
-using SlimDX;
-using SlimDX.Direct3D9;
+using SharpDX;
+using SharpDX.Direct3D9;
 using System;
 using System.Reflection;
 using System.Windows;
@@ -10,7 +10,7 @@ using System.Diagnostics;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
-using Matrix = SlimDX.Matrix;
+using Matrix = SharpDX.Matrix;
 
 namespace IronPlot.Plotting3D
 {
@@ -30,7 +30,7 @@ namespace IronPlot.Plotting3D
     }
     
     /// <summary>
-    /// Class uses SlimDX to render onto an ImageBrush using D3DImage,
+    /// Class uses SharpDX to render onto an ImageBrush using D3DImage,
     /// and optionally onto a Canvas that can be overlaid for 2D vector annotation.
     /// ViewportImage renders a collection of Model3D objects.
     /// </summary>
@@ -84,7 +84,7 @@ namespace IronPlot.Plotting3D
 
         public void SetLayer2D(Canvas canvas, MatrixTransform3D modelToWorld) 
         {
-            layer2D = new SlimDXLayer2D(canvas, this, modelToWorld);
+            layer2D = new SharpDXLayer2D(canvas, this, modelToWorld);
         }
 
         internal Viewport3D ViewPort3D { get; set; }
@@ -207,7 +207,7 @@ namespace IronPlot.Plotting3D
         protected override void Draw()
         {
             // Endure transforms are updated and clear; otherwise leave to Model3D tree
-            GraphicsDevice.Clear(ClearFlags.Target | ClearFlags.ZBuffer, new Color4(1.0f, 1.0f, 1.0f), 1.0f, 0);
+            GraphicsDevice.Clear(ClearFlags.Target | ClearFlags.ZBuffer, new Color4(1.0f, 1.0f, 1.0f, 1.0f), 1.0f, 0);
             GraphicsDevice.BeginScene();
             float aspect = (float)GraphicsDevice.Viewport.Width / (float)GraphicsDevice.Viewport.Height;
             Vector3 cameraPosition = CameraPosition;
@@ -219,9 +219,9 @@ namespace IronPlot.Plotting3D
             view = Matrix.LookAtRH(CameraPosition, CameraTarget, CameraUpVector);
             world = Matrix.Identity;
             // ENDTODO
-            GraphicsDevice.SetTransform(TransformState.Projection, projection);
-            GraphicsDevice.SetTransform(TransformState.View, view);
-            GraphicsDevice.SetTransform(TransformState.World, world);
+            GraphicsDevice.SetTransform(TransformState.Projection, ref projection);
+            GraphicsDevice.SetTransform(TransformState.View, ref view);
+            GraphicsDevice.SetTransform(TransformState.World, ref world);
             
             foreach (Model3D model in Models)
             {

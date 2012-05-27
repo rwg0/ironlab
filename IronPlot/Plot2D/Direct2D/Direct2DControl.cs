@@ -11,20 +11,21 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
 using System.Windows.Navigation;
-using SlimDX;
-using SlimDX.Direct3D9;
+using SharpDX;
+using SharpDX.Direct3D9;
 using System.ComponentModel;
 using System.Windows.Data;
 using System.Windows.Markup;
 using IronPlot.ManagedD3D;
+using System.Windows.Threading;
 
 namespace IronPlot
 {
     public partial class Direct2DControl : FrameworkElement
     {
-        private ImageBrush sceneImage;
+        ImageBrush sceneImage;
         Direct2DImage directImage;
-        Canvas canvas;
+        Grid grid;
 
         public List<DirectPath> Paths
         {
@@ -46,11 +47,12 @@ namespace IronPlot
 
         public Direct2DControl()
         {
+            grid = new Grid();
+            grid.VerticalAlignment = VerticalAlignment.Stretch; grid.HorizontalAlignment = HorizontalAlignment.Stretch;
             directImage = new Direct2DImage();
             sceneImage = directImage.ImageBrush;
+            grid.Background = sceneImage;
             sceneImage.TileMode = TileMode.None;
-            canvas = new Canvas();
-            canvas.Background = sceneImage;
             this.IsVisibleChanged += new DependencyPropertyChangedEventHandler(Direct2DControl_IsVisibleChanged);
         }
 
@@ -77,8 +79,10 @@ namespace IronPlot
         protected override Size ArrangeOverride(Size finalSize)
         {
             Size size = base.ArrangeOverride(finalSize);
-            canvas.Arrange(new Rect(0, 0, size.Width, size.Height));
-            directImage.SetImageSize((int)size.Width, (int)size.Height, 96);
+            double width = size.Width;
+            double height = size.Height;
+            grid.Arrange(new Rect(0, 0, width, height));
+            directImage.SetImageSize((int)width, (int)height, 96);
             return size;
         }
 
@@ -96,7 +100,7 @@ namespace IronPlot
             {
                 throw new ArgumentOutOfRangeException("index");
             }
-            return this.canvas;
+            return this.grid;
         }
 
         /// <summary>
@@ -104,11 +108,11 @@ namespace IronPlot
         /// </summary>
         /// <param name="availableSize">The size that the control should not exceed.</param>
         /// <returns>The child Image's desired size.</returns>
-        protected override Size MeasureOverride(Size availableSize)
-        {
-            this.canvas.Measure(availableSize);
-            return this.canvas.DesiredSize;
-        }
+        //protected override Size MeasureOverride(Size availableSize)
+        //{
+        //    this.canvas.Measure(availableSize);
+        //    return this.canvas.DesiredSize;
+        //}
 
         /// <summary>
         /// Participates in rendering operations that are directed by the layout system.
@@ -117,10 +121,10 @@ namespace IronPlot
         /// The packaged parameters, which includes old and new sizes, and which
         /// dimension actually changes.
         /// </param>
-        protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
-        {
-            base.OnRenderSizeChanged(sizeInfo);
-        }
+        //protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
+        //{
+        //    base.OnRenderSizeChanged(sizeInfo);
+        //}
 
         void Direct2DControl_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
@@ -130,7 +134,70 @@ namespace IronPlot
                 foreach (DirectPath path in Paths) path.RecreateDisposables();
                 if (Parent is FrameworkElement) (Parent as FrameworkElement).InvalidateMeasure();
             }
-            //else foreach (DirectPath path in Paths) path.DisposeDisposables();
+            else foreach (DirectPath path in Paths) path.DisposeDisposables();
         }
     }
+
+    //public partial class Direct2DControl : Grid
+    //{
+    //    Direct2DImage directImage;
+    //    ImageBrush sceneImage;
+        
+    //    public Direct2DControl()
+    //    {
+    //        directImage = new Direct2DImage();
+    //        sceneImage = directImage.ImageBrush;
+    //        this.Background = sceneImage;
+    //        sceneImage.TileMode = TileMode.None;
+    //        this.IsVisibleChanged += new DependencyPropertyChangedEventHandler(Direct2DControl_IsVisibleChanged);
+    //    }
+
+
+    //    public List<DirectPath> Paths
+    //    {
+    //        get { return directImage.paths; }
+    //    }
+
+    //    public void AddPath(DirectPath path)
+    //    {
+    //        directImage.paths.Add(path);
+    //        path.DirectImage = directImage;
+    //        path.RecreateDisposables();
+    //    }
+
+    //    public void RemovePath(DirectPath path)
+    //    {
+    //        directImage.paths.Remove(path);
+    //        path.Dispose();
+    //    }
+
+    //    void Direct2DControl_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    //    {
+    //        directImage.Visible = (bool)e.NewValue;
+    //        if (directImage.Visible == true)
+    //        {
+    //            foreach (DirectPath path in Paths) path.RecreateDisposables();
+    //            if (Parent is FrameworkElement) (Parent as FrameworkElement).InvalidateMeasure();
+    //        }
+    //        //else foreach (DirectPath path in Paths) path.DisposeDisposables();
+    //    }
+
+    //    public void RequestRender()
+    //    {
+    //        directImage.RequestRender();
+    //    }
+
+    //    /// <summary>Arranges and sizes the child Image control.</summary>
+    //    /// <param name="finalSize">The size used to arrange the control.</param>
+    //    /// <returns>The size of the control.</returns>
+    //    protected override Size ArrangeOverride(Size finalSize)
+    //    {
+    //        Size size = base.ArrangeOverride(finalSize);
+    //        double width = size.Width;
+    //        double height = size.Height;
+    //        directImage.SetImageSize((int)width, (int)height, 96);
+    //        return size;
+    //    }
+    //}
 }
+

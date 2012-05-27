@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Drawing;
-using SlimDX;
-using SlimDX.Direct2D;
+using SharpDX;
+using SharpDX.Direct2D1;
 
 namespace IronPlot
 {
@@ -32,11 +32,12 @@ namespace IronPlot
             }
         }
 
+
         protected override void Draw()
         {
             RenderTarget.BeginDraw();
-            //RenderTarget.Transform = Matrix3x2.Identity;
-            RenderTarget.Clear(new Color4(0.0f, 0.5f, 0.5f, 0.5f));
+            RenderTarget.Transform = Matrix3x2.Identity;
+            RenderTarget.Clear(new Color4(1.0f, 0.5f, 0.5f, 0.0f));
             RenderTarget.AntialiasMode = AntialiasMode.Aliased;
             StrokeStyleProperties properties = new StrokeStyleProperties();
             properties.LineJoin = LineJoin.MiterOrBevel;
@@ -51,7 +52,6 @@ namespace IronPlot
                     }
                     else
                     {
-                        //RenderTarget.FillGeometry(path.Geometry, path.Brush);
                         if (path.QuickStrokeDash != QuickStrokeDash.None)
                         {
                             RenderTarget.DrawGeometry(path.Geometry, path.Brush, (float)path.StrokeThickness, strokeStyle);

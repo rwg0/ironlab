@@ -6,8 +6,8 @@ using System.Collections.Generic;
 using System.Windows.Media;
 using System.Linq;
 using System.Text;
-using SlimDX;
-using SlimDX.Direct3D9;
+using SharpDX;
+using SharpDX.Direct3D9;
 using System.Windows.Media.Media3D;
 using System.Windows.Data;
 
