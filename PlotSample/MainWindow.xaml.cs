@@ -100,7 +100,7 @@ namespace PlotTest
             xAxisOuter.Max = 7.3e-3;
             xAxisOuter.AxisType = AxisType.Log;
             plotMultipleAxes.Children.Add(new Plot2DCurve(new Curve(new double[] { 0.01, 10 }, new double[] { 5, 6 })) { XAxis = xAxisOuter });
-            plotMultipleAxes.UseDirect2D = true;
+            plotMultipleAxes.UseDirect2D = false;
         }
 
         void DatesPlot()
@@ -111,7 +111,7 @@ namespace PlotTest
             double[] values = Enumerable.Range(0, 100).Select(t => random.NextDouble()).ToArray();
             var curve = datesPlot.AddLine(dates, values);
             curve.XAxis.AxisType = AxisType.Date;
-            datesPlot.UseDirect2D = true;
+            datesPlot.UseDirect2D = false;
         }
 
         void EqualAxesPlot()
