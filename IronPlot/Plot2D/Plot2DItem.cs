@@ -36,7 +36,7 @@ namespace IronPlot
             set
             {
                 if (host == null) xAxis = value;
-                else if (host.axes.XAxes.Contains(value))
+                else if (host.Axes.XAxes.Contains(value))
                 {
                     xAxis = value;
                     host.InvalidateArrange();
@@ -52,7 +52,7 @@ namespace IronPlot
             set
             {
                 if (host == null) yAxis = value;
-                else if (host.axes.YAxes.Contains(value))
+                else if (host.Axes.YAxes.Contains(value))
                 {
                     yAxis = value;
                     host.InvalidateArrange();
@@ -95,15 +95,20 @@ namespace IronPlot
 
         protected virtual void OnHostChanged(PlotPanel host)
         {
-            // Update axis to default if null or it it does not belong to the new plot.
-            if ((xAxis == null) || (!host.axes.XAxes.Contains(xAxis)))
+            if (host == null)
             {
-                xAxis = host.axes.XAxes.Bottom;
+                xAxis = null; yAxis = null;
+                return;
+            }
+            // Update axis to default if null or it it does not belong to the new plot.
+            if ((xAxis == null) || (!host.Axes.XAxes.Contains(xAxis)))
+            {
+                xAxis = host.Axes.XAxes.Bottom;
             }
 
-            if ((yAxis == null) || (!host.axes.YAxes.Contains(yAxis)))
+            if ((yAxis == null) || (!host.Axes.YAxes.Contains(yAxis)))
             {
-                yAxis = host.axes.YAxes.Left;
+                yAxis = host.Axes.YAxes.Left;
             }
         }
 

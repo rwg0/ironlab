@@ -82,6 +82,12 @@ namespace IronPlot
 
     }
 
+    public class FormatOverrides
+    {
+        public static Func<double, string> Currency = value => value.ToString("N");
+        //public static Func<double, string> Currency = value => value.ToString("N");
+    }
+
     /// <summary>
     /// An Axis class contains a Canvas on which the axis and annotations
     /// are presented (one Canvas per Axis). The Canvas typically spans the entire plot region. 
@@ -195,6 +201,8 @@ namespace IronPlot
             set { SetValue(TicksVisibleProperty, value); }
             get { return (bool)GetValue(TicksVisibleProperty); }
         }
+
+        public Func<double, string> FormatOverride { get; set; }
 
         public abstract double Min { get; set; }
 
@@ -708,6 +716,11 @@ namespace IronPlot
 
         protected void UpdateLabelText(int i)
         {
+            if (FormatOverride != null)
+            {
+                LabelText[i] = new LabelText(FormatOverride(Ticks[i]));
+                return;
+            }
             if (AxisType == AxisType.Date) return;
             if (labels != null && labels.Length > 0) LabelText[i] = new LabelText(labels[i]);
             else if ((Exponent[i] >= 4) || (Exponent[i] <= -4))

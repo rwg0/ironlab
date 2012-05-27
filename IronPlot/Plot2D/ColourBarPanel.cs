@@ -27,11 +27,11 @@ namespace IronPlot
         internal ColourBarPanel() : base()
         {
             // Assume vertical alignment for now.
-            axes.xAxisBottom.LabelsVisible = axes.xAxisTop.LabelsVisible = false;
-            axes.xAxisBottom.TicksVisible = axes.xAxisTop.TicksVisible = false;
-            var allAxes = axes.XAxes.Concat(axes.YAxes);
+            Axes.xAxisBottom.LabelsVisible = Axes.xAxisTop.LabelsVisible = false;
+            Axes.xAxisBottom.TicksVisible = Axes.xAxisTop.TicksVisible = false;
+            var allAxes = Axes.XAxes.Concat(Axes.YAxes);
             foreach (Axis2D axis in allAxes) axis.GridLines.Visibility = Visibility.Collapsed; 
-            axes.Width = 20;
+            Axes.Width = 20;
         }
 
         protected override Size MeasureOverride(Size availableSize)
@@ -39,7 +39,7 @@ namespace IronPlot
             foreach (Slider slider in sliderList) slider.Measure(availableSize);
             double thumbWidth = sliderList[0].DesiredSize.Width;
             double thumbSemiHeight = sliderList[0].DesiredSize.Height / 2;
-            axes.MinAxisMargin = new Thickness(thumbWidth, thumbSemiHeight, 0, thumbSemiHeight);
+            Axes.MinAxisMargin = new Thickness(thumbWidth, thumbSemiHeight, 0, thumbSemiHeight);
             return base.MeasureOverride(availableSize);
         }
 
@@ -47,8 +47,8 @@ namespace IronPlot
         {
             double thumbWidth = sliderList[0].DesiredSize.Width;
             double thumbHeight = sliderList[0].DesiredSize.Height;
-            Rect sliderLocation = new Rect(new Point(canvasLocation.Left - thumbWidth, canvasLocation.Top - thumbHeight/2),
-                new Size(thumbWidth, canvasLocation.Height + thumbHeight));
+            Rect sliderLocation = new Rect(new Point(CanvasLocation.Left - thumbWidth, CanvasLocation.Top - thumbHeight/2),
+                new Size(thumbWidth, CanvasLocation.Height + thumbHeight));
             foreach (Slider slider in sliderList) slider.Arrange(sliderLocation);
             return base.ArrangeOverride(finalSize);
         }

@@ -119,7 +119,7 @@ namespace PlotTest
             var x = Enumerable.Range(0, 1000).Select(t => (double)t * 10 / 1000);
             var y = x.Select(t => 5 * Math.Exp(-t * t / 5));
             equalAxesPlot.AddLine(x, y).Title = "Test";
-            //equalAxesPlot.Axes.YAxes.Left.FormatOverride = FormatOverrides.Currency;
+            equalAxesPlot.Axes.YAxes.Left.FormatOverride = FormatOverrides.Currency;
             //equalAxesPlot.Axes.YAxes.Left.FormatOverride = value => value.ToString("N");
         }
 

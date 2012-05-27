@@ -44,7 +44,7 @@ namespace IronPlot
             Canvas.MouseRightButtonDown += new MouseButtonEventHandler(canvas_RightClickStart);
             Canvas.MouseMove += new MouseEventHandler(element_MouseMove);
             Canvas.MouseWheel += new MouseWheelEventHandler(element_MouseWheel);
-            var allAxes = axes.XAxes.Concat(axes.YAxes);
+            var allAxes = Axes.XAxes.Concat(Axes.YAxes);
 
             mousePositionTimer.Interval = TimeSpan.FromSeconds(0.05);
             mousePositionTimer.Tick += new EventHandler(mousePositionTimer_Tick);
@@ -111,7 +111,7 @@ namespace IronPlot
                 this.Cursor = Cursors.Arrow;
                 List<Axis2D> allAxes;
                 if (isSingleAxis) allAxes = new List<Axis2D> { sender as Axis2D };
-                else allAxes = axes.XAxes.Concat(axes.YAxes).ToList();
+                else allAxes = Axes.XAxes.Concat(Axes.YAxes).ToList();
                 foreach (Axis2D axis in allAxes)
                 {
                     Range axisRange = GetRangeFromChildren(axis);
@@ -121,7 +121,7 @@ namespace IronPlot
             else
             {
                 if (isSingleAxis) axesBeingDragged = new List<Axis2D> { sender as Axis2D };
-                else axesBeingDragged = axes.XAxes.Concat(axes.YAxes).ToList();
+                else axesBeingDragged = Axes.XAxes.Concat(Axes.YAxes).ToList();
                 StartDrag(e);
             }
             Canvas.CaptureMouse();
@@ -210,13 +210,13 @@ namespace IronPlot
                     {
                         return;
                     }
-                    foreach (Axis2D axis in axes.XAxes)
+                    foreach (Axis2D axis in Axes.XAxes)
                     {
                         axis.SetValue(Axis2D.RangeProperty, new Range(
                             Math.Min(axis.CanvasToGraph(selectionStart.X), axis.CanvasToGraph(selectionEnd.X)),
                             Math.Max(axis.CanvasToGraph(selectionStart.X), axis.CanvasToGraph(selectionEnd.X))));
                     }
-                    foreach (Axis2D axis in axes.YAxes)
+                    foreach (Axis2D axis in Axes.YAxes)
                     {
                         axis.SetValue(Axis2D.RangeProperty, new Range(
                             Math.Min(axis.CanvasToGraph(selectionStart.Y), axis.CanvasToGraph(selectionEnd.Y)),
@@ -238,7 +238,7 @@ namespace IronPlot
             //
             List<Axis2D> zoomAxes;
             if (isSingleAxis) zoomAxes = new List<Axis2D>() { sender as Axis2D };
-            else zoomAxes = axes.XAxes.Concat(axes.YAxes).ToList();
+            else zoomAxes = Axes.XAxes.Concat(Axes.YAxes).ToList();
             foreach (Axis2D axis in zoomAxes)
             {
                 double axisMid;

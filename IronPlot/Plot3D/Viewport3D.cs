@@ -173,7 +173,7 @@ namespace IronPlot.Plotting3D
         protected override Size ArrangeOverride(Size finalSize)
         {
             Rect final = PlaceAnnotations(finalSize);
-            axesRegionLocation = final;
+            AxesRegion = final;
             grid.Arrange(final);
             ArrangeAnnotations(finalSize);
             d3dImageViewport.RequestRender();

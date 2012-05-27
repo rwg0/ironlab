@@ -47,7 +47,7 @@ namespace IronPlot
                     child.Host = this;
                 }
             }
-            var allAxes = axes.XAxes.Concat(axes.YAxes);
+            var allAxes = Axes.XAxes.Concat(Axes.YAxes);
             foreach (Axis2D axis in allAxes)
             {
                 Range axisRange = GetRangeFromChildren(axis);

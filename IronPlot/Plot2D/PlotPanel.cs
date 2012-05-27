@@ -36,13 +36,13 @@ namespace IronPlot
         // Also a Direct2DControl: a control which can use Direct2D for fast plotting.
         internal Direct2DControl direct2DControl = null;
 
-        internal Axes2D axes;
+        internal Axes2D Axes;
 
         protected DispatcherTimer marginChangeTimer;
 
-        protected Size axesRegionSize;
-        // The location of canvas:
-        protected Rect canvasLocation;
+        internal Size AvailableSize;
+        // The location of the Canvas within the AvailableSize.
+        internal Rect CanvasLocation;
 
         public static readonly DependencyProperty EqualAxesProperty =
             DependencyProperty.Register("EqualAxesProperty",
@@ -66,8 +66,8 @@ namespace IronPlot
         protected static void OnEqualAxesChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
             PlotPanel plotPanelLocal = ((PlotPanel)obj);
-            if ((bool)e.NewValue == true) plotPanelLocal.axes.SetAxesEqual();
-            else plotPanelLocal.axes.ResetAxesEqual();
+            if ((bool)e.NewValue == true) plotPanelLocal.Axes.SetAxesEqual();
+            else plotPanelLocal.Axes.ResetAxesEqual();
             plotPanelLocal.InvalidateMeasure();
         }
 
@@ -108,7 +108,7 @@ namespace IronPlot
             Canvas.ClipToBounds = true;
             Canvas.SetValue(Grid.ZIndexProperty, 100);
             BackgroundCanvas.SetValue(Grid.ZIndexProperty, 50);
-            axes = new Axes2D(this);
+            Axes = new Axes2D(this);
 
             LinearGradientBrush background = new LinearGradientBrush();
             background.StartPoint = new Point(0, 0); background.EndPoint = new Point(1, 1);
@@ -127,35 +127,43 @@ namespace IronPlot
         Size sizeOnMeasure;
         Size sizeAfterMeasure;
 
+        /// <summary>
+        /// For each PlotPanel, place the axes.
+        /// </summary>
+        /// <param name="plotPanels"></param>
+        internal static void PlaceAxes(List<PlotPanel> plotPanels)
+        {
+            //IEnumerable<Axis2D> xAxes
+        }
+
         protected override Size MeasureOverride(Size availableSize)
         {
             sizeOnMeasure = availableSize;
-            var allAxes = axes.XAxes.Concat(axes.YAxes);
+            AvailableSize = availableSize;
+            var allAxes = Axes.XAxes.Concat(Axes.YAxes);
             foreach (Axis2D axis in allAxes)
             {
                 axis.UpdateAndMeasureLabels();
             }
             if (direct2DControl != null) direct2DControl.Measure(availableSize);
-            availableSize.Height = Math.Min(availableSize.Height, 10000);
-            availableSize.Width = Math.Min(availableSize.Width, 10000);
+            AvailableSize.Height = Math.Min(AvailableSize.Height, 10000);
+            AvailableSize.Width = Math.Min(AvailableSize.Width, 10000);
             
             // Main measurement work:
-            MeasureAnnotations(availableSize);
-            // Return the region available for plotting and set legendRegion:
-            Rect available = PlaceAnnotations(availableSize);
+            MeasureAnnotations(AvailableSize);
+            // Set legendRegion:
+            PlaceAnnotations(AvailableSize);
+
             // Place the axes using this region, setting axesRegionSize and canvasLocation:
-            PlaceAxes(available);
+            PlaceAxes();
             
-            Canvas.Measure(new Size(canvasLocation.Width, canvasLocation.Height));
-            BackgroundCanvas.Measure(new Size(canvasLocation.Width, canvasLocation.Height));
-            availableSize.Height = Math.Max(Math.Max(axesRegionSize.Height + AnnotationsTop.DesiredSize.Height + AnnotationsBottom.DesiredSize.Height, AnnotationsLeft.DesiredSize.Height), AnnotationsRight.DesiredSize.Height);
-            // axesRegionSize.Height + AnnotationsTop.DesiredSize.Height + AnnotationsBottom.DesiredSize.Height;
-            availableSize.Width = Math.Max(Math.Max(axesRegionSize.Width + AnnotationsLeft.DesiredSize.Width + AnnotationsRight.DesiredSize.Width, AnnotationsTop.DesiredSize.Width), AnnotationsBottom.DesiredSize.Width);
-            // axesRegionSize.Width + AnnotationsLeft.DesiredSize.Width + AnnotationsRight.DesiredSize.Width;
-            sizeAfterMeasure = availableSize;
-
-            //AnnotationsRight.Measure(new Size(AnnotationsRight.DesiredSize.Width, axesRegionSize.Height));
-
+            Canvas.Measure(new Size(CanvasLocation.Width, CanvasLocation.Height));
+            BackgroundCanvas.Measure(new Size(CanvasLocation.Width, CanvasLocation.Height));
+            availableSize.Width = AxesRegion.Width;
+            availableSize.Height = AxesRegion.Height;
+            //availableSize.Height = Math.Max(Math.Max(axesRegion.Height + AnnotationsTop.DesiredSize.Height + AnnotationsBottom.DesiredSize.Height, AnnotationsLeft.DesiredSize.Height), AnnotationsRight.DesiredSize.Height);
+            //availableSize.Width = Math.Max(Math.Max(axesRegion.Width + AnnotationsLeft.DesiredSize.Width + AnnotationsRight.DesiredSize.Width, AnnotationsTop.DesiredSize.Width), AnnotationsBottom.DesiredSize.Width);
+            sizeAfterMeasure = AvailableSize;
             return availableSize;
         }
 
@@ -163,18 +171,14 @@ namespace IronPlot
         /// Place the Axes according to the room available.
         /// </summary>
         /// <param name="availableSize"></param>
-        protected void PlaceAxes(Rect available)
+        protected void PlaceAxes()
         {
-            // Allow legends their widths.
-            bool axesEqual = (bool)this.GetValue(EqualAxesProperty);
             // Calculates the axes positions, positions labels, updates geometries.
-            Rect canvasLocationWithinAxes;
             if (dragging) 
-                axes.UpdateAxisPositionsOffsetOnly(available, out canvasLocation, out axesRegionSize);
+                Axes.UpdateAxisPositionsOffsetOnly();
             else
             {
-                axes.PlaceAxesFull(new Size(available.Width, available.Height), out canvasLocationWithinAxes, out axesRegionSize);
-                canvasLocation = canvasLocationWithinAxes;
+                Axes.PlaceAxesFull();
             }
         }
 
@@ -183,38 +187,26 @@ namespace IronPlot
             //Stopwatch watch = new Stopwatch(); watch.Start();
             if (!(finalSize == sizeOnMeasure || finalSize == sizeAfterMeasure))
             {
-                // Return the final region for plotting and set legendRegion:
-                Rect final = PlaceAnnotations(finalSize);
+                // Set legendRegion:
+                PlaceAnnotations(finalSize);
                 // Place axes using this region, setting axesRegionSize and canvasLocation:
-                PlaceAxes(final);
+                AvailableSize = finalSize;
+                PlaceAxes();
             }
-            axesRegionLocation = new Rect(0, 0, axesRegionSize.Width, axesRegionSize.Height);
-            double entireWidth = legendRegion.Left + legendRegion.Right;
-            double entireHeight = legendRegion.Top + legendRegion.Bottom;
-            double offsetX = legendRegion.Left;
-            double offsetY = legendRegion.Top;
-            entireWidth += axesRegionSize.Width;
-            entireHeight += axesRegionSize.Height;
-            offsetX += (finalSize.Width - entireWidth) / 2;
-            offsetY += (finalSize.Height - entireHeight) / 2;
-            axesRegionLocation.X += offsetX;
-            canvasLocation.X += offsetX;
-            axesRegionLocation.Y += offsetY;
-            canvasLocation.Y += offsetY;
-
             BeforeArrange();
+
+            BackgroundCanvas.Arrange(CanvasLocation);
+            Rect canvasRelativeToAxesRegion = new Rect(CanvasLocation.X - AxesRegion.X,
+                CanvasLocation.Y - AxesRegion.Y, CanvasLocation.Width, CanvasLocation.Height);
+            Axes.RenderEachAxisAndFrame(canvasRelativeToAxesRegion);
+            // 'Rendering' of plot items, i.e. recreating geometries is done in BeforeArrange.
 
             // Arrange each Axis. Arranged over the whole axes region, although of course the axis will typically
             // only cover a potion of this.
-            axes.ArrangeEachAxisAndFrame(axesRegionLocation);
+            Axes.ArrangeEachAxisAndFrame(AxesRegion);
 
-            BackgroundCanvas.Arrange(canvasLocation);
-            Rect canvasRelativeToAxesRegion = new Rect(canvasLocation.X - axesRegionLocation.X,
-                canvasLocation.Y - axesRegionLocation.Y, canvasLocation.Width, canvasLocation.Height);
-            axes.RenderEachAxisAndFrame(canvasRelativeToAxesRegion);
-            // 'Rendering' of plot items, i.e. recreating geometries is done in BeforeArrange.
-
-            Canvas.Arrange(canvasLocation);
+            Canvas.Arrange(CanvasLocation);
+            if (direct2DControl != null) direct2DControl.Arrange(CanvasLocation);
             BackgroundCanvas.InvalidateVisual();
             Canvas.InvalidateVisual();
             
@@ -222,7 +214,7 @@ namespace IronPlot
 
             if (direct2DControl != null)
             {
-                direct2DControl.Arrange(canvasLocation);
+                direct2DControl.Arrange(CanvasLocation);
                 direct2DControl.RequestRender();
             }
             return finalSize;

@@ -60,7 +60,7 @@ namespace IronPlot
 
         public Axes2D Axes
         {
-            get { return PlotPanel.axes; }
+            get { return PlotPanel.Axes; }
         }
 
         public Position LegendPosition

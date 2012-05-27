@@ -38,22 +38,22 @@ namespace IronPlot
         {
             set
             {
-                colourBarPanel.axes.YAxes[0].Min = value;
+                colourBarPanel.Axes.YAxes[0].Min = value;
                 Rect newBounds = image.Bounds;
                 image.Bounds = new Rect(newBounds.Left, value, newBounds.Width, newBounds.Bottom - value);
             }
-            get { return colourBarPanel.axes.YAxes[0].Min; }
+            get { return colourBarPanel.Axes.YAxes[0].Min; }
         }
 
         internal double Max
         {
             set
             {
-                colourBarPanel.axes.YAxes[0].Max = value;
+                colourBarPanel.Axes.YAxes[0].Max = value;
                 Rect newBounds = image.Bounds;
                 image.Bounds = new Rect(newBounds.Left, newBounds.Top, newBounds.Width, value - newBounds.Top);
             }
-            get { return colourBarPanel.axes.YAxes[0].Max; }
+            get { return colourBarPanel.Axes.YAxes[0].Max; }
         }
 
         public static readonly RoutedEvent ColourMapChangedEvent =

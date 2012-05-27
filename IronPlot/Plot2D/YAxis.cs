@@ -158,7 +158,7 @@ namespace IronPlot
                 }
                 context.Close();
             }
-            interactionPad.Height = AxisTotalLength - AxisMargin.Total();
+            interactionPad.Height = AxisTotalLength - AxisPadding.Total();
             interactionPad.Width = AxisThickness;
             if (position == YAxisPosition.Left) interactionPad.SetValue(Canvas.LeftProperty, xPosition - AxisThickness);
             else interactionPad.SetValue(Canvas.LeftProperty, xPosition);
@@ -174,17 +174,17 @@ namespace IronPlot
 
         internal override Transform1D GraphToCanvasTransform()
         {
-            return new Transform1D(-Scale, -Offset - AxisTotalLength - AxisMargin.UpperMargin);
+            return new Transform1D(-Scale, -Offset - AxisTotalLength - AxisPadding.Upper);
         }
 
         internal override double GraphToCanvas(double canvas)
         {
-            return -GraphTransform(canvas) * Scale + Offset + AxisTotalLength - AxisMargin.UpperMargin;
+            return -GraphTransform(canvas) * Scale + Offset + AxisTotalLength - AxisPadding.Upper;
         }
 
         internal override double CanvasToGraph(double graph)
         {
-            return CanvasTransform(-graph / Scale + (Offset + AxisTotalLength - AxisMargin.UpperMargin) / Scale);
+            return CanvasTransform(-graph / Scale + (Offset + AxisTotalLength - AxisPadding.Upper) / Scale);
         }
     }
 }

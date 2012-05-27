@@ -41,10 +41,10 @@ namespace IronPlot
         protected bool showAnnotationsBottom = false;
 
         // Thickness required for the legends.
-        protected Thickness legendRegion;
+        internal Thickness LegendRegion;
         
         // Location of just the axes region
-        protected Rect axesRegionLocation;
+        internal Rect AxesRegion;
 
         public static readonly DependencyProperty PositionProperty =
             DependencyProperty.RegisterAttached(
@@ -191,22 +191,18 @@ namespace IronPlot
         /// <returns></returns>
         protected Rect PlaceAnnotations(Size availableSize)
         {
-            showAnnotationsLeft = false;
-            showAnnotationsRight = false;
-            showAnnotationsTop = false;
-            showAnnotationsBottom = false;
             double startX = 0; double startY = 0;
             double endX = availableSize.Width; double endY = availableSize.Height;
-            legendRegion = new Thickness();
+            LegendRegion = new Thickness();
 
             startX += AnnotationsLeft.DesiredSize.Width;
-            legendRegion.Left += AnnotationsLeft.DesiredSize.Width;
+            LegendRegion.Left += AnnotationsLeft.DesiredSize.Width;
             endX -= AnnotationsRight.DesiredSize.Width;
-            legendRegion.Right += AnnotationsRight.DesiredSize.Width;
+            LegendRegion.Right += AnnotationsRight.DesiredSize.Width;
             startY += AnnotationsTop.DesiredSize.Height;
-            legendRegion.Top += AnnotationsTop.DesiredSize.Height;
+            LegendRegion.Top += AnnotationsTop.DesiredSize.Height;
             endY -= AnnotationsBottom.DesiredSize.Height;
-            legendRegion.Bottom += AnnotationsBottom.DesiredSize.Height;
+            LegendRegion.Bottom += AnnotationsBottom.DesiredSize.Height;
             showAnnotationsLeft = showAnnotationsRight = showAnnotationsTop = showAnnotationsBottom = true;
 
             Rect available = new Rect(startX, startY, Math.Max(endX - startX, 1), Math.Max(endY - startY, 1)); // new Rect(startX, 0, endX - startX, endY - startY);
@@ -222,12 +218,12 @@ namespace IronPlot
             if (showAnnotationsLeft)
             {
                 Rect annotationsLeftRect = new Rect(new Point(0, 0),
-                    new Point(axesRegionLocation.Left, finalSize.Height));
+                    new Point(LegendRegion.Left, finalSize.Height));
                 AnnotationsLeft.Arrange(annotationsLeftRect);
             }
             if (showAnnotationsRight)
             {
-                Rect annotationsRightRect = new Rect(new Point(axesRegionLocation.Right, 0),
+                Rect annotationsRightRect = new Rect(new Point(finalSize.Width - LegendRegion.Right, 0),
                     new Point(finalSize.Width, finalSize.Height));
                 AnnotationsRight.Arrange(annotationsRightRect);
             }
@@ -235,12 +231,12 @@ namespace IronPlot
             if (showAnnotationsTop)
             {
                 Rect annotationsTopRect = new Rect(new Point(0, 0),
-                    new Point(finalSize.Width, axesRegionLocation.Top));
+                    new Point(finalSize.Width, LegendRegion.Top));
                 AnnotationsTop.Arrange(annotationsTopRect);
             }
             if (showAnnotationsBottom)
             {
-                Rect annotationsBottomRect = new Rect(new Point(0, axesRegionLocation.Bottom),
+                Rect annotationsBottomRect = new Rect(new Point(0, finalSize.Height - LegendRegion.Bottom),
                     new Point(finalSize.Width, finalSize.Height));
                 AnnotationsBottom.Arrange(annotationsBottomRect);
             }

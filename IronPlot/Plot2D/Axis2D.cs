@@ -19,20 +19,20 @@ namespace IronPlot
     /// Specifies the space at either end of an axis required to accommodate
     /// annotation. Max is the high end of the axis in Canvas coordinates.
     /// </summary>
-    public struct AxisMargin
+    public struct Thickness1D
     {
-        public double LowerMargin;
-        public double UpperMargin;
+        public double Lower;
+        public double Upper;
 
         public double Total()
         {
-            return LowerMargin + UpperMargin;
+            return Lower + Upper;
         }
 
-        public AxisMargin(double lowerMargin, double upperMargin)
+        public Thickness1D(double lower, double upper)
         {
-            this.LowerMargin = lowerMargin;
-            this.UpperMargin = upperMargin;
+            this.Lower = lower;
+            this.Upper = upper;
         }
     }
 
@@ -116,13 +116,16 @@ namespace IronPlot
         // Whether this is one of the innermost axes, or an additional axis.
         internal bool IsInnermost = false;
         internal double AxisThickness = 0;
-        internal AxisMargin AxisMargin;
         
+        // The padding region is the extra space needed, in addition to the area between max and min,
+        // to accommodate labels
+        internal Thickness1D AxisPadding;
+
+        // the margin region is extra space outside the axis itself
+        //internal Thickness1D AxisMargin;
+
         internal double Scale;
         internal double Offset;
-       
-        internal double AxisTotalLengthConstrained; // The axis length including labels allowed by constraints.
-        // The actual AxisTotalLength may exceed this, possibly causing the axis to be clipped.
         
         /// <summary>
         /// The axis length including labels.
@@ -354,11 +357,11 @@ namespace IronPlot
             return axisLabel.DesiredSize.Height;
         }
 
-        internal void OverrideAxisScaling(double Scale, double Offset, AxisMargin AxisMargin)
+        internal void OverrideAxisScaling(double scale, double offset, Thickness1D axisPadding)
         {
-            this.Scale = Scale;
-            this.Offset = Offset;
-            this.AxisMargin = AxisMargin;
+            this.Scale = scale;
+            this.Offset = offset;
+            this.AxisPadding = axisPadding;
         }
 
         /// <summary>
@@ -369,31 +372,31 @@ namespace IronPlot
         {
             double axisLength = newScale * (MaxTransformed - MinTransformed);
             Scale = newScale;
-            Offset = Scale * MinTransformed - AxisMargin.LowerMargin;
-            AxisTotalLength = axisLength + AxisMargin.Total();
+            Offset = Scale * MinTransformed - AxisPadding.Lower;
+            AxisTotalLength = axisLength + AxisPadding.Total();
         }
 
         /// <summary>
         /// Change margins and scale, keeping total length constant.
         /// </summary>
         /// <param name="newScale"></param>
-        internal void RescaleAxis(double newScale, AxisMargin newMargin)
+        internal void RescaleAxis(double newScale, Thickness1D newMargin)
         {
-            AxisMargin = newMargin;
+            AxisPadding = newMargin;
             Scale = newScale;
-            Offset = Scale * MinTransformed - AxisMargin.LowerMargin;
+            Offset = Scale * MinTransformed - AxisPadding.Lower;
         }
 
         /// <summary>
         /// Reset AxisMargin, keeping TotalLength the same.
         /// </summary>
         /// <param name="newScale"></param>
-        internal void ResetAxisMargin(AxisMargin newMargin)
+        internal void ResetAxisMargin(Thickness1D newMargin)
         {
-            AxisMargin = newMargin;
+            AxisPadding = newMargin;
             double axisLength = AxisTotalLength - newMargin.Total();
             Scale = axisLength / (MaxTransformed - MinTransformed);
-            Offset = Scale * MinTransformed - AxisMargin.LowerMargin;
+            Offset = Scale * MinTransformed - AxisPadding.Lower;
         }
 
         // The axis Scale has been reduced to make the axes equal.
@@ -402,8 +405,8 @@ namespace IronPlot
         {
             double axisLength = newScale * (MaxTransformed - MinTransformed);
             Scale = newScale;
-            Offset = Scale * MinTransformed - AxisMargin.LowerMargin;
-            AxisTotalLength = axisLength + AxisMargin.LowerMargin + AxisMargin.UpperMargin;
+            Offset = Scale * MinTransformed - AxisPadding.Lower;
+            AxisTotalLength = axisLength + AxisPadding.Lower + AxisPadding.Upper;
         }
 
         internal virtual Point TickStartPosition(int i)
@@ -415,7 +418,7 @@ namespace IronPlot
         // This is for dragging interations where only Offset changes.
         internal void UpdateOffset()
         {
-            Offset = Scale * this.MinTransformed - AxisMargin.LowerMargin;
+            Offset = Scale * this.MinTransformed - AxisPadding.Lower;
         }
 
         internal virtual void RenderAxis()
@@ -432,7 +435,7 @@ namespace IronPlot
 
         public static MatrixTransform GraphToCanvasLinear(XAxis xAxis, YAxis yAxis)
         {
-            return new MatrixTransform(xAxis.Scale, 0, 0, -yAxis.Scale, -xAxis.Offset - xAxis.AxisMargin.LowerMargin, yAxis.Offset + yAxis.AxisTotalLength - yAxis.AxisMargin.UpperMargin);
+            return new MatrixTransform(xAxis.Scale, 0, 0, -yAxis.Scale, -xAxis.Offset - xAxis.AxisPadding.Lower, yAxis.Offset + yAxis.AxisTotalLength - yAxis.AxisPadding.Upper);
         }
     }
 }
