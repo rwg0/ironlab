@@ -6,11 +6,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
-//using SharpDX;
 using SharpDX.DXGI;
 using SharpDX.Direct3D10;
 using System.Windows.Interop;
 using System.Windows.Forms;
+using System.Windows.Threading;
 
 namespace IronPlot
 {
@@ -53,7 +53,6 @@ namespace IronPlot
                 // device, we must create the singleton instance.
                 singletonInstance = new SharpDXGraphicsDeviceService10();
             }
-
             return singletonInstance;
         }
 
@@ -84,8 +83,12 @@ namespace IronPlot
                     throw new Exception("Unable to create a DirectX 10 device.");
                 }
             }
-            //this.device = device1.QueryInterface<D3D10.D3DDevice>();
-            //device1.Dispose();
+            RasterizerStateDescription rastDesc = new RasterizerStateDescription();
+            rastDesc.CullMode = CullMode.Back;
+            rastDesc.FillMode = FillMode.Solid;
+            rastDesc.IsMultisampleEnabled = false;
+            rastDesc.IsAntialiasedLineEnabled = false;
+            device1.Rasterizer.State = new RasterizerState(device1, rastDesc);
             this.device = device1;
         }
 
@@ -105,11 +108,8 @@ namespace IronPlot
             {
                 try
                 {
-                    //var device; var swapChain;
-                    //D3D10.D3DDevice1.CreateDevice1(null, type, null, D3D10.CreateDeviceOptions.SupportBgra, level);
-                    //SharpDX.Direct3D10.Device1.CreateWithSwapChain(factoryDXGI.GetAdapter(0), DeviceCreationFlags.BgraSupport, out device, out swapChain);
-                    var device = new SharpDX.Direct3D10.Device1(factoryDXGI.GetAdapter(0), DeviceCreationFlags.BgraSupport, level);
-                    //var device = new SharpDX.Direct3D10.Device1(type, DeviceCreationFlags.BgraSupport, level);
+                    //var device = new SharpDX.Direct3D10.Device1(factoryDXGI.GetAdapter(0), DeviceCreationFlags.BgraSupport, level);
+                    var device = new SharpDX.Direct3D10.Device1(type, DeviceCreationFlags.BgraSupport, level);
                     return device;
                 }
                 catch (ArgumentException) // E_INVALIDARG
@@ -140,7 +140,10 @@ namespace IronPlot
                 {
                     throw new ArgumentOutOfRangeException("height", "Value must be positive.");
                 }
-                if ((width <= this.width) && (height <= this.height)) return;
+                if ((width <= this.width) && (height <= this.height))
+                {
+                    return;
+                }
 
                 // Recreate the render target
                 // Assign result to temporary variable in case CreateTexture2D throws an exception.
@@ -163,10 +166,10 @@ namespace IronPlot
                 this.width = texture.Description.Width;
                 this.height = texture.Description.Height;
 
-                SharpDX.DXGI.Surface surface = texture.AsSurface();
-                // .QueryInterface<Surface>())
-
-                CreateRenderTarget(surface);
+                using (SharpDX.DXGI.Surface surface = texture.AsSurface())
+                {
+                    CreateRenderTarget(surface);
+                }
 
                 if (DeviceResized != null)
                     DeviceResized(this, EventArgs.Empty);
@@ -189,7 +192,6 @@ namespace IronPlot
             //description.MiscellaneousResourceOptions = D3D10.MiscellaneousResourceOptions.Shared;
  
             // Multi-sample anti-aliasing
-            //description.MiscellaneousResourceOptions = D3D10.MiscellaneousResourceOptions.Shared;
             int count;
             if (multiSampling) count = 8; else count = 1;
             int quality = device.CheckMultisampleQualityLevels(description.Format, count);
@@ -197,20 +199,6 @@ namespace IronPlot
             // Multi-sample anti-aliasing
             SampleDescription sampleDesc = new SampleDescription(count, 0);
             description.SampleDescription = sampleDesc;
-
-            RasterizerStateDescription rastDesc = new RasterizerStateDescription();
-            rastDesc.CullMode = CullMode.Back;
-            rastDesc.FillMode = FillMode.Solid;
-            rastDesc.IsMultisampleEnabled = false;
-            rastDesc.IsAntialiasedLineEnabled = false;
-            //rastDesc.DepthBias = 0;
-            //rastDesc.DepthBiasClamp = 0;
-            //rastDesc.IsDepthClipEnabled = true;
-            //rastDesc.IsFrontCounterclockwise = false;
-            //rastDesc.IsScissorEnabled = true;
-            //rastDesc.SlopeScaledDepthBias = 0;
-
-            device.Rasterizer.State = new RasterizerState(device, rastDesc);
 
             description.Usage = ResourceUsage.Default;
             description.OptionFlags = ResourceOptionFlags.Shared;
@@ -230,15 +218,13 @@ namespace IronPlot
 
         private void CreateRenderTarget(SharpDX.DXGI.Surface surface)
         {
-            // Create a D2D render target which can draw into our offscreen D3D
-            // surface. D2D uses device independant units, like WPF, at 96/inch
+            // Create a D2D render target which can draw into our offscreen D3D surface. 
+            // D2D uses device independant units, like WPF, at 96/inch.
             var properties = new SharpDX.Direct2D1.RenderTargetProperties();
             properties.DpiX = 96;
             properties.DpiY = 96;
             properties.MinLevel = SharpDX.Direct2D1.FeatureLevel.Level_DEFAULT;
-            //properties.PixelFormat = new SharpDX.Direct2D.PixelFormat(Format.Unknown, SharpDX.Direct2D.AlphaMode.Premultiplied);
             properties.PixelFormat = new SharpDX.Direct2D1.PixelFormat(Format.Unknown, SharpDX.Direct2D1.AlphaMode.Premultiplied);
-            //properties.RenderTargetType = D2D.RenderTargetType.Default;
             properties.Usage = SharpDX.Direct2D1.RenderTargetUsage.None;
 
             if (this.renderTarget != null)
@@ -247,7 +233,6 @@ namespace IronPlot
             }
 
             renderTarget = new SharpDX.Direct2D1.RenderTarget(factory2D, surface, properties);
-            //renderTarget = SharpDX.Direct2D1.RenderTarget.FromDXGI(factory2D, surface, properties);
         }
 
         /// <summary>
@@ -260,7 +245,14 @@ namespace IronPlot
             {
                 // If this is the last control to finish using the
                 // device, we should dispose the singleton instance.
-
+                if (this.texture != null)
+                {
+                    this.texture.Dispose();
+                }
+                if (this.shareableTexture != null)
+                {
+                    this.shareableTexture.Dispose();
+                }
             }
         }
 

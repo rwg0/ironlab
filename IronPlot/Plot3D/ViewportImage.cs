@@ -170,6 +170,8 @@ namespace IronPlot.Plotting3D
             ((ViewportImage)obj).RequestRender();
         }
 
+        public event EventHandler RenderRequested;
+
         /// <summary>
         /// Handle request to re-render the scene from the 3D models.
         /// Tell the ViewPort3D to re-render.
@@ -177,6 +179,16 @@ namespace IronPlot.Plotting3D
         public void OnRequestRender(Object sender, EventArgs e)
         {
             RequestRender();
+        }
+
+
+        public void RequestRender()
+        {
+            if (RenderRequested != null) RenderRequested(null, EventArgs.Empty);
+            lock (this)
+            {
+                renderRequired = true;
+            }
         }
 
         #endregion
@@ -196,17 +208,9 @@ namespace IronPlot.Plotting3D
             world = Matrix.Identity;
         }
 
-        public void RequestRender()
-        {
-            lock (this)
-            {
-                renderRequired = true;
-            }
-        }
-
         protected override void Draw()
         {
-            // Endure transforms are updated and clear; otherwise leave to Model3D tree
+            // Ensure transforms are updated and clear; otherwise leave to Model3D tree
             GraphicsDevice.Clear(ClearFlags.Target | ClearFlags.ZBuffer, new Color4(1.0f, 1.0f, 1.0f, 1.0f), 1.0f, 0);
             GraphicsDevice.BeginScene();
             float aspect = (float)GraphicsDevice.Viewport.Width / (float)GraphicsDevice.Viewport.Height;

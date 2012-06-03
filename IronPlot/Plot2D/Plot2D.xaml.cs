@@ -55,7 +55,7 @@ namespace IronPlot
             {
                 PlotPanel.SetValue(PlotPanel.UseDirect2DProperty, value);
             }
-            get { return (bool)GetValue(PlotPanel.UseDirect2DProperty); }
+            get { return (bool)PlotPanel.GetValue(PlotPanel.UseDirect2DProperty); }
         }
 
         public Axes2D Axes
@@ -145,7 +145,10 @@ namespace IronPlot
         {
             try
             {
+                bool direct2D = UseDirect2D;
+                if (direct2D) UseDirect2D = false;
                 EMFCopy.CopyVisualToWmfClipboard((Visual)this, Window.GetWindow(this));
+                if (direct2D) UseDirect2D = true;
             }
             catch (Exception)
             {
@@ -156,10 +159,13 @@ namespace IronPlot
 
         public void ToClipboard(int dpi)
         {
+            bool direct2D = UseDirect2D;
+            if (direct2D) UseDirect2D = false;
             try
             {
                 DrawingVisual drawingVisual = new DrawingVisual();
                 DrawingContext drawingContext = drawingVisual.RenderOpen();
+                this.UpdateLayout();
                 VisualBrush sourceBrush = new VisualBrush(this);
                 double scale = dpi / 96.0;
                 double actualWidth = this.RenderSize.Width;
@@ -179,6 +185,7 @@ namespace IronPlot
                 // Swallow exception
                 //throw new Exception("Creating image failed for plot.");
             }
+            if (direct2D) UseDirect2D = true;
         }
 
         private bool? print;
@@ -203,18 +210,28 @@ namespace IronPlot
         {
             if (print == true)
             {
-                if (!Directory.Exists(System.Environment.CurrentDirectory + "\\out")) Directory.CreateDirectory(System.Environment.CurrentDirectory + "\\out");
-                Package package = Package.Open(System.Environment.CurrentDirectory + "\\out\\LastPrintout.xps", FileMode.Create);
+                string filename = System.IO.Path.GetTempPath() + "IronPlotPrint.xps";
+                Package package = Package.Open(filename, FileMode.Create);
                 XpsDocument xpsDoc = new XpsDocument(package);
                 XpsDocumentWriter xpsWriter = XpsDocument.CreateXpsDocumentWriter(xpsDoc);
-                xpsWriter.Write(PlotPanel);
-                xpsDoc.Close();
-                package.Close();
+                bool direct2D = UseDirect2D;
+                if (direct2D) UseDirect2D = false;
+                try
+                {
+                    UpdateLayout();
+                    xpsWriter.Write(PlotPanel);
+                    xpsDoc.Close();
+                    package.Close();
+                }
+                finally
+                {
+                    if (direct2D) UseDirect2D = true;
+                }
                 PrintQueue printQueue = printDialog.PrintQueue;
                 Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal,
                     new Action(delegate()
                     {
-                        printQueue.AddJob("Plot2D Print", System.Environment.CurrentDirectory + "\\out\\LastPrintout.xps", false);
+                        printQueue.AddJob("IronPlot Print", filename, false);
                     }));
             }
         }

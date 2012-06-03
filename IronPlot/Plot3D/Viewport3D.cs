@@ -23,11 +23,10 @@ namespace IronPlot.Plotting3D
     //[ContentProperty("ModelsProperty")]
     public class Viewport3D : PlotPanelBase
     {     
-        private Grid grid;
-        private ImageBrush sceneImage;
         private Trackball trackball;
-        private ViewportImage d3dImageViewport;
         private Axes3D axes;
+        private Viewport3DControl viewport3DControl;
+        private ViewportImage viewport3DImage; 
 
         public Axes3D Axes
         {
@@ -166,7 +165,7 @@ namespace IronPlot.Plotting3D
             MeasureAnnotations(availableSize);
             // Return the region available for plotting and set legendRegion:
             Rect available = PlaceAnnotations(availableSize);
-            grid.Measure(new Size(available.Width, available.Height));
+            viewport3DControl.Measure(new Size(available.Width, available.Height));
             return availableSize;
         }
 
@@ -174,54 +173,45 @@ namespace IronPlot.Plotting3D
         {
             Rect final = PlaceAnnotations(finalSize);
             AxesRegion = final;
-            grid.Arrange(final);
+            axes.UpdateLabels();
             ArrangeAnnotations(finalSize);
-            d3dImageViewport.RequestRender();
+            viewport3DControl.Arrange(final);
             return finalSize;
         }
         
         public void Initialize()
         {
-            grid = new Grid();
-            this.Children.Add(grid);
-            try
+            Background = null;
+            viewport3DControl = new Viewport3DControl();
+            viewport3DControl.SetValue(Grid.ZIndexProperty, 100);
+            this.Children.Add(viewport3DControl);
+
+            viewport3DImage = viewport3DControl.Viewport3DImage;
+            viewport3DImage.ViewPort3D = this;
+            if (viewport3DImage == null)
             {
-                d3dImageViewport = new ViewportImage() { ViewPort3D = this };
-            }
-            catch (Exception e)
-            {
-                // In case of error, just display message on Control
-                TextBlock messageBlock = new TextBlock();
-                messageBlock.Text = e.Message;
-                grid.Children.Add(messageBlock);
                 SetValue(ModelsProperty, new Model3DCollection(null));
                 return;
             }
-            SetValue(ModelsProperty, d3dImageViewport.Models);
+
+            SetValue(ModelsProperty, viewport3DImage.Models);
             // Set the owner of the Model3DCollection to be the D3DImageViewport
             // This ensures that the Model3D objects are rendered by the D3DImageViewport
-            sceneImage = d3dImageViewport.ImageBrush;
-            sceneImage.TileMode = TileMode.None;
-            grid.Background = sceneImage;
+            viewport3DImage.SetLayer2D(viewport3DImage.Canvas, GraphToWorld);
 
-            Canvas canvas = new Canvas() { ClipToBounds = true, Background = Brushes.Transparent };
-            d3dImageViewport.SetLayer2D(canvas, GraphToWorld);
+            viewport3DImage.Models.Changed += new Model3DCollection.ItemEventHandler(Models_Changed);
 
-            d3dImageViewport.Models.Changed += new Model3DCollection.ItemEventHandler(Models_Changed);
-
-            grid.Children.Add(canvas);
-            grid.SizeChanged += new SizeChangedEventHandler(d3dImageViewport.OnSizeChanged);
             trackball = new Trackball();
-            trackball.EventSource = canvas;
+            trackball.EventSource = viewport3DControl; //viewport3DImage.Canvas;
             trackball.OnTrackBallMoved += new TrackballEventHandler(trackball_TrackBallMoved);
             trackball.OnTrackBallZoom += new TrackballEventHandler(trackball_OnTrackBallZoom);
             trackball.OnTrackBallTranslate += new TrackballEventHandler(trackball_OnTrackBallTranslate);
 
             axes = new Axes3D();
-            d3dImageViewport.Models.Add(axes);
+            viewport3DImage.Models.Add(axes);
 
-            d3dImageViewport.CameraPosition = new Vector3(-3f, -3f, 2f);
-            d3dImageViewport.CameraTarget = new Vector3(0f, 0f, 0f);
+            viewport3DImage.CameraPosition = new Vector3(-3f, -3f, 2f);
+            viewport3DImage.CameraTarget = new Vector3(0f, 0f, 0f);
             //
             Binding bindingGraphMin = new Binding("GraphMinProperty");
             bindingGraphMin.Source = this;
@@ -234,7 +224,7 @@ namespace IronPlot.Plotting3D
             Binding bindingGraphToWorld = new Binding("GraphToWorldProperty");
             bindingGraphToWorld.Source = this;
             bindingGraphToWorld.Mode = BindingMode.OneWay;
-            BindingOperations.SetBinding(d3dImageViewport, ViewportImage.ModelToWorldProperty, bindingGraphToWorld);
+            BindingOperations.SetBinding(viewport3DImage, ViewportImage.ModelToWorldProperty, bindingGraphToWorld);
             ////
             GraphMax = new Point3D(1, 1, 1);
             GraphMin = new Point3D(-1, -1, -1);
@@ -247,7 +237,7 @@ namespace IronPlot.Plotting3D
 
         void Viewport3D_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
-            d3dImageViewport.Visible = (bool)e.NewValue;
+            viewport3DImage.Visible = (bool)e.NewValue;
         }
 
         /// <summary>
@@ -256,7 +246,7 @@ namespace IronPlot.Plotting3D
         /// </summary>
         protected void OnRequestRender(Object sender, EventArgs e)
         {
-            d3dImageViewport.RequestRender();
+            viewport3DImage.RequestRender();
         }
 
         /// <summary>
@@ -291,8 +281,8 @@ namespace IronPlot.Plotting3D
             deltaAxis.Y = (float)delta.Axis.Y;
             deltaAxis.Z = (float)delta.Axis.Z;
             deltaAxis.Normalize();
-            Vector3 cameraLookDirection = d3dImageViewport.CameraTarget - d3dImageViewport.CameraPosition;
-            Vector3 cameraUpDirection = d3dImageViewport.CameraUpVector;
+            Vector3 cameraLookDirection = viewport3DImage.CameraTarget - viewport3DImage.CameraPosition;
+            Vector3 cameraUpDirection = viewport3DImage.CameraUpVector;
             cameraLookDirection.Normalize();
             // Subtract any component of cameraUpDirection along cameraLookDirection
             cameraUpDirection = cameraUpDirection - Vector3.Multiply(cameraLookDirection, Vector3.Dot(cameraUpDirection, cameraLookDirection));
@@ -303,9 +293,9 @@ namespace IronPlot.Plotting3D
                 Vector3.Multiply(cameraUpDirection, deltaAxis.Y) +
                 Vector3.Multiply(cameraLookDirection, -deltaAxis.Z);
             SharpDX.Matrix cameraTransform = SharpDX.Matrix.RotationAxis(deltaAxisWorld, (float)(delta.Angle * Math.PI / 180.0));
-            d3dImageViewport.CameraTarget = Vector3.Transform(d3dImageViewport.CameraTarget, cameraTransform).ToVector3();
-            d3dImageViewport.CameraPosition = Vector3.Transform(d3dImageViewport.CameraPosition, cameraTransform).ToVector3();
-            d3dImageViewport.CameraUpVector = Vector3.Transform(d3dImageViewport.CameraUpVector, cameraTransform).ToVector3();
+            viewport3DImage.CameraTarget = Vector3.Transform(viewport3DImage.CameraTarget, cameraTransform).ToVector3();
+            viewport3DImage.CameraPosition = Vector3.Transform(viewport3DImage.CameraPosition, cameraTransform).ToVector3();
+            viewport3DImage.CameraUpVector = Vector3.Transform(viewport3DImage.CameraUpVector, cameraTransform).ToVector3();
             double newPhi = FindPhi();
             if (newPhi != lastPhi)
             {
@@ -317,24 +307,24 @@ namespace IronPlot.Plotting3D
         protected void trackball_OnTrackBallZoom(Object sender, EventArgs e)
         {
             double Scale = ((Trackball)sender).Scale;
-            d3dImageViewport.CameraPosition = Vector3.Multiply(d3dImageViewport.CameraPosition, (float)Scale);
+            viewport3DImage.CameraPosition = Vector3.Multiply(viewport3DImage.CameraPosition, (float)Scale);
         }
 
         protected void trackball_OnTrackBallTranslate(Object sender, EventArgs e)
         {
             Point translation = ((Trackball)sender).Translation;
-            Vector3 cameraLookDirection = d3dImageViewport.CameraTarget - d3dImageViewport.CameraPosition;
+            Vector3 cameraLookDirection = viewport3DImage.CameraTarget - viewport3DImage.CameraPosition;
             float distance = cameraLookDirection.Length();
-            Vector3 cameraUpDirection = d3dImageViewport.CameraUpVector;
+            Vector3 cameraUpDirection = viewport3DImage.CameraUpVector;
             cameraLookDirection.Normalize();
             // Subtract any component of cameraUpDirection along cameraLookDirection
             cameraUpDirection = cameraUpDirection - Vector3.Multiply(cameraLookDirection, Vector3.Dot(cameraUpDirection, cameraLookDirection));
             cameraUpDirection.Normalize();
             Vector3 cameraX = Vector3.Cross(cameraLookDirection, cameraUpDirection);
-            float scalingFactor = d3dImageViewport.TanSemiFOV * distance * 2;
+            float scalingFactor = viewport3DImage.TanSemiFOV * distance * 2;
             Vector3 pan = -cameraX * (float)translation.X * scalingFactor + cameraUpDirection * (float)translation.Y * scalingFactor;
-            d3dImageViewport.CameraPosition = d3dImageViewport.CameraPosition + pan;
-            d3dImageViewport.CameraTarget = d3dImageViewport.CameraTarget + pan;
+            viewport3DImage.CameraPosition = viewport3DImage.CameraPosition + pan;
+            viewport3DImage.CameraTarget = viewport3DImage.CameraTarget + pan;
         }
 
         private double lastPhi = -10;
@@ -344,7 +334,7 @@ namespace IronPlot.Plotting3D
         /// <returns></returns>
         protected double FindPhi()
         {
-            Vector3 vector = d3dImageViewport.CameraPosition - d3dImageViewport.CameraTarget;
+            Vector3 vector = viewport3DImage.CameraPosition - viewport3DImage.CameraTarget;
             return Math.Atan2(vector.Y, vector.X);
         }
 
@@ -355,11 +345,11 @@ namespace IronPlot.Plotting3D
         /// <param name="dpi">Resolution in dpi</param>
         internal void SetResolution(int dpi)
         {
-            int width = (int)(grid.ActualWidth * dpi / 96.0);
-            int height = (int)(grid.ActualHeight * dpi / 96.0);
+            int width = (int)(viewport3DControl.ActualWidth * dpi / 96.0);
+            int height = (int)(viewport3DControl.ActualHeight * dpi / 96.0);
             Models.SetModelResolution(dpi);
-            d3dImageViewport.SetImageSize((int)grid.ActualWidth, (int)grid.ActualHeight, dpi);
-            d3dImageViewport.RenderScene();
+            viewport3DImage.SetImageSize((int)viewport3DControl.ActualWidth, (int)viewport3DControl.ActualHeight, dpi);
+            viewport3DImage.RenderScene();
         }
     }
 }

@@ -90,8 +90,12 @@ namespace IronPlot
                 }
                 return;
             }
-            if (plotPanelLocal.UseDirect2D) plotPanelLocal.direct2DControl.Visibility = Visibility.Visible;
-            else plotPanelLocal.direct2DControl.Visibility = Visibility.Collapsed;
+            if (plotPanelLocal.UseDirect2D)
+                plotPanelLocal.Children.Add(plotPanelLocal.direct2DControl);
+            //plotPanelLocal.direct2DControl.Visibility = Visibility.Visible;
+            else
+                plotPanelLocal.Children.Remove(plotPanelLocal.direct2DControl);
+                //plotPanelLocal.direct2DControl.Visibility = Visibility.Collapsed;
             plotPanelLocal.InvalidateMeasure();
         }
 

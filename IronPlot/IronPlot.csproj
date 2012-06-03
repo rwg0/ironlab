@@ -194,6 +194,7 @@
       <DependentUpon>Plot3D.xaml</DependentUpon>
     </Compile>
     <Compile Include="Plot3D\ServiceContainer.cs" />
+    <Compile Include="Plot3D\Viewport3DControl.cs" />
     <Compile Include="PlotCommon\CurveIDirect2D.cs" />
     <Compile Include="PlotCommon\DirectXSupport\SharpDXGraphicsDeviceService10.cs" />
     <Compile Include="PlotCommon\DirectXSupport\SharpDXGraphicsDeviceService9.cs" />

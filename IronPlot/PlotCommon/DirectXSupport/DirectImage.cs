@@ -101,7 +101,7 @@ namespace IronPlot
             if (surfaceType == SurfaceType.Direct2D)
             {
                 // Use shared devices resources.
-                graphicsDeviceService9 = SharpDXGraphicsDeviceService9.RefToNew(0, 0);
+                graphicsDeviceService9 = SharpDXGraphicsDeviceService9.AddRef(0, 0);
                 graphicsDeviceService10 = SharpDXGraphicsDeviceService10.AddRef();
 
                 graphicsDeviceService10.DeviceResized += new EventHandler(graphicsDeviceService10_DeviceResized);
@@ -121,9 +121,8 @@ namespace IronPlot
             if (d3dImage.IsFrontBufferAvailable)
             {
                 SetBackBuffer();
-                //renderRequired = true;
             }
-            CompositionTarget.Rendering += OnRendering;
+            //CompositionTarget.Rendering += OnRendering;
             d3dImage.IsFrontBufferAvailableChanged += new DependencyPropertyChangedEventHandler(OnIsFrontBufferAvailableChanged);
         }
 
@@ -524,6 +523,7 @@ namespace IronPlot
             bufferHeight = graphicsDeviceService9.PresentParameters.BackBufferHeight;
             SetBackBuffer();
             imageBrush.Viewbox = new Rect(0, 0, (double)viewportWidth / (double)bufferWidth, (double)viewportHeight / (double)bufferHeight);
+            renderRequired = true;
         }
 
         public void OnSizeChanged(Object sender, SizeChangedEventArgs e)

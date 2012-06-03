@@ -66,13 +66,14 @@ namespace IronPlot.Plotting3D
         internal static void OnLabelsVisibleChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
             if ((bool)e.NewValue == (bool)e.OldValue) return;
+            TextBlock label = ((Axis3D)obj).axisLabel;
             if ((bool)e.NewValue == false)
             {
                 foreach (TextBlock textBlock in ((Axis3D)obj).axisLabels)
                 {
                     textBlock.Visibility = Visibility.Collapsed;
                 }
-                ((Axis3D)obj).axisLabel.Visibility = Visibility.Collapsed;
+                if (label != null) label.Visibility = Visibility.Collapsed;
             }
             if ((bool)e.NewValue == true)
             {
@@ -80,7 +81,7 @@ namespace IronPlot.Plotting3D
                 {
                     textBlock.Visibility = Visibility.Visible;
                 }
-                ((Axis3D)obj).axisLabel.Visibility = Visibility.Visible;
+                if (label != null) label.Visibility = Visibility.Visible;
             }
         }
 
@@ -163,7 +164,7 @@ namespace IronPlot.Plotting3D
                 UpdateLabelText(i);
                 AddTextToBlock(currentTextBlock, i);
                 currentTextBlock.TextAlignment = TextAlignment.Center;
-                currentTextBlock.UpdateLayout();
+                //currentTextBlock.;
             }
             UpdateLabelPositions(false);
             // Cycle through any now redundant TextBlocks and make invisible

@@ -1,6 +1,4 @@
-﻿// Copyright (c) 2010 Joe Moorhouse
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,52 +17,55 @@ using System.Windows.Markup;
 using IronPlot.ManagedD3D;
 using System.Windows.Threading;
 
-namespace IronPlot
+namespace IronPlot.Plotting3D
 {
-    public partial class Direct2DControl : FrameworkElement
+    public partial class Viewport3DControl : FrameworkElement
     {
         ImageBrush sceneImage;
-        Direct2DImage directImage;
+        ViewportImage directImage;
         Grid grid;
+        Canvas canvas;
 
-        public List<DirectPath> Paths
-        {
-            get { return directImage.paths; }
-        }
+        public ViewportImage Viewport3DImage { get { return directImage; } }
+        public Canvas Canvas { get { return canvas; } }
 
-        public void AddPath(DirectPath path)
-        {
-            directImage.paths.Add(path);
-            path.DirectImage = directImage;
-            path.RecreateDisposables();
-        }
-
-        public void RemovePath(DirectPath path)
-        {
-            directImage.paths.Remove(path);
-            path.Dispose();
-        }
-
-        public Direct2DControl()
+        public Viewport3DControl()
         {
             grid = new Grid();
             grid.VerticalAlignment = VerticalAlignment.Stretch; grid.HorizontalAlignment = HorizontalAlignment.Stretch;
-            directImage = new Direct2DImage();
-            sceneImage = directImage.ImageBrush;
-            grid.Background = sceneImage;
-            sceneImage.TileMode = TileMode.None;
-            this.IsVisibleChanged += new DependencyPropertyChangedEventHandler(Direct2DControl_IsVisibleChanged);
+            try
+            {
+                directImage = new ViewportImage();
+                sceneImage = directImage.ImageBrush;
+                grid.Background = sceneImage;
+                sceneImage.TileMode = TileMode.None;
+            }
+            catch (Exception e)
+            {
+                // In case of error, just display message on Control
+                TextBlock messageBlock = new TextBlock();
+                messageBlock.Text = e.Message;
+                grid.Children.Add(messageBlock);
+                directImage = null;
+                return;
+            }
+            canvas = new Canvas() { ClipToBounds = true, Background = Brushes.Transparent };
+            grid.Children.Add(canvas);
+            directImage.Canvas = canvas;
+            // TODO change this!
+            grid.SizeChanged += new SizeChangedEventHandler(directImage.OnSizeChanged);
+            directImage.RenderRequested += new EventHandler(directImage_RenderRequested);
         }
 
-        public void RequestRender()
+        void directImage_RenderRequested(object sender, EventArgs e)
         {
-            directImage.RequestRender();
-            this.InvalidateVisual();
+            InvalidateVisual();
         }
 
         protected override void OnRender(DrawingContext drawingContext)
         {
-            base.OnRender(drawingContext);
+            drawingContext.DrawRectangle(Brushes.Transparent, null,
+                new Rect(0, 0, RenderSize.Width, RenderSize.Height));
             directImage.RenderScene();
         }
 
@@ -109,17 +110,6 @@ namespace IronPlot
         //{
         //    base.OnRenderSizeChanged(sizeInfo);
         //}
-
-        void Direct2DControl_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
-        {
-            directImage.Visible = (bool)e.NewValue;
-            if (directImage.Visible == true)
-            {
-                foreach (DirectPath path in Paths) path.RecreateDisposables();
-                if (Parent is FrameworkElement) (Parent as FrameworkElement).InvalidateMeasure();
-            }
-            else foreach (DirectPath path in Paths) path.DisposeDisposables();
-        }
     }
 }
 
