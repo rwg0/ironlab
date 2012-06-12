@@ -187,12 +187,13 @@ namespace IronPlot.Plotting3D
             this.Children.Add(viewport3DControl);
 
             viewport3DImage = viewport3DControl.Viewport3DImage;
-            viewport3DImage.ViewPort3D = this;
             if (viewport3DImage == null)
             {
+                axes = new Axes3D();
                 SetValue(ModelsProperty, new Model3DCollection(null));
                 return;
             }
+            viewport3DImage.ViewPort3D = this;
 
             SetValue(ModelsProperty, viewport3DImage.Models);
             // Set the owner of the Model3DCollection to be the D3DImageViewport

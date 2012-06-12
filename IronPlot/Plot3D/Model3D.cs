@@ -23,7 +23,7 @@ namespace IronPlot.Plotting3D
     }
 
     public delegate void OnDrawEventHandler(object sender, EventArgs e);
-    public delegate void OnRequestRenderEventHandler(object sender, EventArgs e);
+    //public delegate void OnRequestRenderEventHandler(object sender, EventArgs e);
 
     public class Model3D : DependencyObject, IViewportImage, IBoundable3D
     {
@@ -121,7 +121,7 @@ namespace IronPlot.Plotting3D
             bindingTransform.Source = viewportImage;
             bindingTransform.Mode = BindingMode.OneWay;
             BindingOperations.SetBinding(this, Model3D.ModelToWorldProperty, bindingTransform);
-            OnRequestRender += new OnRequestRenderEventHandler(viewportImage.OnRequestRender);
+            RenderRequested += viewportImage.RequestRender;
         }
 
         internal void RemoveBindToViewportImage()
@@ -129,7 +129,7 @@ namespace IronPlot.Plotting3D
             if (viewportImage != null)
             {
                 BindingOperations.ClearBinding(this, Model3D.ModelToWorldProperty);
-                OnRequestRender -= new OnRequestRenderEventHandler(viewportImage.OnRequestRender);
+                RenderRequested -= viewportImage.RequestRender;
             }
         }
         #endregion
@@ -155,7 +155,7 @@ namespace IronPlot.Plotting3D
 
         public event OnDrawEventHandler OnDraw;
 
-        public event OnRequestRenderEventHandler OnRequestRender;
+        public event EventHandler RenderRequested;
 
         // Invoke the OnDraw event
         protected virtual void RaiseOnDrawEvent(EventArgs e)
@@ -167,8 +167,8 @@ namespace IronPlot.Plotting3D
         // Invoke the OnRequestRender event
         public virtual void RequestRender(EventArgs e)
         {
-            if (OnRequestRender != null)
-                OnRequestRender(this, e);
+            if (RenderRequested != null)
+                RenderRequested(this, e);
         }
 
         public static readonly DependencyProperty ModelToWorldProperty =

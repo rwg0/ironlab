@@ -170,27 +170,6 @@ namespace IronPlot.Plotting3D
             ((ViewportImage)obj).RequestRender();
         }
 
-        public event EventHandler RenderRequested;
-
-        /// <summary>
-        /// Handle request to re-render the scene from the 3D models.
-        /// Tell the ViewPort3D to re-render.
-        /// </summary>
-        public void OnRequestRender(Object sender, EventArgs e)
-        {
-            RequestRender();
-        }
-
-
-        public void RequestRender()
-        {
-            if (RenderRequested != null) RenderRequested(null, EventArgs.Empty);
-            lock (this)
-            {
-                renderRequired = true;
-            }
-        }
-
         #endregion
 
         public ViewportImage()

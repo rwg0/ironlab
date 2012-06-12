@@ -18,24 +18,38 @@ namespace IronPlot
     {
         // Singleton device service instance.
         static SharpDXGraphicsDeviceService10 singletonInstance;
-
-        public event EventHandler DeviceResized;
-
         // Keep track of how many controls are sharing the singletonInstance.
         static int referenceCount;
+
+        // When the (possibly) shared instance is resized.
+        public event EventHandler DeviceResized;
+
+        // A texture not shareable between D3D9 and D3D10, but which does support multi-sample 
+        // anti-aliasing etc
+        Texture2D texture;
+        // The shareable texture:
+        Texture2D shareableTexture;
+        
+        // For linking back to WPF, we need the device and the D3D9 shareable texture:
+        SharpDXGraphicsDeviceService9 sharpDXGraphicsDeviceService9;
+        SharpDX.Direct3D9.Texture shareableTexture9;
+
         Factory factoryDXGI;
         SharpDX.Direct2D1.Factory factory2D;
-        Texture2D texture;
-        Texture2D shareableTexture;
-        //RenderTargetView renderTargetView;
         SharpDX.Direct2D1.RenderTarget renderTarget;
+        
         int width;
         int height;
 
         public Texture2D Texture { get { return shareableTexture; } }
+        public SharpDX.Direct3D9.Texture Texture9 { get { return shareableTexture9; } }
+        
         public SharpDX.Direct2D1.RenderTarget RenderTarget { get { return renderTarget; } }
+        
         public SharpDX.Direct3D10.Device1 Device { get { return device; } }
+        
         public int Width { get { return width; } }
+        
         public int Height { get { return height; } }
 
         //SharpDX.Direct3D10.Device device;
@@ -70,6 +84,9 @@ namespace IronPlot
         /// </summary>
         SharpDXGraphicsDeviceService10()
         {
+            // We need a a D3D9 device.
+            sharpDXGraphicsDeviceService9 = SharpDXGraphicsDeviceService9.RefToNew(0, 0);
+            
             factoryDXGI = new Factory();
             factory2D = new SharpDX.Direct2D1.Factory();
             // Try to create a hardware device first and fall back to a
@@ -145,23 +162,15 @@ namespace IronPlot
                     return;
                 }
 
-                // Recreate the render target
-                // Assign result to temporary variable in case CreateTexture2D throws an exception.
+                DirectXHelpers.SafeDispose(ref this.texture);
                 var texture = CreateTexture(Math.Max(width, this.width), Math.Max(height, this.height), true);
-                if (this.texture != null)
-                {
-                    this.texture.Dispose();
-                }
                 this.texture = texture;
 
+                DirectXHelpers.SafeDispose(ref this.shareableTexture);
                 var shareableTexture = CreateTexture(Math.Max(width, this.width), Math.Max(height, this.height), false);
-                if (this.shareableTexture != null)
-                {
-                    this.shareableTexture.Dispose();
-                }
                 this.shareableTexture = shareableTexture;
-                //if (renderTargetView != null) renderTargetView.Dispose();
-                //this.renderTargetView = new RenderTargetView(device, shareableTexture);
+
+                CreateD3D9TextureFromD3D10Texture(shareableTexture);
 
                 this.width = texture.Description.Width;
                 this.height = texture.Description.Height;
@@ -189,14 +198,12 @@ namespace IronPlot
             description.CpuAccessFlags = CpuAccessFlags.None;
             description.Format = Format.B8G8R8A8_UNorm;
             description.MipLevels = 1;
-            //description.MiscellaneousResourceOptions = D3D10.MiscellaneousResourceOptions.Shared;
  
             // Multi-sample anti-aliasing
             int count;
             if (multiSampling) count = 8; else count = 1;
             int quality = device.CheckMultisampleQualityLevels(description.Format, count);
             if (count == 1) quality = 1;
-            // Multi-sample anti-aliasing
             SampleDescription sampleDesc = new SampleDescription(count, 0);
             description.SampleDescription = sampleDesc;
 
@@ -235,6 +242,60 @@ namespace IronPlot
             renderTarget = new SharpDX.Direct2D1.RenderTarget(factory2D, surface, properties);
         }
 
+        #region D3D9Sharing
+
+        public void CreateD3D9TextureFromD3D10Texture(SharpDX.Direct3D10.Texture2D Texture)
+        {
+            DirectXHelpers.SafeDispose(ref shareableTexture9);
+
+            if (IsShareable(Texture))
+            {
+                SharpDX.Direct3D9.Format format = TranslateFormat(Texture);
+                if (format == SharpDX.Direct3D9.Format.Unknown)
+                    throw new ArgumentException("Texture format is not compatible with OpenSharedResource");
+
+                IntPtr Handle = GetSharedHandle(Texture);
+                if (Handle == IntPtr.Zero)
+                    throw new ArgumentNullException("Handle");
+
+                shareableTexture9 = new SharpDX.Direct3D9.Texture(sharpDXGraphicsDeviceService9.GraphicsDevice, Texture.Description.Width, Texture.Description.Height, 1, SharpDX.Direct3D9.Usage.RenderTarget, format, SharpDX.Direct3D9.Pool.Default, ref Handle);
+            }
+            else
+                throw new ArgumentException("Texture must be created with ResourceOptionFlags.Shared");
+        }
+
+        IntPtr GetSharedHandle(SharpDX.Direct3D10.Texture2D Texture)
+        {
+            SharpDX.DXGI.Resource resource = Texture.QueryInterface<SharpDX.DXGI.Resource>();
+            IntPtr result = resource.SharedHandle;
+            resource.Dispose();
+            return result;
+        }
+
+        SharpDX.Direct3D9.Format TranslateFormat(SharpDX.Direct3D10.Texture2D Texture)
+        {
+            switch (Texture.Description.Format)
+            {
+                case SharpDX.DXGI.Format.R10G10B10A2_UNorm:
+                    return SharpDX.Direct3D9.Format.A2B10G10R10;
+
+                case SharpDX.DXGI.Format.R16G16B16A16_Float:
+                    return SharpDX.Direct3D9.Format.A16B16G16R16F;
+
+                case SharpDX.DXGI.Format.B8G8R8A8_UNorm:
+                    return SharpDX.Direct3D9.Format.A8R8G8B8;
+
+                default:
+                    return SharpDX.Direct3D9.Format.Unknown;
+            }
+        }
+
+        bool IsShareable(SharpDX.Direct3D10.Texture2D Texture)
+        {
+            return (Texture.Description.OptionFlags & SharpDX.Direct3D10.ResourceOptionFlags.Shared) != 0;
+        }
+        #endregion
+
         /// <summary>
         /// Releases a reference to the singleton instance.
         /// </summary>
@@ -245,14 +306,12 @@ namespace IronPlot
             {
                 // If this is the last control to finish using the
                 // device, we should dispose the singleton instance.
-                if (this.texture != null)
-                {
-                    this.texture.Dispose();
-                }
-                if (this.shareableTexture != null)
-                {
-                    this.shareableTexture.Dispose();
-                }
+                DirectXHelpers.SafeDispose(ref renderTarget);
+                DirectXHelpers.SafeDispose(ref texture);
+                DirectXHelpers.SafeDispose(ref shareableTexture);
+                DirectXHelpers.SafeDispose(ref factoryDXGI);
+                DirectXHelpers.SafeDispose(ref factory2D);
+                DirectXHelpers.SafeDispose(ref shareableTexture9);
             }
         }
 

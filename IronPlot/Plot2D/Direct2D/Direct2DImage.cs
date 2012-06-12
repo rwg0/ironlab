@@ -11,12 +11,25 @@ namespace IronPlot
     public class Direct2DImage : DirectImage
     {
         internal List<DirectPath> paths;
-        
+
+        System.Windows.Threading.DispatcherTimer timer = new System.Windows.Threading.DispatcherTimer(); 
+
         public Direct2DImage()
             : base()
         {
             CreateDevice(SurfaceType.Direct2D);
             paths = new List<DirectPath>();
+            timer.Interval = TimeSpan.FromSeconds(0.1);
+            timer.Tick += new EventHandler(timer_Tick);
+            timer.Start();
+        }
+
+        void timer_Tick(object sender, EventArgs e)
+        {
+            //if (!this.d3dImage.IsFrontBufferAvailable)
+            //{
+            //
+            //}
         }
 
         protected override void Initialize()
@@ -24,20 +37,12 @@ namespace IronPlot
             
         }
 
-        public void RequestRender()
-        {
-            lock (this)
-            {
-                renderRequired = true;
-            }
-        }
-
-
         protected override void Draw()
         {
             RenderTarget.BeginDraw();
             RenderTarget.Transform = Matrix3x2.Identity;
-            RenderTarget.Clear(new Color4(1.0f, 0.5f, 0.5f, 0.0f));
+            Random random = new Random();
+            RenderTarget.Clear(new Color4(0.5f, 0.5f, 0.5f, 0.0f));
             RenderTarget.AntialiasMode = AntialiasMode.Aliased;
             StrokeStyleProperties properties = new StrokeStyleProperties();
             properties.LineJoin = LineJoin.MiterOrBevel;

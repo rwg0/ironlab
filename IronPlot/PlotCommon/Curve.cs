@@ -37,6 +37,7 @@ namespace IronPlot
         protected byte[] pointRegion;
         protected int n;
 
+        protected Matrix cachedTransform = Matrix.Identity;
         protected Rect cachedRegion = new Rect(0, 0, 0, 0);
 
         public double[] X
@@ -304,12 +305,14 @@ namespace IronPlot
             double xViewMax = viewBounds.Right + width / 2;
             double yViewMin = viewBounds.Top - height / 2;
             double yViewMax = viewBounds.Bottom + height / 2;
-            double widthRatio = cachedRegion.Width / (xViewMax - xViewMin);
-            double heightRatio = cachedRegion.Height / (yViewMax - yViewMin);
+            double widthRatio = canvasToGraph.Matrix.M11 /cachedTransform.M11; 
+            double heightRatio = canvasToGraph.Matrix.M22 /cachedTransform.M22; 
             if (ContainsRegion(cachedRegion, viewBounds) && (widthRatio > 0.9) && (widthRatio < 1.1)
                 && (heightRatio > 0.9) && (heightRatio < 1.1)) return;
-            cachedRegion = new Rect(new Point(xViewMin, yViewMin), new Point(xViewMax, yViewMax)); 
-            
+            cachedRegion = new Rect(new Point(xViewMin, yViewMin), new Point(xViewMax, yViewMax));
+            cachedTransform.M11 = canvasToGraph.Matrix.M11;
+            cachedTransform.M22 = canvasToGraph.Matrix.M22;
+
             // Exclude all line points by default: these will subsequently be added as necessary.
             // Include those marker points that are in the cached region and make note of region.
             int nPoints = includeLinePoint.Length;

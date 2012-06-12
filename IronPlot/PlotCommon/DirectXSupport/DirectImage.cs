@@ -23,6 +23,8 @@ using System.Runtime.InteropServices;
 namespace IronPlot
 {
     public enum SurfaceType { DirectX9, Direct2D };
+
+    public enum ResizeResetResult { OK, D3D9DeviceLost, D3D9ResetFailed };
     
     /// <summary>
     /// Class uses SharpDX to render onto an ImageBrush using D3DImage,
@@ -43,8 +45,10 @@ namespace IronPlot
             get { return (bool)GetValue(VisibleProperty); }
         }
 
+        public event EventHandler RenderRequested;
+
         protected SurfaceType surfaceType;
-        Texture SharedTexture;
+        //Texture SharedTexture;
 
         // All  GraphicsDevices, managed by this helper service.
         protected SharpDXGraphicsDeviceService9 graphicsDeviceService9;
@@ -57,7 +61,8 @@ namespace IronPlot
         protected ImageBrush imageBrush;
         // Canvas for optional overlaying of vector graphics
         Canvas canvas = null;
-        volatile bool isRendering = false;
+
+        bool afterResizeReset = false;
 
         private Surface backBufferSurface;
         // The width and height of the backBuffer or Texture
@@ -70,23 +75,25 @@ namespace IronPlot
         // and the dpi
         // On render, viewportWidth = pixelsPerDIPixel * imageWidth
 
-        /// <summary>
-        /// Indicates whether rendering is required on the next pass.
-        /// </summary>
-        protected bool renderRequired = false;
-
         public unsafe DirectImage()
         {
             bufferWidth = 10; bufferHeight = 10;
             imageWidth = 10; imageHeight = 10;
             viewportWidth = bufferWidth; viewportHeight = bufferHeight;
+            RecreateD3DImage(false);
+        }
+
+        public void RecreateD3DImage(bool setBackBuffer)
+        {
+            if (d3dImage != null) d3dImage.IsFrontBufferAvailableChanged -= OnIsFrontBufferAvailableChanged;
             d3dImage = new D3DImage();
             imageBrush = new ImageBrush(d3dImage);
+            d3dImage.IsFrontBufferAvailableChanged += new DependencyPropertyChangedEventHandler(OnIsFrontBufferAvailableChanged);
+            if (setBackBuffer) SetBackBuffer();
         }
 
         protected virtual void OnVisiblePropertyChanged(bool isVisible)
         {
-
         }
 
         protected static void OnVisiblePropertyChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
@@ -101,9 +108,7 @@ namespace IronPlot
             if (surfaceType == SurfaceType.Direct2D)
             {
                 // Use shared devices resources.
-                graphicsDeviceService9 = SharpDXGraphicsDeviceService9.AddRef(0, 0);
                 graphicsDeviceService10 = SharpDXGraphicsDeviceService10.AddRef();
-
                 graphicsDeviceService10.DeviceResized += new EventHandler(graphicsDeviceService10_DeviceResized);
                 graphicsDeviceService10.ResizeDevice(bufferWidth, bufferHeight);
                 bufferWidth = graphicsDeviceService10.Width;
@@ -113,9 +118,7 @@ namespace IronPlot
             {
                 // Use shared devices resources.
                 graphicsDeviceService9 = SharpDXGraphicsDeviceService9.AddRef(bufferWidth, bufferHeight);
-                graphicsDeviceService9.DeviceResetting += new EventHandler(graphicsDeviceService_DeviceResetting);
-                graphicsDeviceService9.DeviceReset += new EventHandler(graphicsDeviceService_DeviceReset);
-                ResetDevice();
+                graphicsDeviceService9.DeviceReset += new EventHandler(graphicsDeviceService9_DeviceReset);
             }
             Initialize();
             if (d3dImage.IsFrontBufferAvailable)
@@ -123,18 +126,9 @@ namespace IronPlot
                 SetBackBuffer();
             }
             //CompositionTarget.Rendering += OnRendering;
-            d3dImage.IsFrontBufferAvailableChanged += new DependencyPropertyChangedEventHandler(OnIsFrontBufferAvailableChanged);
         }
 
-        void graphicsDeviceService10_DeviceResized(object sender, EventArgs e)
-        {
-            bufferWidth = graphicsDeviceService10.Width;
-            bufferHeight = graphicsDeviceService10.Height;
-            SetBackBuffer(graphicsDeviceService10.Texture);
-            UpdateImageBrush();
-        }
-
-        protected unsafe void SetBackBuffer()
+        internal unsafe void SetBackBuffer()
         {
             if (surfaceType == SurfaceType.DirectX9)
             {
@@ -145,78 +139,21 @@ namespace IronPlot
                 }
                 d3dImage.Unlock();
             }
-            else if (surfaceType == SurfaceType.Direct2D) SetBackBuffer(graphicsDeviceService10.Texture); 
+            else if (surfaceType == SurfaceType.Direct2D) SetBackBuffer(graphicsDeviceService10.Texture9); 
         }
 
-        public void SetBackBuffer(SharpDX.Direct3D10.Texture2D Texture)
+        public void SetBackBuffer(SharpDX.Direct3D9.Texture texture)
         {
-            if (SharedTexture != null)
+            if (texture == null) ReleaseBackBuffer();
+            else
             {
-                SharedTexture.Dispose();
-                SharedTexture = null;
-            }
-
-            if (Texture == null)
-            {
-                if (SharedTexture != null)
-                {
-                    SharedTexture = null;
-                    d3dImage.Lock();
-                    d3dImage.SetBackBuffer(D3DResourceType.IDirect3DSurface9, IntPtr.Zero);
-                    d3dImage.Unlock();
-                }
-            }
-            else if (IsShareable(Texture))
-            {
-                Format format = TranslateFormat(Texture);
-                if (format == Format.Unknown)
-                    throw new ArgumentException("Texture format is not compatible with OpenSharedResource");
-
-                IntPtr Handle = GetSharedHandle(Texture);
-                if (Handle == IntPtr.Zero)
-                    throw new ArgumentNullException("Handle");
-
-                SharedTexture = new Texture(graphicsDeviceService9.GraphicsDevice, Texture.Description.Width, Texture.Description.Height, 1, Usage.RenderTarget, format, Pool.Default, ref Handle);
-                using (Surface Surface = SharedTexture.GetSurfaceLevel(0))
+                using (Surface Surface = texture.GetSurfaceLevel(0))
                 {
                     d3dImage.Lock();
                     d3dImage.SetBackBuffer(D3DResourceType.IDirect3DSurface9, Surface.NativePointer);
                     d3dImage.Unlock();
                 }
             }
-            else
-                throw new ArgumentException("Texture must be created with ResourceOptionFlags.Shared");
-        }
-
-        IntPtr GetSharedHandle(SharpDX.Direct3D10.Texture2D Texture)
-        {
-            SharpDX.DXGI.Resource resource = Texture.QueryInterface<SharpDX.DXGI.Resource>();
-            IntPtr result = resource.SharedHandle;
-            resource.Dispose();
-            return result;
-        }
-
-        Format TranslateFormat(SharpDX.Direct3D10.Texture2D Texture)
-        {
-            switch (Texture.Description.Format)
-            {
-                case SharpDX.DXGI.Format.R10G10B10A2_UNorm:
-                    return SharpDX.Direct3D9.Format.A2B10G10R10;
-
-                case SharpDX.DXGI.Format.R16G16B16A16_Float:
-                    return SharpDX.Direct3D9.Format.A16B16G16R16F;
-
-                case SharpDX.DXGI.Format.B8G8R8A8_UNorm:
-                    return SharpDX.Direct3D9.Format.A8R8G8B8;
-
-                default:
-                    return SharpDX.Direct3D9.Format.Unknown;
-            }
-        }
-
-        bool IsShareable(SharpDX.Direct3D10.Texture2D Texture)
-        {
-            return (Texture.Description.OptionFlags & SharpDX.Direct3D10.ResourceOptionFlags.Shared) != 0;
         }
 
         protected unsafe void ReleaseBackBuffer()
@@ -279,17 +216,21 @@ namespace IronPlot
 
         private unsafe void OnIsFrontBufferAvailableChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
-            // If the front buffer is available, we need to start rendering our custom scene
+            // If the front buffer becomes unavailable, the D3DImage is discarded. This is for robustness since in
+            // some situations the front buffer seems never to become available again.
             if (d3dImage.IsFrontBufferAvailable)
             {
+                ReleaseBackBuffer();
                 SetBackBuffer();
                 RenderScene();
-                renderRequired = true;
-                CompositionTarget.Rendering += OnRendering;
+                if (surfaceType == SurfaceType.DirectX9) ResetDevice();
             }
             else
             {
-                if (graphicsDeviceService9.UseDeviceEx == false)
+                imageBrush = null;
+                d3dImage.IsFrontBufferAvailableChanged -= OnIsFrontBufferAvailableChanged;
+                d3dImage = null;
+                if (surfaceType == SurfaceType.DirectX9 && graphicsDeviceService9.UseDeviceEx == false)
                 {
                     if (graphicsDeviceService9.GraphicsDevice.TestCooperativeLevel() == ResultCode.DeviceNotReset)
                     {
@@ -297,25 +238,8 @@ namespace IronPlot
                     }
                     ReleaseBackBuffer();
                 }
-                CompositionTarget.Rendering -= OnRendering;
             }
         }
-
-        protected virtual void RecreateBuffers()
-        {
-            // Do nothing in base.
-        }
-
-        protected unsafe void OnLoaded(object sender, RoutedEventArgs e)
-        {
-            //BeginRenderingScene();
-            //this.Dispatcher.ShutdownStarted += new EventHandler(Dispatcher_ShutdownStarted);
-        }
-
-        //void Dispatcher_ShutdownStarted(object sender, EventArgs e)
-        //{
-        //    throw new NotImplementedException();
-        //}
 
         /// <summary>
         /// Disposes the control.
@@ -336,60 +260,43 @@ namespace IronPlot
 
         object locker = new object();
 
-        protected virtual void OnRendering(object sender, EventArgs e)
+        public void RequestRender()
         {
-            if (!isRendering && renderRequired && (Visible == true))
-            {
-                isRendering = true;
-                renderRequired = false;
-                RenderScene();
-            }
-            else return;
-            isRendering = false;
+            if (RenderRequested != null) RenderRequested(this, EventArgs.Empty);
+        }
+
+        public void RequestRender(object sender, EventArgs e)
+        {
+            if (RenderRequested != null) RenderRequested(sender, e);
         }
 
         public void RenderScene()
         {
-            lock (graphicsDeviceService9)
+            if (d3dImage == null) return;
+            d3dImage.Lock();
+            if (BeginDraw())
             {
-                d3dImage.Lock();
-                string beginDrawError = BeginDraw();
-                if (string.IsNullOrEmpty(beginDrawError))
-                {
-                    // Draw is overriden in derived classes
-                    Draw();
-                    EndDraw();
-                }
-                if (d3dImage.IsFrontBufferAvailable)
-                {
-                    d3dImage.AddDirtyRect(new Int32Rect(0, 0, viewportWidth, viewportHeight));
-                    d3dImage.Unlock();
-                }
+                // Draw is overriden in derived classes
+                Draw();
+                EndDraw();
+            }
+            if (d3dImage.IsFrontBufferAvailable)
+            {
+                d3dImage.AddDirtyRect(new Int32Rect(0, 0, viewportWidth, viewportHeight));
+                d3dImage.Unlock();
             }
         }
 
         /// <summary>
-        /// Attempts to begin drawing the control. Returns an error message string
-        /// if this was not possible, which can happen if the graphics device is
-        /// lost, or if we are running inside the Form designer.
+        /// Attempts to begin drawing the control. Returns false if this was not possible.
         /// </summary>
-        string BeginDraw()
+        private bool BeginDraw()
         {
             // Make sure the graphics device is big enough, and is not lost.
+            if (HandleDeviceResetAndSizeChanged() != ResizeResetResult.OK) return false;
 
-            string deviceResetError = "";
-            deviceResetError = HandleDeviceResetAndSizeChanged();
-
-            if (!string.IsNullOrEmpty(deviceResetError))
-            {
-                return deviceResetError;
-            }
-
-            // Multiples GraphicsDeviceControl instances can share the same
-            // GraphicsDevice. The device backbuffer will be resized to fit the
-            // largest of these controls. But what if we are currently drawing
-            // a smaller control? To avoid unwanted stretching, we set the
-            // viewport to only use the top left portion of the full backbuffer.
+            // Multiple DirectImage instances can share the same device. The viewport is adjusted
+            // for when a smaller DirectImage is rendering.
             if (surfaceType == SurfaceType.DirectX9)
             {
                 Viewport viewport = new Viewport();
@@ -413,88 +320,76 @@ namespace IronPlot
                 viewport2D.Width = viewportWidth;
                 graphicsDeviceService10.SetViewport(viewport2D);
             }
-
-            return null;
+            return true;
         }
 
         /// <summary>
         /// Ends drawing the control. This is called after derived classes
-        /// have finished their Draw method, and is responsible for presenting
-        /// the finished image onto the ImageBrush.
+        /// have finished their Draw method.
         /// </summary>
-        void EndDraw()
+        private void EndDraw()
         {
-            try
+            if (surfaceType == SurfaceType.DirectX9) 
             {
-                graphicsDeviceService9.GraphicsDevice.Present();
-                //if (result.Name == "S_PRESENT_MODE_CHANGED")
-                //{
-                //    ResetDevice();
-                    //RecreateD3DImage();
-                //}
-            }
-            catch
-            {
-                // Present might throw if the device became lost while we were
-                // drawing. The lost device will be handled by the next BeginDraw,
-                // so we just swallow the exception.
+                try
+                {
+                    graphicsDeviceService9.GraphicsDevice.Present();
+                }
+                catch
+                { 
+                    // Present might throw if the device became lost while we were
+                    // drawing. The lost device will be handled by the next BeginDraw,
+                    // so we just swallow the exception.
+                }
             }
         }
 
         /// <summary>
         /// Helper used by BeginDraw. This checks the graphics device status,
         /// making sure it is big enough for drawing the current control, and
-        /// that the device is not lost. Returns an error string if the device
-        /// could not be reset.
+        /// that the device is not lost.
         /// </summary>
-        string HandleDeviceResetAndSizeChanged()
+        private ResizeResetResult HandleDeviceResetAndSizeChanged()
         {
-            bool deviceNeedsReset = false;
             viewportWidth = (int)(Math.Max(imageWidth * 1, 1) * pixelsPerDIPixel);
             viewportHeight = (int)(Math.Max(imageHeight * 1, 1) * pixelsPerDIPixel);
+            if (surfaceType == SurfaceType.DirectX9)
+            {
+                bool device9NeedsReset = false;
 
-            if (GraphicsDevice.TestCooperativeLevel() == ResultCode.DeviceLost)
-            {
-                return "Graphics device lost";
-            }
-            else if (GraphicsDevice.TestCooperativeLevel() == ResultCode.DeviceNotReset)
-            {
-                deviceNeedsReset = true;
-            }
-            else
-            {
-                // If the device state is ok, check whether it is big enough.
-                if ((viewportWidth > bufferWidth) || (viewportHeight > bufferHeight))
+                if (GraphicsDevice.TestCooperativeLevel() == ResultCode.DeviceLost) return ResizeResetResult.D3D9DeviceLost;
+
+                else if (GraphicsDevice.TestCooperativeLevel() == ResultCode.DeviceNotReset) device9NeedsReset = true;
+                else if ((viewportWidth > bufferWidth) || (viewportHeight > bufferHeight)) device9NeedsReset = true;
+                if (device9NeedsReset)
                 {
-                    if (surfaceType == SurfaceType.DirectX9) deviceNeedsReset = true;
-                    if (surfaceType == SurfaceType.Direct2D)
+                    try
                     {
-                        requestedWidth = (int)(viewportWidth * 1.1);
-                        requestedHeight = (int)(viewportHeight * 1.1);
-                        graphicsDeviceService10.ResizeDevice(requestedWidth, requestedHeight);
-                        if (bufferWidth < requestedWidth)
-                        {
-
-                        }
+                        ResetDevice();
+                    }
+                    catch
+                    {
+                        return ResizeResetResult.D3D9ResetFailed;
                     }
                 }
-                if (surfaceType == SurfaceType.Direct2D)
+                if (afterResizeReset || device9NeedsReset)
                 {
+                    AfterResizeReset();
+                    afterResizeReset = false;
                 }
             }
-            // Do we need to reset the device?
-            if (deviceNeedsReset)
+            else if (surfaceType == SurfaceType.Direct2D)
             {
-                try
+                if ((viewportWidth > bufferWidth) || (viewportHeight > bufferHeight))
                 {
-                    ResetDevice();
+                    requestedWidth = (int)(viewportWidth * 1.1);
+                    requestedHeight = (int)(viewportHeight * 1.1);
+                    graphicsDeviceService10.ResizeDevice(requestedWidth, requestedHeight);
+                    AfterResizeReset();
                 }
-                catch (Exception e)
-                {
-                    return "Graphics device reset failed\n\n" + e;
-                }
+                else if (afterResizeReset) AfterResizeReset();
             }
-            return null;
+            return ResizeResetResult.OK;
         }
 
         int requestedWidth, requestedHeight;
@@ -507,23 +402,32 @@ namespace IronPlot
                           bufferHeight);
         }
 
-        protected void graphicsDeviceService_DeviceResetting(object sender, EventArgs e)
+        protected void graphicsDeviceService9_DeviceReset(object sender, EventArgs e)
         {
-            ReleaseBackBuffer();
-            if (backBufferSurface != null && !backBufferSurface.IsDisposed)
-            {
-                backBufferSurface.Dispose();
-                backBufferSurface = null;
-            }
+            afterResizeReset = true;
         }
 
-        protected void graphicsDeviceService_DeviceReset(object sender, EventArgs e)
+        void graphicsDeviceService10_DeviceResized(object sender, EventArgs e)
         {
-            bufferWidth = graphicsDeviceService9.PresentParameters.BackBufferWidth; 
-            bufferHeight = graphicsDeviceService9.PresentParameters.BackBufferHeight;
-            SetBackBuffer();
-            imageBrush.Viewbox = new Rect(0, 0, (double)viewportWidth / (double)bufferWidth, (double)viewportHeight / (double)bufferHeight);
-            renderRequired = true;
+            afterResizeReset = true;
+        }
+
+        private void AfterResizeReset()
+        {
+            if (surfaceType == SurfaceType.DirectX9)
+            {
+                bufferWidth = graphicsDeviceService9.PresentParameters.BackBufferWidth;
+                bufferHeight = graphicsDeviceService9.PresentParameters.BackBufferHeight;
+                SetBackBuffer();
+                imageBrush.Viewbox = new Rect(0, 0, (double)viewportWidth / (double)bufferWidth, (double)viewportHeight / (double)bufferHeight);
+            }
+            else
+            {
+                bufferWidth = graphicsDeviceService10.Width;
+                bufferHeight = graphicsDeviceService10.Height;
+                SetBackBuffer(graphicsDeviceService10.Texture9);
+                UpdateImageBrush();
+            }
         }
 
         public void OnSizeChanged(Object sender, SizeChangedEventArgs e)
@@ -546,7 +450,6 @@ namespace IronPlot
             imageBrush.TileMode = TileMode.None;
             imageBrush.Stretch = Stretch.Fill;
             imageBrush.SetValue(RenderOptions.BitmapScalingModeProperty, BitmapScalingMode.HighQuality);
-            //renderRequired = true;
         }
 
         protected virtual void Initialize()
