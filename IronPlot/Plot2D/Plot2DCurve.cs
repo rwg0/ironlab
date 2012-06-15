@@ -7,28 +7,13 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using System.Windows.Shapes;
-using System.Windows.Xps;
-using System.Printing;
-using System.Threading;
-using System.Windows.Threading;
 using System.ComponentModel;
-#if ILNumerics
-using ILNumerics;
-using ILNumerics.Storage;
-using ILNumerics.BuiltInFunctions;
-using ILNumerics.Exceptions;
-#endif
 
 namespace IronPlot
 {   
-    public enum MarkersType { None, Square, Circle, Triangle };
-
     public class Plot2DCurve : Plot2DItem
     {
         //VisualLine visualLine;
@@ -40,6 +25,7 @@ namespace IronPlot
         private PlotPath markers;
         private PlotPath legendLine;
         private PlotPath legendMarker;
+        //private MarkersVisualHost markersVisual = new MarkersVisualHost();
         private LegendItem legendItem;
 
         // An annotation marker for displaying coordinates of a position.
@@ -100,10 +86,22 @@ namespace IronPlot
             new PropertyMetadata(new Point(Double.NaN, Double.NaN),
                 OnAnnotationPositionChanged));
 
-        public static readonly DependencyProperty AnnotationPositionStringProperty =
-            DependencyProperty.Register("AnnotationPositionStringProperty",
-            typeof(string), typeof(Plot2DCurve),
-            new PropertyMetadata("Test"));
+        public static readonly DependencyProperty AnnotationEnabledProperty =
+            DependencyProperty.Register("AnnotationEnabledProperty",
+            typeof(bool), typeof(Plot2DCurve),
+            new PropertyMetadata(true,
+                OnAnnotationEnabledChanged));
+
+        public static readonly DependencyProperty UseDirect2DProperty =
+            DependencyProperty.Register("UseDirect2DProperty",
+            typeof(bool), typeof(Plot2DCurve),
+            new PropertyMetadata(false, OnUseDirect2DChanged));
+
+        /// <summary>
+        /// Desired annotation mapping goes here.
+        /// </summary>
+        public Func<Point, string> AnnotationFromPoint = (point => point.ToString());
+        //public Func<Point, string> AnnotationFromPoint = (point => String.Format("{0:F},{0:F}", point.X, point.Y));
 
         /// <summary>
         /// Get or set line in <line><markers><colour> notation, e.g. --sr for dashed red line with square markers
@@ -192,13 +190,13 @@ namespace IronPlot
             get { return (Point)GetValue(AnnotationPositionProperty); }
         }
 
-        public string AnnotationPositionString
+        public bool AnnotationEnabled
         {
             set
             {
-                SetValue(AnnotationPositionStringProperty, value);
+                SetValue(AnnotationEnabledProperty, value);
             }
-            get { return (string)GetValue(AnnotationPositionStringProperty); }
+            get { return (bool)GetValue(AnnotationEnabledProperty); }
         }
 
         protected static void OnMarkersChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
@@ -223,18 +221,26 @@ namespace IronPlot
         {
             Point canvasPosition = (Point)e.NewValue;
             Plot2DCurve localCurve = (Plot2DCurve)obj;
-            if (Double.IsNaN(canvasPosition.X)) localCurve.annotation.Visibility = Visibility.Collapsed;
+            if (Double.IsNaN(canvasPosition.X) || !localCurve.AnnotationEnabled)
+            {
+                localCurve.annotation.Visibility = Visibility.Collapsed;
+                return;
+            }
             else localCurve.annotation.Visibility = Visibility.Visible;
-            Point curveCanvas = localCurve.SnappedCanvasPoint(canvasPosition);
+            int index;
+            Point curveCanvas = localCurve.SnappedCanvasPoint(canvasPosition, out index);
+            localCurve.annotation.Annotation = localCurve.AnnotationFromPoint(new Point(localCurve.curve.x[index], localCurve.curve.y[index]));
             localCurve.annotation.SetValue(Canvas.LeftProperty, curveCanvas.X);
             localCurve.annotation.SetValue(Canvas.TopProperty, curveCanvas.Y);
             localCurve.annotation.InvalidateVisual();
         }
 
-        public static readonly DependencyProperty UseDirect2DProperty =
-            DependencyProperty.Register("UseDirect2DProperty",
-            typeof(bool), typeof(Plot2DCurve),
-            new PropertyMetadata(false, OnUseDirect2DChanged));
+        protected static void OnAnnotationEnabledChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
+        {
+            Plot2DCurve localCurve = (Plot2DCurve)obj;
+            if ((bool)e.NewValue == false) localCurve.annotation.Visibility = Visibility.Collapsed; 
+        }
+
         #endregion
 
         private Curve curve;
@@ -247,7 +253,6 @@ namespace IronPlot
                 try
                 {
                     RemoveElements((bool)GetValue(UseDirect2DProperty));
-                    Plot.Legend.Items.Remove(legendItem);
                     this.host = host;
                     BindingOperations.ClearBinding(this, Plot2DCurve.UseDirect2DProperty);
                 }
@@ -264,9 +269,6 @@ namespace IronPlot
                 // Add binding:
                 bindingDirect2D = new Binding("UseDirect2DProperty") { Source = host, Mode = BindingMode.OneWay };
                 BindingOperations.SetBinding(this, Plot2DCurve.UseDirect2DProperty, bindingDirect2D);
-                // Add lines and markers (according to whether we are using Direct2D):
-                // Add legend:
-                Plot.Legend.Items.Add(legendItem);
             }
             SetBounds();
         }
@@ -276,7 +278,7 @@ namespace IronPlot
         {
             if ((bool)GetValue(UseDirect2DProperty) == false)
             {   
-                line.Data = curve.ToPathGeometry(null);
+                line.Data = LineGeometries.PathGeometryFromCurve(curve, null);
                 line.SetValue(Canvas.ZIndexProperty, 200);
                 line.Data.Transform = graphToCanvas;
                 markers.SetValue(Canvas.ZIndexProperty, 200);
@@ -289,15 +291,12 @@ namespace IronPlot
                 host.direct2DControl.AddPath(markersD2D);
                 markersD2D.GraphToCanvas = graphToCanvas;
             }
+            Plot.Legend.Items.Add(legendItem);
             annotation.SetValue(Canvas.ZIndexProperty, 201);
             annotation.Visibility = Visibility.Collapsed;
             host.Canvas.Children.Add(annotation);
             //
             UpdateLegendMarkers();
-        }
-
-        void line_PreviewMouseMove(object sender, MouseEventArgs e)
-        {
         }
 
         private void RemoveElements(bool removeDirect2DComponents)
@@ -312,6 +311,7 @@ namespace IronPlot
                 host.Canvas.Children.Remove(line);
                 host.Canvas.Children.Remove(markers);
             }
+            Plot.Legend.Items.Remove(legendItem);
             host.Canvas.Children.Remove(annotation);
         }
 
@@ -340,16 +340,7 @@ namespace IronPlot
             //
             annotation = new PlotPointAnnotation();
             //
-            legendLine = new PlotPath();
-            legendMarker = new PlotPath();
-            legendMarker.HorizontalAlignment = HorizontalAlignment.Center; legendMarker.VerticalAlignment = VerticalAlignment.Center;
-            legendLine.HorizontalAlignment = HorizontalAlignment.Center; legendLine.VerticalAlignment = VerticalAlignment.Center;
-            legendLine.Data = new LineGeometry(new Point(0, 0), new Point(30, 0));
-            legendItem = new LegendItem();
-            Grid legendItemGrid = new Grid();
-            legendItemGrid.Children.Add(legendLine);
-            legendItemGrid.Children.Add(legendMarker);
-            legendItem.Content = legendItemGrid;
+            legendItem = CreateLegendItem();
             //
             // Name binding
             Binding titleBinding = new Binding("TitleProperty") { Source = this, Mode = BindingMode.OneWay };
@@ -361,6 +352,21 @@ namespace IronPlot
             BindToThis(markers, true, false);
             BindToThis(markersD2D, true, false);
             BindToThis(legendMarker, true, false);
+        }
+
+        protected virtual LegendItem CreateLegendItem()
+        {
+            LegendItem legendItem = new LegendItem();
+            Grid legendItemGrid = new Grid();
+            legendLine = new PlotPath();
+            legendMarker = new PlotPath();
+            legendMarker.HorizontalAlignment = HorizontalAlignment.Center; legendMarker.VerticalAlignment = VerticalAlignment.Center;
+            legendLine.HorizontalAlignment = HorizontalAlignment.Center; legendLine.VerticalAlignment = VerticalAlignment.Center;
+            legendLine.Data = new LineGeometry(new Point(0, 0), new Point(30, 0));
+            legendItemGrid.Children.Add(legendLine);
+            legendItemGrid.Children.Add(legendMarker);
+            legendItem.Content = legendItemGrid;
+            return legendItem;
         }
 
         protected static void OnUseDirect2DChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
@@ -386,21 +392,20 @@ namespace IronPlot
             {
                 lineD2D.Geometry = curve.ToDirect2DPathGeometry(lineD2D.Factory, graphToCanvas);
                 markersD2D.SetGeometry((MarkersType)GetValue(MarkersTypeProperty), (double)GetValue(MarkersSizeProperty));
-                host.direct2DControl.RequestRender();
+                //host.direct2DControl.RequestRender();
             }
             else
             {
-                line.Data = Curve.ToPathGeometry(graphToCanvas);
-                markers.Data = curve.MarkersAsGeometry(graphToCanvas, (MarkersType)GetValue(MarkersTypeProperty), (double)GetValue(MarkersSizeProperty));
+                line.Data = LineGeometries.PathGeometryFromCurve(curve, graphToCanvas);
+                markers.Data = MarkerGeometries.MarkersAsGeometry(Curve, graphToCanvas, (MarkersType)GetValue(MarkersTypeProperty), (double)GetValue(MarkersSizeProperty));
             }
             Point annotationPoint = graphToCanvas.Transform(new Point(curve.xTransformed[0], curve.yTransformed[0]));
             annotation.SetValue(Canvas.TopProperty, annotationPoint.Y); annotation.SetValue(Canvas.LeftProperty, annotationPoint.X);
         }
 
-        internal Point SnappedCanvasPoint(Point canvasPoint)
+        internal Point SnappedCanvasPoint(Point canvasPoint, out int index)
         {
-            int index = CurveIndexFromCanvasPoint(canvasPoint);
-            annotation.Annotation = curve.x[index].ToString() + "," + curve.y[index].ToString();
+            index = CurveIndexFromCanvasPoint(canvasPoint);
             return graphToCanvas.Transform(new Point(curve.xTransformed[index], curve.yTransformed[index]));
         }
 
@@ -492,7 +497,7 @@ namespace IronPlot
                 case MarkersType.Circle:
                     lineProperty += "o";
                     break;
-                case MarkersType.Triangle:
+                case MarkersType.TrianglePointUp:
                     lineProperty += "^";
                     break;
             }
@@ -527,7 +532,7 @@ namespace IronPlot
             if (lineProperty.Length >= currentIndex + 1) marker = lineProperty.Substring(currentIndex, 1);
             if (marker == "s") { SetValue(MarkersTypeProperty, MarkersType.Square); currentIndex++; }
             else if (marker == "o") { SetValue(MarkersTypeProperty, MarkersType.Circle); currentIndex++; }
-            else if (marker == "^") { SetValue(MarkersTypeProperty, MarkersType.Triangle); currentIndex++; }
+            else if (marker == "^") { SetValue(MarkersTypeProperty, MarkersType.TrianglePointUp); currentIndex++; }
             else SetValue(MarkersTypeProperty, MarkersType.None);
             //
             // If no line and no marker, assume solid line
@@ -589,33 +594,9 @@ namespace IronPlot
 
         internal void UpdateLegendMarkers()
         {
-            legendMarker.Data = curve.LegendMarkerGeometry((MarkersType)GetValue(MarkersTypeProperty), (double)GetValue(MarkersSizeProperty));
-        }
-    }
-
-    public static class MarkerGeometries
-    {
-        public static Geometry RectangleMarker(double width, double height, Point centre)
-        {
-            return new RectangleGeometry(new Rect(centre.X - width / 2, centre.Y - height / 2, width, height));
-        }
-
-        public static Geometry EllipseMarker(double width, double height, Point centre)
-        {
-            return new EllipseGeometry(new Rect(centre.X - width / 2, centre.Y - height / 2, width, height));
-        }
-
-        public static Geometry TriangleMarker(double width, double height, Point centre)
-        {
-            StreamGeometry geometry = new StreamGeometry();
-            using (StreamGeometryContext ctx = geometry.Open())
-            {
-                ctx.BeginFigure(new Point(centre.X, centre.Y + height / 2), false /* is filled */, true /* is closed */);
-                ctx.LineTo(new Point(centre.X + width / 2, centre.Y - height / 2), true /* is stroked */, false /* is smooth join */);
-                ctx.LineTo(new Point(centre.X - width / 2, centre.Y - height / 2), true /* is stroked */, false /* is smooth join */);
-            }
-            geometry.Freeze();
-            return geometry;
+            double markersSize = (double)GetValue(MarkersSizeProperty);
+            legendMarker.Data = MarkerGeometries.LegendMarkerGeometry((MarkersType)GetValue(MarkersTypeProperty), markersSize);
+            if (legendMarker.Data != null) legendMarker.Data.Transform = new TranslateTransform(markersSize / 2, markersSize / 2);
         }
     }
 }

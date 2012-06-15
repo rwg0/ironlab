@@ -158,17 +158,19 @@
     <Compile Include="Plot2D\Direct2D\Direct2DImage.cs" />
     <Compile Include="Plot2D\Direct2D\DirectPath.cs" />
     <Compile Include="Plot2D\Direct2D\DirectPathScatter.cs" />
+    <Compile Include="Plot2D\Geometries\LineGeometries.cs" />
+    <Compile Include="Plot2D\Geometries\MarkerGeometries.cs" />
+    <Compile Include="Plot2D\Geometries\MarkerGeometriesD2D.cs" />
+    <Compile Include="Plot2D\Geometries\MarkersVisualHost.cs" />
     <Compile Include="Plot2D\GridLines.cs" />
     <Compile Include="Plot2D\IBoundable.cs" />
     <Compile Include="Plot2D\AxisCanvas.cs" />
     <Compile Include="Plot2D\Plot2DGrid.cs" />
     <Compile Include="Plot2D\PlotPath.cs" />
-    <Compile Include="Plot2D\Lines.cs" />
     <Compile Include="Plot2D\Plot2D.xaml.cs">
       <DependentUpon>Plot2D.xaml</DependentUpon>
     </Compile>
     <Compile Include="Plot2D\PlotPointAnnotation.cs" />
-    <Compile Include="Plot2D\VisualLine.cs" />
     <Compile Include="Plot2D\Plot2DCurve.cs" />
     <Compile Include="Plot2D\Plot2DImage.cs" />
     <Compile Include="Plot2D\Plot2DItem.cs" />

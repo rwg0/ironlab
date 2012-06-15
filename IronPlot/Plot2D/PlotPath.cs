@@ -132,7 +132,5 @@ namespace IronPlot
                 ((PlotPath)obj).SetValue(StrokeDashCapProperty, PenLineCap.Square);
             }
         }
-
-
     }
 }

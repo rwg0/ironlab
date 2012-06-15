@@ -53,7 +53,7 @@ namespace IronPlot
         }
 
         public void SetGeometry(MarkersType markersType, double markersSize)
-        {
+        { 
             if (Geometry != null)
             {
                 Geometry.Dispose();
@@ -62,42 +62,9 @@ namespace IronPlot
             if (Factory == null) return;
             float width = (float)Math.Abs(markersSize);
             float height = (float)Math.Abs(markersSize);
-            this.xOffsetMarker = width / 2;
-            this.yOffsetMarker = height / 2;
-            switch (markersType)
-            {
-                case MarkersType.None:
-                    break;
-                case MarkersType.Square:
-                    this.Geometry = new RectangleGeometry(Factory, new System.Drawing.RectangleF()
-                        {
-                            X = 0,
-                            Y = 0,
-                            Width = width,
-                            Height = height
-                        });
-                    break;
-                case MarkersType.Circle:
-                    this.Geometry = new EllipseGeometry(Factory, new Ellipse()
-                       {
-                           Point = new System.Drawing.PointF(width / 2, height / 2),
-                           RadiusX = width / 2,
-                           RadiusY = height / 2,
-                       });
-                    break;
-                case MarkersType.Triangle:
-                    this.Geometry = new PathGeometry(Factory);
-                    using (GeometrySink sink = (Geometry as PathGeometry).Open())
-                    {
-                        PointF p0 = new PointF(width / 2, height);
-                        sink.BeginFigure(p0, FigureBegin.Hollow);
-                        sink.AddLine(new PointF(width, 0f));
-                        sink.AddLine(new PointF(0f, 0f));
-                        sink.EndFigure(FigureEnd.Closed);
-                        sink.Close();
-                    }
-                    break;
-            }
+            this.xOffsetMarker = 0; // width / 2;
+            this.yOffsetMarker = 0; // height / 2;
+            Geometry = MarkerGeometriesD2D.MarkerGeometry(markersType, Factory, width, height);
            
         }
     }

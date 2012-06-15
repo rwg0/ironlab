@@ -113,11 +113,6 @@
             <Setter.Value>
                 <ControlTemplate TargetType="local:PlotPointAnnotation">
                     <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
-                        <!--
-                        <Path Data="M3,2 L1,3 L1.5,2 L1,1 z" Stretch="Fill" Fill="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Curve.Stroke}" Stroke="Black" Width="20" Height="20"/>
-                        -->
-                        <!-- {Binding RelativeSource={RelativeSource TemplatedParent} -->
-                        <!-- {Binding RelativeSource={RelativeSource AncestorType={x:Type local:PlotPointAnnotation}}-->
                         <TextBlock Text="{TemplateBinding Annotation}"></TextBlock>
                     </Border>
                 </ControlTemplate>

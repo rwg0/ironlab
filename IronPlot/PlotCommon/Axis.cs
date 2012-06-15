@@ -82,7 +82,7 @@ namespace IronPlot
 
     }
 
-    public class FormatOverrides
+    public static class FormatOverrides
     {
         public static Func<double, string> Currency = value => value.ToString("N");
         //public static Func<double, string> Currency = value => value.ToString("N");
@@ -151,10 +151,9 @@ namespace IronPlot
             DependencyProperty.Register("TicksVisibleProperty",
             typeof(bool), typeof(Axis), new PropertyMetadata(true));
 
-        // TODO
-        //public static DependencyProperty TicksOverrideProperty =
-        //    DependencyProperty.Register("TicksOverrideProperty",
-        //    typeof(IEnumerable<double>), typeof(Axis), new PropertyMetadata());
+        public static DependencyProperty FormatOverrideProperty =
+            DependencyProperty.Register("FormatOverrideProperty",
+            typeof(Func<double, string>), typeof(Axis), new PropertyMetadata(null));
 
         public double[] TicksOverride
         {
@@ -184,6 +183,9 @@ namespace IronPlot
             get { return (int)GetValue(NumberOfTicksProperty); }
         }
 
+        /// <summary>
+        /// Tick length; this may also be negative.
+        /// </summary>
         public double TickLength
         {
             set { SetValue(TickLengthProperty, value); }
@@ -202,7 +204,11 @@ namespace IronPlot
             get { return (bool)GetValue(TicksVisibleProperty); }
         }
 
-        public Func<double, string> FormatOverride { get; set; }
+        public Func<double, string> FormatOverride
+        {
+            set { SetValue(FormatOverrideProperty, value); }
+            get { return (Func<double, string>)GetValue(FormatOverrideProperty); }
+        }
 
         public abstract double Min { get; set; }
 

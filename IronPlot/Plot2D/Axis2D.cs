@@ -231,6 +231,7 @@ namespace IronPlot
             Axis2D.TickLengthProperty.OverrideMetadata(typeof(Axis2D), new PropertyMetadata(5.0, OnTicksPropertyChanged));
             Axis2D.TicksVisibleProperty.OverrideMetadata(typeof(Axis2D), new PropertyMetadata(true, OnTicksPropertyChanged));
             Axis2D.NumberOfTicksProperty.OverrideMetadata(typeof(Axis2D), new PropertyMetadata(10, OnTicksPropertyChanged));
+            Axis2D.FormatOverrideProperty.OverrideMetadata(typeof(Axis2D), new PropertyMetadata(null, OnTicksPropertyChanged));
         }
 
         protected override System.Windows.Size MeasureOverride(System.Windows.Size constraint)

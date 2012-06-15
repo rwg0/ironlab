@@ -38,6 +38,7 @@ namespace IronPlot
             TextBlock currentTextBlock;
             int missOut = 0, missOutMax = 0;
             double currentRight, lastRight = Double.NegativeInfinity;
+            double tickOffset = TicksVisible ? Math.Max(TickLength, 0.0) : 0;
             // Go through ticks in order of increasing Canvas coordinate.
             for (int i = 0; i < TicksTransformed.Length; ++i)
             {
@@ -47,11 +48,11 @@ namespace IronPlot
                 currentTextBlock.SetValue(Canvas.LeftProperty, currentRight - currentTextBlock.DesiredSize.Width);
                 if ((XAxisPosition)GetValue(XAxisPositionProperty) == XAxisPosition.Bottom)
                 {
-                    currentTextBlock.SetValue(Canvas.TopProperty, yPosition + Math.Max(TickLength, 0.0));
+                    currentTextBlock.SetValue(Canvas.TopProperty, yPosition + tickOffset);
                 }
                 else
                 {
-                    currentTextBlock.SetValue(Canvas.TopProperty, yPosition - Math.Max(TickLength, 0.0) - currentTextBlock.DesiredSize.Height);
+                    currentTextBlock.SetValue(Canvas.TopProperty, yPosition - tickOffset - currentTextBlock.DesiredSize.Height);
                 }
                 if ((currentRight - currentTextBlock.DesiredSize.Width * 1.25) < lastRight)
                 {
@@ -130,16 +131,16 @@ namespace IronPlot
             }
             lineContext.Close();
             
+            StreamGeometryContext ticksContext = axisTicksGeometry.Open();
             if (TicksVisible)
             {
-                StreamGeometryContext ticksContext = axisTicksGeometry.Open();
                 for (int i = 0; i < TicksTransformed.Length; ++i)
                 {
                     tickPosition = TickStartPosition(i);
                     ticksContext.BeginFigure(tickPosition, false, false);
                     if (position == XAxisPosition.Bottom)
                     {
-                        tickPosition.Y = tickPosition.Y + TickLength;    
+                        tickPosition.Y = tickPosition.Y + TickLength;
                     }
                     if (position == XAxisPosition.Top)
                     {
@@ -150,8 +151,9 @@ namespace IronPlot
                     tickPosition.Y = tickPosition.Y;
                     ticksContext.LineTo(tickPosition, true, false);
                 }
-                ticksContext.Close();
             }
+            ticksContext.Close();
+            
             interactionPad.Width = Math.Max(AxisTotalLength - AxisPadding.Total(), 1);
             interactionPad.Height = AxisThickness;
             if (position == XAxisPosition.Bottom) interactionPad.SetValue(Canvas.TopProperty, yPosition);

@@ -13,7 +13,6 @@ namespace IronPlot
     /// <summary>
     /// Represents a control that displays a list of items and has a title.
     /// </summary>
-    /// <QualityBand>Preview</QualityBand>
     [StyleTypedProperty(Property = "ItemContainerStyle", StyleTargetType = typeof(ContentPresenter))]
     [StyleTypedProperty(Property = "TitleStyle", StyleTargetType = typeof(Title))]
     public partial class Legend : HeaderedItemsControl

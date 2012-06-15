@@ -23,8 +23,8 @@ namespace IronPlot
             using (GeometrySink sink = geometry.Open())
             {
 
-                float xCanvas = (float)(x[0] * xScale + xOffset);
-                float yCanvas = (float)(y[0] * yScale + yOffset);
+                float xCanvas = (float)(xTransformed[0] * xScale + xOffset);
+                float yCanvas = (float)(yTransformed[0] * yScale + yOffset);
                 PointF p0 = new PointF(xCanvas, yCanvas);
 
                 sink.BeginFigure(p0, FigureBegin.Hollow);
@@ -32,8 +32,8 @@ namespace IronPlot
                 {
                     if (includeLinePoint[i])
                     {
-                        xCanvas = (float)(x[i] * xScale + xOffset);
-                        yCanvas = (float)(y[i] * yScale + yOffset);
+                        xCanvas = (float)(xTransformed[i] * xScale + xOffset);
+                        yCanvas = (float)(yTransformed[i] * yScale + yOffset);
                         sink.AddLine(new PointF(xCanvas, yCanvas));
                     }
                 }

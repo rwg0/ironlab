@@ -39,6 +39,7 @@ namespace IronPlot
             int missOut = 0, missOutMax = 0;
             double currentTop, lastTop = Double.PositiveInfinity;
             double verticalOffset;
+            double tickOffset = TicksVisible ? Math.Max(TickLength, 0.0) : 0;
             // Go through ticks in order of decreasing Canvas coordinate
             for (int i = 0; i < TicksTransformed.Length; ++i)
             {
@@ -51,12 +52,12 @@ namespace IronPlot
                 if ((YAxisPosition)GetValue(YAxisPositionProperty) == YAxisPosition.Left)
                 {
                     currentTextBlock.TextAlignment = TextAlignment.Right;
-                    currentTextBlock.SetValue(Canvas.LeftProperty, xPosition - currentTextBlock.DesiredSize.Width - Math.Max(TickLength, 0.0) - 3);
+                    currentTextBlock.SetValue(Canvas.LeftProperty, xPosition - currentTextBlock.DesiredSize.Width - tickOffset - 3);
                 }
                 else
                 {
                     currentTextBlock.TextAlignment = TextAlignment.Left;
-                    currentTextBlock.SetValue(Canvas.LeftProperty, xPosition + Math.Max(TickLength, 0.0) + 3);
+                    currentTextBlock.SetValue(Canvas.LeftProperty, xPosition + tickOffset + 3);
                 }
 
                 if ((currentTop + currentTextBlock.DesiredSize.Height) > lastTop)
@@ -136,9 +137,9 @@ namespace IronPlot
             }
             lineContext.Close();
 
+            StreamGeometryContext context = axisTicksGeometry.Open();
             if (TicksVisible)
             {
-                StreamGeometryContext context = axisTicksGeometry.Open();
                 for (int i = 0; i < Ticks.Length; ++i)
                 {
                     if (position == YAxisPosition.Left)
@@ -156,8 +157,9 @@ namespace IronPlot
                         context.LineTo(tickPosition, true, false);
                     }
                 }
-                context.Close();
             }
+            context.Close();
+            
             interactionPad.Height = AxisTotalLength - AxisPadding.Total();
             interactionPad.Width = AxisThickness;
             if (position == YAxisPosition.Left) interactionPad.SetValue(Canvas.LeftProperty, xPosition - AxisThickness);
