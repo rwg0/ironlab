@@ -1,14 +1,14 @@
 ﻿# Try running all at once, or running one line at a time to see graph update.
 
-from math import *
+import numpy as np
 from ironplot import * 
 
-x = [0.1 * i for i in range(100)]
+x = np.arange(0,10,0.1)
 # Add a red line
 subplot(1, 2, 0)
-plot(x, [sin(xi) * xi **2 for xi in x], 'r')
+plot(x, np.sin(x) * x**2, 'r')
 subplot(1)
-curve1 = plot(x, [sin(xi) * xi **2 for xi in x], 'r')
+curve1 = plot(x, np.sin(x) * x**2, 'r')
 # curve1 is the line object, to get the plot object, we can use:
 plot1 = currentplot()
 # or we could also do plot1 = curve1.Plot
@@ -24,7 +24,7 @@ plot1.FontSize = 16
 curve1.StrokeThickness = 2
 curve1.Stroke = Brushes.Blue
 # Add another curve:
-curve2 = Plot2DCurve(x, [sin(xi * 1.5) * xi**2 for xi in x])
+curve2 = Plot2DCurve(x, np.sin(x * 1.5) * x**2)
 curve2.Title = "Test 2"
 plot1.Children.Add(curve2)
 plot1.Axes.XAxes.Bottom.TickLength = -10

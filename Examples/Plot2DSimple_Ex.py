@@ -1,7 +1,7 @@
-﻿import numpy as np
+﻿from math import *
 from ironplot import *
-x = np.arange(0, 10, 0.1)
-curve1 = plot(x, np.sin(x), 'r', Title="Line1")
+x = [i * 0.1 for i in range(100)]
+curve1 = plot(x, [sin(xi) for xi in x], 'r', Title="Line1")
 hold(True)
-curve2 = plot(x, np.cos(x), '-ob', Title="Line2")
+curve2 = plot(x, [cos(xi) for xi in x], '-ob', Title="Line2")
 hold(False)
