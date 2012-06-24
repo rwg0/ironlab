@@ -106,17 +106,7 @@ def image(*args, **kwargs):
 
     
 def getsize(array):
-    # try and treat as a System.Array[float] and failing that as a numpy.ndarray
-    dims = list()
-    if isinstance(array, floatarray):
-        for i in range(array.Rank):
-            dims.append(array.GetLength(i))
-    elif numpyAvailable and isinstance(array, np.ndarray):
-            dims = list(np.shape(array))
-    elif ilnumericsAvailable and isinstance(array, il.ILArray[float]):
-        for i in range(array.Dimensions.NumberOfDimensions):
-            dims.append(array.Dimensions[i])
-    return dims
+    return GeneralArray.GetDimensions(array)
     
 
 def plot3d(*args, **kwargs):
@@ -134,7 +124,6 @@ def plot3d(*args, **kwargs):
     else:
         # Add to current plot
         plot = PlotContext.CurrentPlot
-    dims = getsize(args[0])
     if len(args) == 1:
         plot.Viewport3D.Models.Add(Plotting3D.SurfaceModel3D(args[0]))
     elif len(args) == 3:
