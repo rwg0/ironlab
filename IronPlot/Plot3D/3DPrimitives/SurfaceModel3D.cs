@@ -152,14 +152,33 @@ namespace IronPlot.Plotting3D
 
         public SurfaceModel3D(IEnumerable<object> x, IEnumerable<object> y, IEnumerable<object> z)
         {
-            double[,] xa = GeneralArray.ToDoubleArray(x) as double[,];
-            double[,] ya = GeneralArray.ToDoubleArray(y) as double[,];
-            double[,] za = GeneralArray.ToDoubleArray(z) as double[,];
-            if ((xa == null) && (ya == null) && (za == null))
+            int[] xLengths = new int[3]; int[] yLengths = new int[3]; 
+            IEnumerable<double>[] imageEnumerators = new IEnumerable<double>[3];
+            IEnumerable<double>[] adjustedImageEnumerators = new IEnumerable<double>[3];
+
+            imageEnumerators[0] = GeneralArray.ToImageEnumerator(x, out xLengths[0], out yLengths[0]);
+            imageEnumerators[1] = GeneralArray.ToImageEnumerator(y, out xLengths[1], out yLengths[1]);
+            imageEnumerators[2] = GeneralArray.ToImageEnumerator(z, out xLengths[2], out yLengths[2]);
+            
+            int xLength = -1; int yLength = -1;
+            if (yLengths[0] == 0) xLength = xLengths[0];
+            if (yLengths[1] == 0) yLength = xLengths[1];
+            for (int i = 0; i < 3; ++i)
             {
-                throw new Exception("Not all inputs are recongised as two dimensional arrays.");
+                adjustedImageEnumerators[i] = imageEnumerators[i];
+                if (yLengths[i] != 0)
+                {
+                    if (xLength == -1) xLength = xLengths[i];
+                    else if (xLength != xLengths[i]) throw new ArgumentException("x dimensions are not consistent.");
+                    if (yLength == -1) yLength = yLengths[i];
+                    else if (yLength != yLengths[i]) throw new ArgumentException("y dimensions are not consistent.");
+                }
             }
-            InitializeSurface(xa, ya, za);
+            if (yLengths[0] == 0) adjustedImageEnumerators[0] = MathHelper.MeshGridX(imageEnumerators[0], yLength);
+            if (yLengths[1] == 0) adjustedImageEnumerators[1] = MathHelper.MeshGridY(imageEnumerators[1], xLength);
+            if (yLengths[2] == 0 && xLengths[2] != xLength * yLength) throw new ArgumentException("Wrong number of elements in z.");
+            
+            CreateMesh(adjustedImageEnumerators[0], adjustedImageEnumerators[1], adjustedImageEnumerators[2], xLength, yLength);
         }
 
         protected void InitializeSurface(double[] x, double[] y, double[,] z)

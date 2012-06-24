@@ -65,6 +65,15 @@ namespace IronPlot
             return array;
         }
 
+
+        public static IEnumerable<T> RepeatingEnumerator<T>(this IEnumerable<T> input, int repeatTimes)
+        {
+            for (int i = 0; i < repeatTimes; ++i)
+            {
+                foreach (T item in input) yield return item; 
+            }
+        }
+
         /// <summary>
         /// Get enumerator for 2D arrays.
         /// </summary>

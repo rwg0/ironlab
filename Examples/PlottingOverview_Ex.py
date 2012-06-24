@@ -1,26 +1,30 @@
 from ironplot import *
-from numpy import *
+from math import *
 
-x = arange(0, 10, 0.1)
+x = [i * 0.1 for i in range(100)]
 
 # Prepare 2x2 plot area
 subplot(2,2)
 
 # Solid line, circular marker, red
-plot(x, sin(x), '-or')
+plot(x, [sin(i) for i in x] , '-or')
 
 subplot(1)
 # Dashed blue line
-plot(x, cos(x), '--b')
+plot(x, [cos(i) for i in x], '--b')
 ylabel('cos(x)')
 
 subplot(2)
 # Dotted line, circular marker, red
-y = sin(x)
-y[y < 0] = 0.
+y = [sin(i) for i in x]
+for i in range(len(y)):
+	if y[i] < 0: y[i] = 0
+	
 plot(x, y, Stroke = Brushes.Pink)
 
 subplot(3)
 # Create and plot simple image
-[x,y] = mgrid[0:0.7:0.005, 0:1:0.005]
-image(exp(-x * -(y**2)))
+x = [i * 0.005 for i in range(140)]
+y = [i * 0.005 for i in range(200)]
+z = [[exp(-i * -(j**2)) for i in x] for j in y]
+image(z)

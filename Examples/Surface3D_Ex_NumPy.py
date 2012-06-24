@@ -1,16 +1,12 @@
+from numpy import *
 from ironplot import *
-from math import *
-x = [i*0.2 for i in range(75)]
-y = [i*0.2 for i in range(50)]
+[x, y] = mgrid[0:15:0.2, 0:10:0.2]
 window(5)
 tab(1)
-z = [[yj**2 * sin(xi) for yj in y] for xi in x]  
-# or could also have:
-#z = [yj**2 * sin(xi) for yj in y for xi in x]  
-plot3d(x, y, z)
+plot3d(x, y, y**2 * sin(x))
 p3d = currentplot()
 tab(2)
-image(x, y, z)
+image(y**2 * sin(x))
 
 # customize the plot:
 axes = p3d.Viewport3D.Axes

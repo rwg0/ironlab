@@ -1,11 +1,8 @@
-﻿from ironplot import *
-from math import *
-x = [i*0.01 for i in range(0, 1000)]
-y = [sin(i) * i**2 for i in x]
-dydx = map(lambda j, i: (j - i) / 0.01, y[1:], y[0:-1])
-
-#dydx = [(i2 - i) / 0.01 for (i2, i) in itertools.izip(y[1:], y[0:-1])]
-
+﻿import numpy as np
+from ironplot import *
+x = np.arange(0, 10, 0.01)
+y = np.sin(x) * x**2
+dydx = (y[1:] - y[0:-1]) / 0.01
 curve1 = plot(x, y, 'r', Title="Function")
 hold(True)
 curve2 = plot(x[0:-1], dydx, 'b', Title="Gradient")
@@ -20,5 +17,4 @@ plot1.Axes.YAxes.Right = newAxis
 curve2.YAxis = newAxis
 newAxis.Foreground = newAxis.AxisTicks.Stroke = Brushes.Blue
 plot1.Axes.YAxes.Left.Foreground = plot1.Axes.YAxes.Left.AxisTicks.Stroke = Brushes.Red
-
 
