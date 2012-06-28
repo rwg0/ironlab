@@ -12,8 +12,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IronPlot", "IronPlot\IronPl
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PlotSample", "PlotSample\PlotSample.csproj", "{3B78C624-4017-4934-886B-DCFB4BC97D5E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XamlToys", "XamlToys\XamlToys.csproj", "{D239E889-A0EE-4CEA-A804-4BE1A2BC3CC0}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -76,18 +74,6 @@ Global
 		{3B78C624-4017-4934-886B-DCFB4BC97D5E}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{3B78C624-4017-4934-886B-DCFB4BC97D5E}.Release|Win32.ActiveCfg = Release|Any CPU
 		{3B78C624-4017-4934-886B-DCFB4BC97D5E}.Release|x86.ActiveCfg = Release|Any CPU
-		{D239E889-A0EE-4CEA-A804-4BE1A2BC3CC0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D239E889-A0EE-4CEA-A804-4BE1A2BC3CC0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D239E889-A0EE-4CEA-A804-4BE1A2BC3CC0}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{D239E889-A0EE-4CEA-A804-4BE1A2BC3CC0}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{D239E889-A0EE-4CEA-A804-4BE1A2BC3CC0}.Debug|Win32.ActiveCfg = Debug|Any CPU
-		{D239E889-A0EE-4CEA-A804-4BE1A2BC3CC0}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{D239E889-A0EE-4CEA-A804-4BE1A2BC3CC0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D239E889-A0EE-4CEA-A804-4BE1A2BC3CC0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D239E889-A0EE-4CEA-A804-4BE1A2BC3CC0}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{D239E889-A0EE-4CEA-A804-4BE1A2BC3CC0}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{D239E889-A0EE-4CEA-A804-4BE1A2BC3CC0}.Release|Win32.ActiveCfg = Release|Any CPU
-		{D239E889-A0EE-4CEA-A804-4BE1A2BC3CC0}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -41,7 +41,6 @@ def plot(*args, **kwargs):
       curves = Plotting.Plot2D(*args)
       plot = curves[0].Plot
       plot.Padding = Thickness(10)
-      plot.Legend.Visibility = Visibility.Collapsed
       PlotContext.AddPlot(plot)
    else:
       # Add to current plot
@@ -135,16 +134,15 @@ def xlabel(arg):
    """ Set X-Axis label of current plot.
    """
    if isinstance(arg, str) and PlotContext.CurrentPlot != None:
-      PlotContext.CurrentPlot.BottomLabel.Visibility = Visibility.Visible 
-      PlotContext.CurrentPlot.BottomLabel.Text = arg
+      PlotContext.CurrentPlot.Axes.XAxes.Bottom.AxisLabel.Text = arg
 
     
 def ylabel(arg):
    """ Set Y-Axis label of current plot.
    """  
    if isinstance(arg, str) and PlotContext.CurrentPlot != None:
-      PlotContext.CurrentPlot.LeftLabel.Visibility = Visibility.Visible 
-      PlotContext.CurrentPlot.LeftLabel.Text = arg
+      PlotContext.CurrentPlot.Axes.YAxes.Left.AxisLabel.Text = arg
+      #PlotContext.CurrentPlot.LeftLabel.Text = arg
     
        
 def title(arg):

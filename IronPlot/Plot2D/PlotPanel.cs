@@ -92,10 +92,8 @@ namespace IronPlot
             }
             if (plotPanelLocal.UseDirect2D)
                 plotPanelLocal.Children.Add(plotPanelLocal.direct2DControl);
-            //plotPanelLocal.direct2DControl.Visibility = Visibility.Visible;
             else
                 plotPanelLocal.Children.Remove(plotPanelLocal.direct2DControl);
-                //plotPanelLocal.direct2DControl.Visibility = Visibility.Collapsed;
             plotPanelLocal.InvalidateMeasure();
         }
 
@@ -114,12 +112,12 @@ namespace IronPlot
             BackgroundCanvas.SetValue(Grid.ZIndexProperty, 50);
             Axes = new Axes2D(this);
 
-            LinearGradientBrush background = new LinearGradientBrush();
-            background.StartPoint = new Point(0, 0); background.EndPoint = new Point(1, 1);
-            background.GradientStops.Add(new GradientStop(Colors.White, 0.0));
-            background.GradientStops.Add(new GradientStop(Colors.LightGray, 1.0));
+            //LinearGradientBrush background = new LinearGradientBrush();
+            //background.StartPoint = new Point(0, 0); background.EndPoint = new Point(1, 1);
+            //background.GradientStops.Add(new GradientStop(Colors.White, 0.0));
+            //background.GradientStops.Add(new GradientStop(Colors.LightGray, 1.0));
             Canvas.Background = Brushes.Transparent;
-            BackgroundCanvas.Background = background;
+            BackgroundCanvas.Background = Brushes.White;
             direct2DControl = null;
             //
             if (!(this is ColourBarPanel)) this.AddInteractionEvents();

@@ -150,6 +150,16 @@ namespace IronPlot.Plotting3D
             CreateMesh(x, y, z, xLength, yLength);
         }
 
+        public SurfaceModel3D(IEnumerable<object> z)
+        {
+            int xLength, yLength;
+            var za = GeneralArray.ToImageEnumerator(z, out xLength, out yLength);
+            if (yLength == 0) throw new ArgumentException("z cannot be a vector.");
+            var xa = MathHelper.MeshGridX(MathHelper.Counter(xLength), yLength);
+            var ya = MathHelper.MeshGridY(MathHelper.Counter(yLength), xLength);
+            CreateMesh(xa, ya, za, xLength, yLength);
+        }
+
         public SurfaceModel3D(IEnumerable<object> x, IEnumerable<object> y, IEnumerable<object> z)
         {
             int[] xLengths = new int[3]; int[] yLengths = new int[3]; 

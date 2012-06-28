@@ -237,6 +237,7 @@
     <Compile Include="PlotCommon\MSChartHost.xaml.cs">
       <DependentUpon>MSChartHost.xaml</DependentUpon>
     </Compile>
+    <Compile Include="PlotCommon\XamlToys.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -278,12 +279,6 @@
       <ProductName>Windows Installer 3.1</ProductName>
       <Install>true</Install>
     </BootstrapperPackage>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\XamlToys\XamlToys.csproj">
-      <Project>{D239E889-A0EE-4CEA-A804-4BE1A2BC3CC0}</Project>
-      <Name>XamlToys</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

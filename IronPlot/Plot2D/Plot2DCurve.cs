@@ -335,9 +335,6 @@ namespace IronPlot
             line.Visibility = Visibility.Visible;
             markers.Visibility = Visibility.Visible;
             //
-            lineD2D = new DirectPath();
-            markersD2D = new DirectPathScatter() { Curve = curve };
-            //
             annotation = new PlotPointAnnotation();
             //
             legendItem = CreateLegendItem();
@@ -347,10 +344,8 @@ namespace IronPlot
             legendItem.SetBinding(LegendItem.TitleProperty, titleBinding);
             // Other bindings:
             BindToThis(line, false, true);
-            BindToThis(lineD2D, false, true);
             BindToThis(legendLine, false, true);
             BindToThis(markers, true, false);
-            BindToThis(markersD2D, true, false);
             BindToThis(legendMarker, true, false);
         }
 
@@ -372,6 +367,13 @@ namespace IronPlot
         protected static void OnUseDirect2DChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
             Plot2DCurve plot2DCurveLocal = ((Plot2DCurve)obj);
+            if ((bool)e.NewValue == true && plot2DCurveLocal.lineD2D == null)
+            {
+                plot2DCurveLocal.lineD2D = new DirectPath();
+                plot2DCurveLocal.markersD2D = new DirectPathScatter() { Curve = plot2DCurveLocal.curve };
+                plot2DCurveLocal.BindToThis(plot2DCurveLocal.lineD2D, false, true);
+                plot2DCurveLocal.BindToThis(plot2DCurveLocal.markersD2D, true, false);
+            }
             if (plot2DCurveLocal.host == null) return;
             plot2DCurveLocal.RemoveElements((bool)e.OldValue);
             plot2DCurveLocal.AddElements();

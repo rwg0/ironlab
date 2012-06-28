@@ -57,18 +57,25 @@ namespace IronPythonConsole
             set { textEditor.TextArea.FontSize = value; }
         }
 
-        [DefaultValue(false)]
+        [DefaultValue(true)]
         public bool FullAutocompletion
         {
             get { return pad.Console.AllowFullAutocompletion; }
             set { pad.Console.AllowFullAutocompletion = value; }
         }
 
-        [DefaultValue(true)]
+        [DefaultValue(false)]
         public bool CtrlSpaceAutocompletion
         {
             get { return pad.Console.AllowCtrlSpaceAutocompletion; }
             set { pad.Console.AllowCtrlSpaceAutocompletion = value; }
+        }
+
+        [DefaultValue(true)]
+        public bool DisableAutocompletionForCallables
+        {
+            get { return pad.Console.DisableAutocompletionForCallables; }
+            set { pad.Console.DisableAutocompletionForCallables = value; }
         }
     }
 }

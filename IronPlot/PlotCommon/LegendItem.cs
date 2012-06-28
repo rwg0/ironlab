@@ -16,18 +16,21 @@ namespace IronPlot
         public static DependencyProperty TitleProperty =
             DependencyProperty.Register("Title",
             typeof(string), typeof(LegendItem),
-            new FrameworkPropertyMetadata(null));
+            new FrameworkPropertyMetadata(String.Empty, OnTitlePropertyChanged));
 
 
         public string Title
         {
-            set
-            {
-                SetValue(TitleProperty, value);
-            }
+            set { SetValue(TitleProperty, value); }
             get { return (string)GetValue(TitleProperty); }
         }
         
+        protected static void OnTitlePropertyChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
+        {
+            Legend parent = LogicalTreeHelper.GetParent(obj) as Legend;
+            if (parent != null) parent.UpdateLegendVisibility();
+        }
+
         /// <summary>
         /// Gets or sets the owner of the LegendItem.
         /// </summary>

@@ -54,6 +54,8 @@ namespace IronPlot.Plotting3D
 
         public static Cuboid Union(Cuboid bounds3D1, Cuboid bounds3D2)
         {
+            if (!bounds3D1.IsPhysical) return bounds3D2;
+            if (!bounds3D2.IsPhysical) return bounds3D1;
             Point3D minimum1 = bounds3D1.minimum;
             Point3D minimum2 = bounds3D2.minimum;
             Point3D maximum1 = bounds3D1.maximum;

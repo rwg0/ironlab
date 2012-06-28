@@ -24,13 +24,16 @@
         <Setter Property="BorderBrush" Value="Black" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="IsTabStop" Value="False" />
-        <Setter Property="Margin" Value="2,2,2,2" />
+        <Setter Property="Margin" Value="4,4,4,4" />
         <Setter Property="Background">
             <Setter.Value>
+                <!--
                 <LinearGradientBrush StartPoint="0, 0" EndPoint="1, 1">
                     <GradientStop Color="White" Offset="0.0" />
                     <GradientStop Color="LightGray" Offset="1.0" />
                 </LinearGradientBrush>
+                -->
+                <SolidColorBrush Color="White"></SolidColorBrush>
             </Setter.Value>
         </Setter>    
         <Setter Property="TitleStyle">

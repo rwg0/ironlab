@@ -35,12 +35,36 @@ namespace PythonConsoleControl
     /// </summary>
     public class PythonConsole : IConsole, IDisposable
     {
+        bool allowFullAutocompletion = true;
+        public bool AllowFullAutocompletion
+        {
+            get { return allowFullAutocompletion; }
+            set { allowFullAutocompletion = value; }
+        }
+
+        bool disableAutocompletionForCallables = true;
+        public bool DisableAutocompletionForCallables
+        {
+            get { return disableAutocompletionForCallables; }
+            set 
+            {
+                if (textEditor.CompletionProvider != null) textEditor.CompletionProvider.ExcludeCallables = value;
+                disableAutocompletionForCallables = value; 
+            }
+        }
+
+        bool allowCtrlSpaceAutocompletion = false;
+        public bool AllowCtrlSpaceAutocompletion
+        {
+            get { return allowCtrlSpaceAutocompletion; }
+            set { allowCtrlSpaceAutocompletion = value; }
+        }
+        
         PythonTextEditor textEditor;
         int lineReceivedEventIndex = 0; // The index into the waitHandles array where the lineReceivedEvent is stored.
         ManualResetEvent lineReceivedEvent = new ManualResetEvent(false);
         ManualResetEvent disposedEvent = new ManualResetEvent(false);
         AutoResetEvent statementsExecutionRequestedEvent = new AutoResetEvent(false);
-        AutoResetEvent dispatcherCompleted = new AutoResetEvent(false);
         WaitHandle[] waitHandles;
         int promptLength = 4;
         List<string> previousLines = new List<string>();
@@ -55,8 +79,6 @@ namespace PythonConsoleControl
         Dispatcher dispatcher;
 
         string scriptText = String.Empty;
-        bool allowFullAutocompletion = false;
-        bool allowCtrlSpaceAutocompletion = true;
         bool consoleInitialized = false;
         string prompt;
       
@@ -73,9 +95,8 @@ namespace PythonConsoleControl
 
             this.commandLine = commandLine;
             this.textEditor = textEditor;
-            textEditor.CompletionProvider = new PythonConsoleCompletionDataProvider(commandLine);
+            textEditor.CompletionProvider = new PythonConsoleCompletionDataProvider(commandLine) { ExcludeCallables = disableAutocompletionForCallables };
             textEditor.PreviewKeyDown += textEditor_PreviewKeyDown;
-            textEditor.TextEntered += textEditor_TextEntered;
             textEditor.TextEntering += textEditor_TextEntering;
             dispatcherThread = new Thread(new ThreadStart(DispatcherThreadStartingPoint));
             dispatcherThread.SetApartmentState(ApartmentState.STA);
@@ -122,25 +143,25 @@ namespace PythonConsoleControl
 
         protected void DispatchCommand(Delegate command)
         {
-            dispatcherCompleted.Reset();
             if (command != null)
             {
+                // Slightly involved form to enable keyboard interrupt to work.
                 executing = true;
-                dispatcher.BeginInvoke(DispatcherPriority.Normal, command);
-                dispatcherCompleted.WaitOne();
-                executing = false;
+                var operation = dispatcher.BeginInvoke(DispatcherPriority.Normal, command);
+                while (executing)
+                {
+                    if (operation.Status != DispatcherOperationStatus.Completed) 
+                        operation.Wait(TimeSpan.FromSeconds(1));
+                    if (operation.Status == DispatcherOperationStatus.Completed)
+                        executing = false;
+                }
             }
-
         }
 
         private void DispatcherThreadStartingPoint()
         {
             dispatcherWindow = new Window();
             dispatcher = dispatcherWindow.Dispatcher;
-            dispatcher.Hooks.OperationCompleted += delegate(object sender, DispatcherHookEventArgs e)
-            {
-                dispatcherCompleted.Set();
-            };
             while (true)
             {
                 try
@@ -149,8 +170,11 @@ namespace PythonConsoleControl
                 }
                 catch (ThreadAbortException tae)
                 {
-                    dispatcherCompleted.Set();
-                    if (tae.ExceptionState is Microsoft.Scripting.KeyboardInterruptException) Thread.ResetAbort();
+                    if (tae.ExceptionState is Microsoft.Scripting.KeyboardInterruptException)
+                    {
+                        Thread.ResetAbort();
+                        executing = false;
+                    }
                 }
             }
         }
@@ -164,7 +188,6 @@ namespace PythonConsoleControl
         {
             disposedEvent.Set();
             textEditor.PreviewKeyDown -= textEditor_PreviewKeyDown;
-            textEditor.TextEntered -= textEditor_TextEntered;
             textEditor.TextEntering -= textEditor_TextEntering;
         }
 
@@ -494,18 +517,6 @@ namespace PythonConsoleControl
             }
         }
 
-        public bool AllowFullAutocompletion
-        {
-            get { return allowFullAutocompletion; }
-            set { allowFullAutocompletion = value; }
-        }
-
-        public bool AllowCtrlSpaceAutocompletion
-        {
-            get { return allowCtrlSpaceAutocompletion; }
-            set { allowCtrlSpaceAutocompletion = value; }
-        }
-
         /// <summary>
         /// Processes characters entering into the text editor by the user.
         /// </summary>
@@ -543,13 +554,6 @@ namespace PythonConsoleControl
                     if (allowCtrlSpaceAutocompletion) textEditor.ShowCompletionWindow();
                 }
             }
-        }
-
-        /// <summary>
-        /// Processes characters entered into the text editor by the user.
-        /// </summary>
-        void textEditor_TextEntered(object sender, TextCompositionEventArgs e)
-        {
         }
 
         /// <summary>

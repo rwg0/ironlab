@@ -121,9 +121,20 @@ namespace IronPlot
         /// <summary>
         /// Updates the Legend's Visibility property according to whether it has anything to display.
         /// </summary>
-        private void UpdateLegendVisibility()
+        internal void UpdateLegendVisibility()
         {
-            Visibility = (this.Header != null || this.Items.Count > 0) ? Visibility.Visible : Visibility.Collapsed;
+            bool showLegend = this.Header != null;
+            if (!showLegend)
+            {
+                foreach (var item in Items)
+                {
+                    if (item is LegendItem && (item as LegendItem).Title != String.Empty)
+                    {
+                        showLegend = true; break;
+                    }
+                }
+            }
+            Visibility = showLegend ? Visibility.Visible : Visibility.Collapsed;
         }
     }
 }

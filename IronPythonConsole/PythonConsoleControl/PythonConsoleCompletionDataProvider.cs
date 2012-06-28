@@ -24,6 +24,9 @@ namespace PythonConsoleControl
         CommandLine commandLine;
         internal volatile bool AutocompletionInProgress = false;
 
+        bool excludeCallables;
+        public bool ExcludeCallables { get { return excludeCallables; } set { excludeCallables = value; } }
+
         public PythonConsoleCompletionDataProvider(CommandLine commandLine)//IMemberProvider memberProvider)
         {
             this.commandLine = commandLine;
@@ -35,10 +38,13 @@ namespace PythonConsoleControl
         /// '>>>' as this will be ignored.
         /// </summary>
         public ICompletionData[] GenerateCompletionData(string line)
-        {
+        {         
             List<PythonCompletionData> items = new List<PythonCompletionData>(); //DefaultCompletionData
 
             string name = GetName(line);
+            // A very simple test of callables!
+            if (excludeCallables && name.Contains(')')) return null;
+
             if (!String.IsNullOrEmpty(name))
             {
                 System.IO.Stream stream = commandLine.ScriptScope.Engine.Runtime.IO.OutputStream;

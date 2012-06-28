@@ -43,7 +43,7 @@ def start():
         global app
         app = Application()
         app.Startup += on_startup
-	app.ShutdownMode = ShutdownMode.OnExplicitShutdown
+        app.ShutdownMode = ShutdownMode.OnExplicitShutdown
         app.Run()
     finally:
         clr.SetCommandDispatcher(None)
@@ -51,11 +51,16 @@ def start():
 # If dispatcher is set, then assume that UI issues are already taken care of.	
 currentDispatcher = clr.GetCurrentRuntime().GetLanguage(PythonContext).GetCommandDispatcher()
 if currentDispatcher is None:
-    t = Thread(ThreadStart(start))
-    t.IsBackground = True
-    t.ApartmentState = ApartmentState.STA
-    t.Start()
-    are.WaitOne()
+	if Application.Current is None: dispatcher = None
+	else: dispatcher = Application.Current.Dispatcher
+	if dispatcher is None:
+		t = Thread(ThreadStart(start))
+		t.IsBackground = True
+		t.ApartmentState = ApartmentState.STA
+		t.Start()
+		are.WaitOne()
+	else:
+		clr.SetCommandDispatcher(currentDispatcher)
 
 def DispatchConsoleCommand(consoleCommand):
     if consoleCommand:
