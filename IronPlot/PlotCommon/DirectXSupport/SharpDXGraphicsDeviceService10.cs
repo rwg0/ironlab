@@ -21,6 +21,8 @@ namespace IronPlot
         // Keep track of how many controls are sharing the singletonInstance.
         static int referenceCount;
 
+        internal DirectImageTracker Tracker = new DirectImageTracker();
+
         // When the (possibly) shared instance is resized.
         public event EventHandler DeviceResized;
 
@@ -90,7 +92,7 @@ namespace IronPlot
             factoryDXGI = new Factory();
             factory2D = new SharpDX.Direct2D1.Factory();
             // Try to create a hardware device first and fall back to a
-            // software (WARP doens't let us share resources)
+            // software (WARP doesn't let us share resources)
             var device1 = TryCreateDevice1(SharpDX.Direct3D10.DriverType.Hardware);
             if (device1 == null)
             {
@@ -100,12 +102,13 @@ namespace IronPlot
                     throw new Exception("Unable to create a DirectX 10 device.");
                 }
             }
-            RasterizerStateDescription rastDesc = new RasterizerStateDescription();
-            rastDesc.CullMode = CullMode.Back;
-            rastDesc.FillMode = FillMode.Solid;
-            rastDesc.IsMultisampleEnabled = false;
-            rastDesc.IsAntialiasedLineEnabled = false;
-            device1.Rasterizer.State = new RasterizerState(device1, rastDesc);
+            // Ratserizer not needed for Direct2D (retain for if mixing D2D and D3D).
+            //RasterizerStateDescription rastDesc = new RasterizerStateDescription();
+            //rastDesc.CullMode = CullMode.Back;
+            //rastDesc.FillMode = FillMode.Solid;
+            //rastDesc.IsMultisampleEnabled = false;
+            //rastDesc.IsAntialiasedLineEnabled = false;
+            //device1.Rasterizer.State = new RasterizerState(device1, rastDesc);
             this.device = device1;
         }
 
@@ -200,9 +203,19 @@ namespace IronPlot
             description.MipLevels = 1;
  
             // Multi-sample anti-aliasing
-            int count;
-            if (multiSampling) count = 8; else count = 1;
-            int quality = device.CheckMultisampleQualityLevels(description.Format, count);
+            int count, quality;
+            if (multiSampling) 
+            {
+                count = 8;
+                quality = device.CheckMultisampleQualityLevels(description.Format, count);
+                if (quality == 0)
+                {
+                    count = 4;
+                    quality = device.CheckMultisampleQualityLevels(description.Format, count);
+                }
+                if (quality == 0) count = 1;
+            }
+            else count = 1;
             if (count == 1) quality = 1;
             SampleDescription sampleDesc = new SampleDescription(count, 0);
             description.SampleDescription = sampleDesc;

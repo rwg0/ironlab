@@ -28,6 +28,9 @@ namespace IronPlot
         protected System.Windows.Shapes.Rectangle rectangle;
         TextBlock messageBlock;
 
+        bool initializationFailed = false;
+        public bool InitializationFailed { get { return initializationFailed; } }
+
         // The D3DImage seems, under some cirmstances, not to reaquire its front buffer after
         // loss due to a ctrl-alt-del, screen saver etc. For robustness, a timer checks for a
         // lost front buffer.
@@ -39,14 +42,17 @@ namespace IronPlot
             try
             {
                 CreateDirectImage();
+                //throw new Exception("Artificial exception");
             }
             catch (Exception e)
             {
                 // In case of error, just display message on Control
-                messageBlock = new TextBlock();
-                messageBlock.Text = e.Message;
+                messageBlock = new TextBlock() { Margin = new Thickness(5), Foreground = Brushes.Red };
+                messageBlock.Text = "Error initializing DirectX control: " +  e.Message;
+                messageBlock.Text += "\rTry installing latest DirectX End-User Runtime";
                 this.Children.Add(messageBlock);
                 directImage = null;
+                initializationFailed = true;
                 return;
             }
             directImage.RenderRequested += new EventHandler(directImage_RenderRequested);
@@ -72,7 +78,7 @@ namespace IronPlot
 
         void CheckImage()
         {
-            if (directImage.d3dImage == null || !directImage.d3dImage.IsFrontBufferAvailable)
+            if (!initializationFailed && (directImage.d3dImage == null || !directImage.d3dImage.IsFrontBufferAvailable))
             {
                 RecreateImage();
                 directImage.RenderScene();
@@ -96,8 +102,11 @@ namespace IronPlot
         protected override void OnRender(DrawingContext drawingContext)
         {
             base.OnRender(drawingContext);
-            CheckImage();
-            directImage.RenderScene();
+            if (!initializationFailed)
+            {
+                CheckImage();
+                directImage.RenderScene();
+            }
         }
 
         protected override Size MeasureOverride(Size availableSize)
@@ -129,11 +138,13 @@ namespace IronPlot
                 OnVisibleChanged_Visible();
                 if (Parent is FrameworkElement) (Parent as FrameworkElement).InvalidateMeasure();
                 frontBufferCheckTimer.Start();
+                directImage.RegisterWithService();
             }
             else
             {
                 OnVisibleChanged_NotVisible();
                 frontBufferCheckTimer.Stop();
+                directImage.UnregisterWithService();
             }
         }
 

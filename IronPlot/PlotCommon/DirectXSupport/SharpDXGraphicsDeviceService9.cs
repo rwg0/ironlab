@@ -88,6 +88,8 @@ namespace IronPlot
 
         #endregion
 
+        internal DirectImageTracker Tracker = new DirectImageTracker();
+
         public DirectXStatus DirectXStatus
         {
             get;
@@ -151,7 +153,7 @@ namespace IronPlot
             {
                 ReleaseDevice();
                 ReleaseDirect3D();
-                throw new Exception("Direct3D device unavailable: please check SharpDX End User Runtime is installed: http://slimdx.org/download.php");
+                throw new Exception("Direct3D device unavailable.");
             }
         }
 
@@ -365,13 +367,48 @@ namespace IronPlot
         /// resolution or its current size. This behavior means the device will
         /// demand-grow to the largest of all its clients.
         /// </summary>
+        public void RatchetResetDevice(int width, int height)
+        {
+            ResetDevice(Math.Max(presentParameters.BackBufferWidth, width), Math.Max(presentParameters.BackBufferHeight, height));
+        }
+
+        public bool ResetIfNecessary()
+        {
+            int newWidth, newHeight;
+            Tracker.GetSizeForMembers(out newWidth, out newHeight);
+            int currentWidth = presentParameters.BackBufferWidth;
+            int currentHeight = presentParameters.BackBufferHeight;
+            bool resetRequired = false;
+            if (GraphicsDevice.TestCooperativeLevel() == ResultCode.DeviceNotReset) resetRequired = true;
+            if (newWidth > currentWidth)
+            {
+                newWidth = Math.Max((int)(currentWidth * 1.1), newWidth);
+                resetRequired = true;
+            }
+            else if (newWidth < currentWidth * 0.9)
+            {
+                resetRequired = true;
+            }
+            if (newHeight > currentHeight)
+            {
+                newHeight = Math.Max((int)(currentHeight * 1.1), newHeight);
+                resetRequired = true;
+            }
+            else if (newHeight < currentHeight * 0.9)
+            {
+                resetRequired = true;
+            }
+            if (resetRequired) ResetDevice(newWidth, newHeight);
+            return resetRequired;
+        }
+
         public void ResetDevice(int width, int height)
         {
             if (DeviceResetting != null)
                 DeviceResetting(this, EventArgs.Empty);
 
-            presentParameters.BackBufferWidth = Math.Max(presentParameters.BackBufferWidth, width);
-            presentParameters.BackBufferHeight = Math.Max(presentParameters.BackBufferHeight, height);
+            presentParameters.BackBufferWidth = width;
+            presentParameters.BackBufferHeight = height;
 
             if (UseDeviceEx) (GraphicsDevice as DeviceEx).ResetEx(ref presentParameters);
             else GraphicsDevice.Reset(presentParameters);

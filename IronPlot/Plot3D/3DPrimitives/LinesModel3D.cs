@@ -60,6 +60,8 @@ namespace IronPlot.Plotting3D
         private bool thickLines = true;
         private int dpi = 96;
 
+        bool effectUnavailable = false;
+
         /// <summary>
         /// Update geometry from point collection (rather than have event on collection itself, this must
         /// be called explicitly).
@@ -93,7 +95,10 @@ namespace IronPlot.Plotting3D
         static void LineThicknessChanged(DependencyObject obj, DependencyPropertyChangedEventArgs args)
         {
             LinesModel3D lines = obj as LinesModel3D;
-            if ((args.NewValue != args.OldValue) && (((double)args.NewValue == 1.0) || ((double)args.OldValue == 1.0)))
+            bool previousThickLines = lines.thickLines;
+            bool thickLines = true;
+            if (lines.effectUnavailable || (((double)args.NewValue == 1.0) && (lines.dpi == 96))) thickLines = false;
+            if (previousThickLines != thickLines)
             {
                 lines.pointsChanged = true;
                 lines.geometryChanged = true;
@@ -101,8 +106,7 @@ namespace IronPlot.Plotting3D
                 lines.indices = null;
                 lines.vertices = null;
             }
-            if (((double)args.NewValue == 1.0) && (lines.dpi == 96)) lines.thickLines = false;
-            else lines.thickLines = true;
+            lines.thickLines = thickLines;
             lines.viewportImage.RequestRender();
         }
 
@@ -130,12 +134,25 @@ namespace IronPlot.Plotting3D
             if (!viewportImage.GraphicsDeviceService.IsAntialiased) LineThickness = 1.0;
             viewportImage.GraphicsDeviceService.DeviceReset += new EventHandler(GraphicsDeviceService_DeviceReset);
             viewportImage.GraphicsDeviceService.DeviceResetting += new EventHandler(GraphicsDeviceService_DeviceResetting);
-            if (effect == null)
-            {
-                System.IO.Stream stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("IronPlot.Plot3D._3DPrimitives.Line.fx");
-                effect = Effect.FromStream(graphicsDevice, stream, ShaderFlags.None);
-            }
+            TryCreateEffects();
             UpdateGeometry();
+        }
+
+        private void TryCreateEffects()
+        {
+            if (!effectUnavailable && effect == null)
+            {
+                try
+                {
+                    System.IO.Stream stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("IronPlot.Plot3D._3DPrimitives.Line.fxo");
+                    effect = Effect.FromStream(graphicsDevice, stream, ShaderFlags.None);             
+                }
+                catch (Exception) 
+                {
+                    effectUnavailable = true;
+                    thickLines = false;
+                }
+            }
         }
 
         protected override void UpdateGeometry()
@@ -307,7 +324,6 @@ namespace IronPlot.Plotting3D
 
         protected void GraphicsDeviceService_DeviceResetting(object sender, EventArgs e)
         {
-            //line.Dispose();
             if (effect != null)
             {
                 effect.Dispose();
@@ -317,12 +333,7 @@ namespace IronPlot.Plotting3D
 
         protected void GraphicsDeviceService_DeviceReset(object sender, EventArgs e)
         {
-            //line = new SharpDX.Direct3D9.Line(graphicsDevice);
-            if (effect == null)
-            {
-                System.IO.Stream stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("IronPlot.Plot3D._3DPrimitives.Line.fx");
-                effect = Effect.FromStream(graphicsDevice, stream, ShaderFlags.None);
-            }
+            TryCreateEffects();
         }
 
         public void SetResolution(int dpi)
@@ -336,7 +347,7 @@ namespace IronPlot.Plotting3D
                 indices = null;
                 vertices = null;
             }
-            if ((LineThickness == 1.0) && (dpi == 96)) thickLines = false;
+            if (effectUnavailable || ((LineThickness == 1.0) && (dpi == 96))) thickLines = false;
             else thickLines = true;
         }
 

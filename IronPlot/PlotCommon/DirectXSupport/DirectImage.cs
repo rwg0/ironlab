@@ -65,10 +65,19 @@ namespace IronPlot
         bool afterResizeReset = false;
 
         private Surface backBufferSurface;
-        // The width and height of the backBuffer or Texture
-        protected int bufferWidth, bufferHeight;
+
+        // The width and height of the backBuffer or Textures
+        protected int bufferWidth;
+        public int BufferWidth { get { return bufferWidth; } }
+        protected int bufferHeight;
+        public int BufferHeight { get { return bufferWidth; } }
+
         // The width and height of the Viewport
-        protected int viewportWidth, viewportHeight;
+        protected int viewportWidth;
+        public int ViewportWidth { get { return viewportWidth; } }
+        protected int viewportHeight;
+        public int ViewportHeight { get { return viewportHeight; } }
+        
         // The width and height of the image onto which the viewport is mapped
         internal int imageWidth, imageHeight;
         double pixelsPerDIPixel = 1; 
@@ -119,6 +128,7 @@ namespace IronPlot
                 // Use shared devices resources.
                 graphicsDeviceService9 = SharpDXGraphicsDeviceService9.AddRef(bufferWidth, bufferHeight);
                 graphicsDeviceService9.DeviceReset += new EventHandler(graphicsDeviceService9_DeviceReset);
+                afterResizeReset = true;
             }
             Initialize();
             if (d3dImage.IsFrontBufferAvailable)
@@ -355,24 +365,19 @@ namespace IronPlot
             viewportHeight = (int)(Math.Max(imageHeight * 1, 1) * pixelsPerDIPixel);
             if (surfaceType == SurfaceType.DirectX9)
             {
-                bool device9NeedsReset = false;
-
                 if (GraphicsDevice.TestCooperativeLevel() == ResultCode.DeviceLost) return ResizeResetResult.D3D9DeviceLost;
-
-                else if (GraphicsDevice.TestCooperativeLevel() == ResultCode.DeviceNotReset) device9NeedsReset = true;
-                else if ((viewportWidth > bufferWidth) || (viewportHeight > bufferHeight)) device9NeedsReset = true;
-                if (device9NeedsReset)
+                bool reset = false;
+                try
                 {
-                    try
-                    {
-                        ResetDevice();
-                    }
-                    catch
-                    {
-                        return ResizeResetResult.D3D9ResetFailed;
-                    }
+                    reset = graphicsDeviceService9.ResetIfNecessary();
+                    bufferWidth = graphicsDeviceService9.PresentParameters.BackBufferWidth;
+                    bufferHeight = graphicsDeviceService9.PresentParameters.BackBufferHeight;
                 }
-                if (afterResizeReset || device9NeedsReset)
+                catch
+                {
+                    return ResizeResetResult.D3D9ResetFailed;
+                }
+                if (afterResizeReset || reset)
                 {
                     AfterResizeReset();
                     afterResizeReset = false;
@@ -396,10 +401,11 @@ namespace IronPlot
 
         protected virtual void ResetDevice()
         {
-            if (viewportWidth > bufferWidth) bufferWidth = (int)(viewportWidth * 1.1);
-            if (viewportHeight > bufferHeight) bufferHeight = (int)(viewportHeight * 1.1);
-            graphicsDeviceService9.ResetDevice(bufferWidth,
-                          bufferHeight);
+            //if (viewportWidth > bufferWidth) bufferWidth = (int)(viewportWidth * 1.1);
+            //if (viewportHeight > bufferHeight) bufferHeight = (int)(viewportHeight * 1.1);
+            //graphicsDeviceService9.RatchetResetDevice(bufferWidth,
+            //              bufferHeight);
+            //graphicsDeviceService9.ResetIfNecessary();
         }
 
         protected void graphicsDeviceService9_DeviceReset(object sender, EventArgs e)
@@ -463,6 +469,22 @@ namespace IronPlot
         protected virtual void Draw()
         {
             // Do nothing in base
+        }
+
+        internal void RegisterWithService()
+        {
+            if (surfaceType == SurfaceType.Direct2D)
+                graphicsDeviceService10.Tracker.Register(this);
+            else 
+                graphicsDeviceService9.Tracker.Register(this);
+        }
+
+        internal void UnregisterWithService()
+        {
+            if (surfaceType == SurfaceType.Direct2D)
+                graphicsDeviceService10.Tracker.Unregister(this);
+            else 
+                graphicsDeviceService9.Tracker.Unregister(this);
         }
 
         [DllImport("user32.dll", SetLastError = false)]

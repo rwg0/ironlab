@@ -287,9 +287,12 @@ namespace IronPlot
             }
             else
             {
-                host.direct2DControl.AddPath(lineD2D);
-                host.direct2DControl.AddPath(markersD2D);
-                markersD2D.GraphToCanvas = graphToCanvas;
+                if (!host.direct2DControl.InitializationFailed)
+                {
+                    host.direct2DControl.AddPath(lineD2D);
+                    host.direct2DControl.AddPath(markersD2D);
+                    markersD2D.GraphToCanvas = graphToCanvas;
+                }
             }
             Plot.Legend.Items.Add(legendItem);
             annotation.SetValue(Canvas.ZIndexProperty, 201);
@@ -303,8 +306,11 @@ namespace IronPlot
         {
             if (removeDirect2DComponents)
             {
-                host.direct2DControl.RemovePath(lineD2D);
-                host.direct2DControl.RemovePath(markersD2D);
+                if (!host.direct2DControl.InitializationFailed)
+                {
+                    host.direct2DControl.RemovePath(lineD2D);
+                    host.direct2DControl.RemovePath(markersD2D);
+                }
             }
             else
             {
@@ -390,7 +396,7 @@ namespace IronPlot
             graphToCanvas.Matrix = new Matrix(xAxis.Scale, 0, 0, -yAxis.Scale, -xAxis.Offset - xAxis.AxisPadding.Lower, yAxis.Offset + yAxis.AxisTotalLength - yAxis.AxisPadding.Upper);
             canvasToGraph = (MatrixTransform)(graphToCanvas.Inverse); 
             Curve.FilterMinMax(canvasToGraph, new Rect(new Point(xAxis.Min, yAxis.Min), new Point(xAxis.Max, yAxis.Max)));
-            if (host.UseDirect2D == true)
+            if (host.UseDirect2D == true && !host.direct2DControl.InitializationFailed)
             {
                 lineD2D.Geometry = curve.ToDirect2DPathGeometry(lineD2D.Factory, graphToCanvas);
                 markersD2D.SetGeometry((MarkersType)GetValue(MarkersTypeProperty), (double)GetValue(MarkersSizeProperty));

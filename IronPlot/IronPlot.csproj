@@ -200,6 +200,7 @@
     <Compile Include="PlotCommon\CurveIDirect2D.cs" />
     <Compile Include="PlotCommon\DirectXSupport\DirectControl.cs" />
     <Compile Include="PlotCommon\DirectXSupport\DirectXHelpers.cs" />
+    <Compile Include="PlotCommon\DirectXSupport\DirectImageTracker.cs" />
     <Compile Include="PlotCommon\DirectXSupport\SharpDXGraphicsDeviceService10.cs" />
     <Compile Include="PlotCommon\DirectXSupport\SharpDXGraphicsDeviceService9.cs" />
     <Compile Include="PlotCommon\DirectXSupport\SharpDXLayer2D.cs" />
@@ -257,6 +258,7 @@
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Plot3D\3DPrimitives\Line.fx" />
+    <EmbeddedResource Include="Plot3D\3DPrimitives\Line.fxo" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>

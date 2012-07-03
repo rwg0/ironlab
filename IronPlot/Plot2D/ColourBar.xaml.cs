@@ -87,6 +87,7 @@ namespace IronPlot
             colourMapUpdateTimer.Tick += OnColourMapUpdateTimerElapsed;
             AddSliders();
             AddContextMenu();
+            FocusVisualStyle = null;
         }
 
         protected void AddSliders()

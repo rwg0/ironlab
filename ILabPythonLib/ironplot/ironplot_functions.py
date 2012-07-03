@@ -98,7 +98,7 @@ def image(*args, **kwargs):
         dims0 = getsize(args[0])
         dims1 = getsize(args[1])
         dims2 = getsize(args[2])
-        if len(dims0) == len(dims1) == len(dims2) == 2:
+        if len(dims2) == 2:
             image = plot.AddFalseColourImage(args[0], args[1], args[2])
             setprops(image, **kwargs)
     return plot

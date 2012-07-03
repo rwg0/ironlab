@@ -1,8 +1,8 @@
 ﻿import ironplot as ip
 from math import *
 dphi, dtheta = pi/100.0, 2 * pi/200.0
-phis = [i * dphi for i in range(100)]
-thetas = [i * dtheta for i in range(200)]
+phis = [i * dphi for i in range(101)]
+thetas = [i * dtheta for i in range(201)]
 
 m0 = 4.; m1 = 3; m2 = 4.; m3 = 3; m4 = 6.; m5 = 2; m6 = 6.; m7 = 4;
 r = []; x = []; y = []; z = []

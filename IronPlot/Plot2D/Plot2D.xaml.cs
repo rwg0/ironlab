@@ -305,6 +305,17 @@ namespace IronPlot
             return falseColour;
         }
 
+        public FalseColourImage AddFalseColourImage(IEnumerable<object> x, IEnumerable<object> y, IEnumerable<object> image)
+        {
+            int xLength, yLength;
+            var xa = GeneralArray.ToImageEnumerator(x, out xLength, out yLength);
+            var ya = GeneralArray.ToImageEnumerator(y, out xLength, out yLength);
+            FalseColourImage falseColour =
+                new FalseColourImage(new Rect(new Point(xa.Min(), ya.Min()), new Point(xa.Max(), ya.Max())), image, true);
+            this.Children.Add(falseColour);
+            return falseColour;
+        }
+
         #endregion ConvenienceMethods
     }
 }
