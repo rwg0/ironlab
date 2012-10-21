@@ -6,11 +6,12 @@
     xmlns:ironplot="clr-namespace:IronPlot;assembly="
     xmlns:plotting3D="clr-namespace:IronPlot.Plotting3D;assembly="
     mc:Ignorable="d" 
+             Name="_me_"
     d:DesignHeight="300" d:DesignWidth="300"
     FontSize="14"
     Background="White">
     <Grid>
-        <plotting3D:Viewport3D x:Name="viewport3D" Background="White">
+        <plotting3D:Viewport3D x:Name="viewport3D" Background="White" ProjectionType="{Binding ElementName=_me_, Path=ProjectionType}">
             <plotting3D:Viewport3D.Annotations>
                 <ironplot:Label x:Name="LeftLabel" x:FieldModifier="public" plotting3D:Viewport3D.Position="Left" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <ironplot:Label.LayoutTransform>

@@ -51,19 +51,19 @@ namespace IronPlot.Plotting3D
         protected List<SharpDX.Direct3D9.Light> lights;
 
         private static readonly DependencyProperty SurfaceShadingProperty =
-            DependencyProperty.Register("SurfaceShadingProperty",
+            DependencyProperty.Register("SurfaceShading",
             typeof(SurfaceShading),
             typeof(SurfaceModel3D),
             new PropertyMetadata(SurfaceShading.Smooth, OnSurfaceShadingChanged));
 
         private static readonly DependencyProperty MeshLinesProperty =
-            DependencyProperty.Register("MeshLinesProperty",
+            DependencyProperty.Register("MeshLines",
             typeof(MeshLines),
             typeof(SurfaceModel3D),
             new PropertyMetadata(MeshLines.None, OnMeshLinesChanged));
 
         private static readonly DependencyProperty TransparencyProperty =
-            DependencyProperty.Register("TransparencyProperty",
+            DependencyProperty.Register("Transparency",
             typeof(byte),
             typeof(SurfaceModel3D),
             new PropertyMetadata((byte)0, OnTransparencyChanged));

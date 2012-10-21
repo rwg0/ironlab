@@ -52,7 +52,7 @@ namespace IronPlot
             //    (TextBlock)this.Template.FindName("PART_ItemTitle", this);
             //Binding binding = new Binding();
             //binding.Source = this;
-            //binding.Path = new PropertyPath("TitleProperty");
+            //binding.Path = new PropertyPath("Title");
             //itemTitle.SetBinding(TextBlock.TextProperty, binding);
         }
 

@@ -22,7 +22,7 @@ namespace IronPlot
         internal double yPosition = 0;
 
         internal static DependencyProperty XAxisPositionProperty =
-            DependencyProperty.Register("XAxisPositionProperty",
+            DependencyProperty.Register("XAxisPosition",
             typeof(XAxisPosition), typeof(XAxis), new PropertyMetadata(XAxisPosition.Bottom));
 
         public XAxisPosition Position { get { return (XAxisPosition)GetValue(XAxisPositionProperty); } set { SetValue(XAxisPositionProperty, value); } }

@@ -35,12 +35,12 @@ namespace IronPlot.Plotting3D
         #region TreeStructure
 
         public static readonly DependencyProperty ChildrenProperty =
-            DependencyProperty.Register("ChildrenProperty",
+            DependencyProperty.Register("Children",
             typeof(Model3DCollection), typeof(Model3D),
             new PropertyMetadata(null));
 
         public static readonly DependencyProperty IsVisibleProperty =
-            DependencyProperty.Register("IsVisibleProperty",
+            DependencyProperty.Register("IsVisible",
             typeof(bool), typeof(Model3D),
             new PropertyMetadata(true, OnUpdateIsVisibleProperty));
 
@@ -117,7 +117,7 @@ namespace IronPlot.Plotting3D
 
         internal void BindToViewportImage()
         {
-            Binding bindingTransform = new Binding("ModelToWorldProperty");
+            Binding bindingTransform = new Binding("ModelToWorld");
             bindingTransform.Source = viewportImage;
             bindingTransform.Mode = BindingMode.OneWay;
             BindingOperations.SetBinding(this, Model3D.ModelToWorldProperty, bindingTransform);
@@ -172,7 +172,7 @@ namespace IronPlot.Plotting3D
         }
 
         public static readonly DependencyProperty ModelToWorldProperty =
-            DependencyProperty.Register("ModelToWorldProperty",
+            DependencyProperty.Register("ModelToWorld",
             typeof(MatrixTransform3D), typeof(Model3D),
             new PropertyMetadata((MatrixTransform3D)MatrixTransform3D.Identity,
                 OnModelToWorldChanged));

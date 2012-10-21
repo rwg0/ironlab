@@ -16,7 +16,7 @@ namespace IronPlot
     public class LabelProperties : DependencyObject
     {
         public static readonly DependencyProperty BackgroundProperty =
-            DependencyProperty.Register("BackgroundProperty",
+            DependencyProperty.Register("Background",
             typeof(Brush), typeof(LabelProperties),
             new PropertyMetadata(Brushes.Transparent));
 
@@ -27,7 +27,7 @@ namespace IronPlot
         }
 
         public static readonly DependencyProperty ForegroundProperty =
-            DependencyProperty.Register("ForegroundProperty",
+            DependencyProperty.Register("Foreground",
             typeof(Brush), typeof(LabelProperties),
             new PropertyMetadata(Brushes.Black));
 
@@ -38,7 +38,7 @@ namespace IronPlot
         }
 
         public static readonly DependencyProperty FontFamilyProperty =
-            DependencyProperty.Register("FontFamilyProperty",
+            DependencyProperty.Register("FontFamily",
             typeof(FontFamily), typeof(LabelProperties),
             new PropertyMetadata(new FontFamily("Tahoma")));
 
@@ -49,7 +49,7 @@ namespace IronPlot
         }
 
         public static readonly DependencyProperty FontSizeProperty =
-            DependencyProperty.Register("FontSizeProperty",
+            DependencyProperty.Register("FontSize",
             typeof(double), typeof(LabelProperties),
             new PropertyMetadata());
 
@@ -60,7 +60,7 @@ namespace IronPlot
         }
 
         public static readonly DependencyProperty FontStyleProperty =
-            DependencyProperty.Register("FontStyleProperty",
+            DependencyProperty.Register("FontStyle",
             typeof(FontStyle), typeof(LabelProperties),
             new PropertyMetadata(FontStyles.Normal));
 
@@ -71,7 +71,7 @@ namespace IronPlot
         }
 
         public static readonly DependencyProperty FontWeightProperty =
-            DependencyProperty.Register("FontWeightProperty",
+            DependencyProperty.Register("FontWeight",
             typeof(FontWeight), typeof(LabelProperties),
             new PropertyMetadata(FontWeights.Normal));
 
@@ -82,7 +82,7 @@ namespace IronPlot
         }
 
         public static readonly DependencyProperty TextProperty =
-            DependencyProperty.Register("TextProperty",
+            DependencyProperty.Register("Text",
             typeof(string), typeof(LabelProperties),
             new PropertyMetadata("Label"));
 
@@ -93,7 +93,7 @@ namespace IronPlot
         }
 
         //public static readonly DependencyProperty TypographyProperty =
-        //    DependencyProperty.Register("TypographyProperty",
+        //    DependencyProperty.Register("Typography",
         //    typeof(Typography), typeof(LabelProperties),
         //    new PropertyMetadata());
 
@@ -116,7 +116,7 @@ namespace IronPlot
             foreach (FieldInfo field in fields)
             {
                 DependencyProperty dp = (DependencyProperty)field.GetValue(this);
-                DependencyProperty dpTextblock = (DependencyProperty)(parentLabelProperties.GetType().GetField(dp.Name).GetValue(parentLabelProperties));
+                DependencyProperty dpTextblock = (DependencyProperty)(parentLabelProperties.GetType().GetField(string.Concat(dp.Name, "Property")).GetValue(parentLabelProperties));
                 Binding bindingTransform = new Binding(dp.Name);
                 bindingTransform.Source = parentLabelProperties;
                 bindingTransform.Mode = BindingMode.OneWay;
@@ -130,7 +130,7 @@ namespace IronPlot
             foreach (FieldInfo field in fields)
             {
                 DependencyProperty dp = (DependencyProperty)field.GetValue(this);
-                DependencyProperty dpTextblock = (DependencyProperty)(textblock.GetType().GetField(dp.Name).GetValue(textblock));
+                DependencyProperty dpTextblock = (DependencyProperty)(textblock.GetType().GetField(string.Concat(dp.Name, "Property")).GetValue(textblock));
                 Binding bindingTransform = new Binding(dp.Name);
                 bindingTransform.Source = this;
                 bindingTransform.Mode = BindingMode.OneWay;

@@ -75,7 +75,7 @@ namespace IronPlot
         }
  
         public static readonly DependencyProperty QuickStrokeDashProperty =
-            DependencyProperty.Register("QuickStrokeDashProperty",
+            DependencyProperty.Register("QuickStrokeDash",
             typeof(QuickStrokeDash), typeof(PlotPath),
             new PropertyMetadata(QuickStrokeDash.Solid,
                 OnQuickStrokeDashPropertyChanged));

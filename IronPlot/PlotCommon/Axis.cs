@@ -132,27 +132,27 @@ namespace IronPlot
         protected static double maxDate = DateTime.MaxValue.ToOADate();
 
         public static DependencyProperty AxisTypeProperty =
-            DependencyProperty.Register("AxisTypeProperty",
+            DependencyProperty.Register("AxisType",
             typeof(AxisType), typeof(Axis), new PropertyMetadata(AxisType.Linear, OnAxisTypeChanged));
 
         public static DependencyProperty NumberOfTicksProperty =
-            DependencyProperty.Register("NumberOfTicksProperty",
+            DependencyProperty.Register("NumberOfTicks",
             typeof(int), typeof(Axis), new PropertyMetadata(10, OnNumberOfTicksChanged));
 
         public static DependencyProperty TickLengthProperty =
-            DependencyProperty.Register("TickLengthProperty",
+            DependencyProperty.Register("TickLength",
             typeof(double), typeof(Axis), new PropertyMetadata(5.0));
 
         public static DependencyProperty LabelsVisibleProperty =
-            DependencyProperty.Register("LabelsVisibleProperty",
+            DependencyProperty.Register("LabelsVisible",
             typeof(bool), typeof(Axis), new PropertyMetadata(true));
 
         public static DependencyProperty TicksVisibleProperty =
-            DependencyProperty.Register("TicksVisibleProperty",
+            DependencyProperty.Register("TicksVisible",
             typeof(bool), typeof(Axis), new PropertyMetadata(true));
 
         public static DependencyProperty FormatOverrideProperty =
-            DependencyProperty.Register("FormatOverrideProperty",
+            DependencyProperty.Register("FormatOverride",
             typeof(Func<double, string>), typeof(Axis), new PropertyMetadata(null));
 
         public double[] TicksOverride

@@ -73,13 +73,13 @@ namespace IronPlot.Plotting3D
         }
 
         private static readonly DependencyProperty PointCollectionProperty =
-            DependencyProperty.Register("PointCollectionProperty",
+            DependencyProperty.Register("PointCollection",
             typeof(List<Point3DColor>),
             typeof(LinesModel3D),
             new PropertyMetadata(null));
 
         private static readonly DependencyProperty LineThicknessProperty =
-            DependencyProperty.Register("LineThicknessProperty",
+            DependencyProperty.Register("LineThickness",
             typeof(double),
             typeof(LinesModel3D),
             new PropertyMetadata(1.5, LineThicknessChanged));

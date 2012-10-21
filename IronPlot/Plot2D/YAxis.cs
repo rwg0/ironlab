@@ -21,7 +21,7 @@ namespace IronPlot
         internal double xPosition = 0;
 
         public static readonly DependencyProperty YAxisPositionProperty =
-            DependencyProperty.Register("YAxisPositionProperty",
+            DependencyProperty.Register("YAxisPosition",
             typeof(YAxisPosition), typeof(YAxis),
             new PropertyMetadata(YAxisPosition.Left));
 

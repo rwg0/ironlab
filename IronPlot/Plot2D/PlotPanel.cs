@@ -45,12 +45,12 @@ namespace IronPlot
         internal Rect CanvasLocation;
 
         public static readonly DependencyProperty EqualAxesProperty =
-            DependencyProperty.Register("EqualAxesProperty",
+            DependencyProperty.Register("EqualAxes",
             typeof(bool), typeof(PlotPanel),
             new PropertyMetadata(false, OnEqualAxesChanged));
 
         public static readonly DependencyProperty UseDirect2DProperty =
-            DependencyProperty.Register("UseDirect2DProperty",
+            DependencyProperty.Register("UseDirect2D",
             typeof(bool), typeof(PlotPanel),
             new PropertyMetadata(false, OnUseDirect2DChanged));
 

@@ -24,17 +24,17 @@ namespace IronPlot.Plotting3D
     public class Axes3D : Model3D
     {
         public static readonly DependencyProperty GraphMinProperty =
-            DependencyProperty.Register("GraphMinProperty",
+            DependencyProperty.Register("GraphMin",
                 typeof(Point3D), typeof(Axes3D),
                 new PropertyMetadata(new Point3D(-10, -10, -10), OnUpdateGraphMaxMin));
 
         public static readonly DependencyProperty GraphMaxProperty =
-            DependencyProperty.Register("GraphMaxProperty",
+            DependencyProperty.Register("GraphMax",
                 typeof(Point3D), typeof(Axes3D),
                 new PropertyMetadata(new Point3D(10, 10, 10), OnUpdateGraphMaxMin));
 
         private static readonly DependencyProperty LineThicknessProperty =
-            DependencyProperty.Register("LineThicknessProperty",
+            DependencyProperty.Register("LineThickness",
             typeof(double),
             typeof(Axes3D),
                 new PropertyMetadata(1.5, LineThicknessChanged));

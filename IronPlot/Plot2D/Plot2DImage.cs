@@ -101,7 +101,7 @@ namespace IronPlot
         }
 
         public static readonly DependencyProperty BoundsProperty =
-            DependencyProperty.Register("BoundsProperty",
+            DependencyProperty.Register("Bounds",
             typeof(Rect), typeof(FalseColourImage),
             new PropertyMetadata(new Rect(0, 0, 10, 10),
                 OnBoundsChanged));

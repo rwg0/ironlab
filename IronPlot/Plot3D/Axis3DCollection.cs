@@ -14,7 +14,7 @@ namespace IronPlot.Plotting3D
     public class Axis3DCollection : DependencyObject
     {
         public static DependencyProperty AxisTypeProperty =
-            DependencyProperty.Register("AxisTypeProperty",
+            DependencyProperty.Register("AxisType",
             typeof(AxisType), typeof(Axis3DCollection), new PropertyMetadata(AxisType.Linear));
 
         public AxisType AxisType
@@ -24,7 +24,7 @@ namespace IronPlot.Plotting3D
         }
         
         public static DependencyProperty NumberOfTicksProperty =
-            DependencyProperty.Register("NumberOfTicksProperty",
+            DependencyProperty.Register("NumberOfTicks",
             typeof(int), typeof(Axis3DCollection), new PropertyMetadata(10));
         
         public int NumberOfTicks
@@ -34,7 +34,7 @@ namespace IronPlot.Plotting3D
         }
 
         public static DependencyProperty TickLengthProperty =
-            DependencyProperty.Register("TickLengthProperty",
+            DependencyProperty.Register("TickLength",
             typeof(double), typeof(Axis3DCollection), new PropertyMetadata(0.05));
 
         public double TickLength
@@ -44,7 +44,7 @@ namespace IronPlot.Plotting3D
         }
 
         public static DependencyProperty LabelsVisibleProperty =
-            DependencyProperty.Register("LabelsVisibleProperty",
+            DependencyProperty.Register("LabelsVisible",
             typeof(bool), typeof(Axis3DCollection), new PropertyMetadata(true));
 
         public bool LabelsVisible
@@ -54,7 +54,7 @@ namespace IronPlot.Plotting3D
         }
 
         public static DependencyProperty TicksVisibleProperty =
-            DependencyProperty.Register("TicksVisibleProperty",
+            DependencyProperty.Register("TicksVisible",
             typeof(bool), typeof(Axis3DCollection), new PropertyMetadata(true));
 
         public bool TicksVisible
@@ -85,9 +85,9 @@ namespace IronPlot.Plotting3D
             foreach (FieldInfo field in fields)
             {
                 DependencyProperty dp = (DependencyProperty)field.GetValue(this);
-                FieldInfo fieldInfo = axis.GetType().GetField(dp.Name);
-                if (fieldInfo == null) fieldInfo = axis.GetType().BaseType.GetField(dp.Name);
-                if (fieldInfo == null) fieldInfo = axis.GetType().BaseType.BaseType.GetField(dp.Name);
+                FieldInfo fieldInfo = axis.GetType().GetField(string.Concat(dp.Name, "Property"));
+                if (fieldInfo == null) fieldInfo = axis.GetType().BaseType.GetField(string.Concat(dp.Name, "Property"));
+                if (fieldInfo == null) fieldInfo = axis.GetType().BaseType.BaseType.GetField(string.Concat(dp.Name, "Property"));
                 DependencyProperty dpAxis = (DependencyProperty)(fieldInfo.GetValue(axis));
                 Binding bindingTransform = new Binding(dp.Name);
                 bindingTransform.Source = this;

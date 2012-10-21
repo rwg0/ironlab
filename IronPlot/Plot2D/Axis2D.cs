@@ -60,7 +60,7 @@ namespace IronPlot
     public abstract class Axis2D : Axis
     {
         public static readonly DependencyProperty RangeProperty =
-            DependencyProperty.Register("RangeProperty",
+            DependencyProperty.Register("Range",
             typeof(Range), typeof(Axis2D),
             new PropertyMetadata(new Range(0, 10), OnRangeChanged));
 
@@ -173,7 +173,7 @@ namespace IronPlot
         /// <param name="bindingAxis"></param>
         public void BindToAxis(Axis2D bindingAxis)
         {
-            axisBinding = new Binding("RangeProperty") { Source = this, Mode = BindingMode.TwoWay };
+            axisBinding = new Binding("Range") { Source = this, Mode = BindingMode.TwoWay };
             bindingAxis.SetBinding(Axis2D.RangeProperty, axisBinding);
         }
 

@@ -35,7 +35,7 @@ namespace IronPlot
     public class DirectImage : DependencyObject
     {
         public static readonly DependencyProperty VisibleProperty =
-            DependencyProperty.Register("VisibleProperty",
+            DependencyProperty.Register("Visible",
             typeof(bool), typeof(DirectImage),
             new FrameworkPropertyMetadata(true, OnVisiblePropertyChanged));
 

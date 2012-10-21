@@ -23,7 +23,7 @@ namespace IronPlot.Plotting3D
     //[ContentProperty("ModelsProperty")]
     public class Viewport3D : PlotPanelBase
     {     
-        private Trackball trackball;
+        internal Trackball trackball;
         private Axes3D axes;
         private Viewport3DControl viewport3DControl;
         private ViewportImage viewport3DImage; 
@@ -36,24 +36,29 @@ namespace IronPlot.Plotting3D
         #region DependencyProperties
         
         public static readonly DependencyProperty ModelsProperty =
-            DependencyProperty.Register("ModelsProperty",
+            DependencyProperty.Register("Models",
             typeof(Model3DCollection), typeof(Viewport3D),
             new PropertyMetadata(null));
         
         public static readonly DependencyProperty GraphToWorldProperty =
-            DependencyProperty.Register("GraphToWorldProperty",
+            DependencyProperty.Register("GraphToWorld",
             typeof(MatrixTransform3D), typeof(Viewport3D),
             new PropertyMetadata((MatrixTransform3D)MatrixTransform3D.Identity, OnGraphToWorldChanged));
 
         public static readonly DependencyProperty GraphMinProperty =
-            DependencyProperty.Register("GraphMinProperty",
+            DependencyProperty.Register("GraphMin",
             typeof(Point3D), typeof(Viewport3D),
             new PropertyMetadata(new Point3D(-10, -10, -10), OnUpdateGraphMinMax));
 
         public static readonly DependencyProperty GraphMaxProperty =
-            DependencyProperty.Register("GraphMaxProperty",
+            DependencyProperty.Register("GraphMax",
             typeof(Point3D), typeof(Viewport3D),
             new PropertyMetadata(new Point3D(10, 10, 10), OnUpdateGraphMinMax));
+
+        public static readonly DependencyProperty ProjectionTypeProperty =
+            DependencyProperty.Register("ProjectionType",
+            typeof(ProjectionType), typeof(Viewport3D),
+            new FrameworkPropertyMetadata(ProjectionType.Perspective));
 
         public MatrixTransform3D GraphToWorld
         {
@@ -77,6 +82,12 @@ namespace IronPlot.Plotting3D
         {
             get { return (Point3D)GetValue(GraphMaxProperty); }
             set { SetValue(GraphMaxProperty, value); }
+        }
+
+        public ProjectionType ProjectionType
+        {
+            set { SetValue(ProjectionTypeProperty, value); }
+            get { return (ProjectionType)GetValue(ProjectionTypeProperty); }
         }
 
         protected Point3D worldMin;
@@ -214,15 +225,15 @@ namespace IronPlot.Plotting3D
             viewport3DImage.CameraPosition = new Vector3(-3f, -3f, 2f);
             viewport3DImage.CameraTarget = new Vector3(0f, 0f, 0f);
             //
-            Binding bindingGraphMin = new Binding("GraphMinProperty");
+            Binding bindingGraphMin = new Binding("GraphMin");
             bindingGraphMin.Source = this;
             bindingGraphMin.Mode = BindingMode.TwoWay;
             BindingOperations.SetBinding(axes, Axes3D.GraphMinProperty, bindingGraphMin);
-            Binding bindingGraphMax = new Binding("GraphMaxProperty");
+            Binding bindingGraphMax = new Binding("GraphMax");
             bindingGraphMax.Source = this;
             bindingGraphMax.Mode = BindingMode.TwoWay;
             BindingOperations.SetBinding(axes, Axes3D.GraphMaxProperty, bindingGraphMax);
-            Binding bindingGraphToWorld = new Binding("GraphToWorldProperty");
+            Binding bindingGraphToWorld = new Binding("GraphToWorld");
             bindingGraphToWorld.Source = this;
             bindingGraphToWorld.Mode = BindingMode.OneWay;
             BindingOperations.SetBinding(viewport3DImage, ViewportImage.ModelToWorldProperty, bindingGraphToWorld);
@@ -308,7 +319,16 @@ namespace IronPlot.Plotting3D
         protected void trackball_OnTrackBallZoom(Object sender, EventArgs e)
         {
             double Scale = ((Trackball)sender).Scale;
-            viewport3DImage.CameraPosition = Vector3.Multiply(viewport3DImage.CameraPosition, (float)Scale);
+            switch (this.ProjectionType)
+            {
+                case ProjectionType.Perspective:
+                    viewport3DImage.CameraPosition = Vector3.Multiply(viewport3DImage.CameraPosition, (float)Scale);
+                    break;
+                case ProjectionType.Orthogonal:
+                    viewport3DImage.Scale = Convert.ToSingle(viewport3DImage.Scale / Scale);
+                    viewport3DImage.RequestRender();
+                    break;
+            }
         }
 
         protected void trackball_OnTrackBallTranslate(Object sender, EventArgs e)

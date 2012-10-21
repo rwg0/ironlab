@@ -37,63 +37,63 @@ namespace IronPlot
 
         #region DependencyProperties
         public static readonly DependencyProperty MarkersTypeProperty =
-            DependencyProperty.Register("MarkersTypeProperty",
+            DependencyProperty.Register("MarkersType",
             typeof(MarkersType), typeof(Plot2DCurve),
             new PropertyMetadata(MarkersType.None,
                 OnMarkersChanged));
 
         public static readonly DependencyProperty MarkersSizeProperty =
-            DependencyProperty.Register("MarkersSizeProperty",
+            DependencyProperty.Register("MarkersSize",
             typeof(double), typeof(Plot2DCurve),
             new PropertyMetadata(10.0,
                 OnMarkersChanged));
 
         public static readonly DependencyProperty MarkersFillProperty =
-            DependencyProperty.Register("MarkersFillProperty",
+            DependencyProperty.Register("MarkersFill",
             typeof(Brush), typeof(Plot2DCurve),
             new PropertyMetadata(Brushes.Transparent));
 
         public static readonly DependencyProperty StrokeProperty =
-            DependencyProperty.Register("StrokeProperty",
+            DependencyProperty.Register("Stroke",
             typeof(Brush), typeof(Plot2DCurve),
             new PropertyMetadata(Brushes.Black));
 
         public static readonly DependencyProperty StrokeThicknessProperty =
-            DependencyProperty.Register("StrokeThicknessProperty",
+            DependencyProperty.Register("StrokeThickness",
             typeof(double), typeof(Plot2DCurve),
             new PropertyMetadata(1.0));
 
         public static readonly DependencyProperty QuickLineProperty =
-            DependencyProperty.Register("QuickLineProperty",
+            DependencyProperty.Register("QuickLine",
             typeof(string), typeof(Plot2DCurve),
             new PropertyMetadata("-k",
             OnQuickLinePropertyChanged));
 
         public static readonly DependencyProperty QuickStrokeDashProperty =
-            DependencyProperty.Register("QuickStrokeDashProperty",
+            DependencyProperty.Register("QuickStrokeDash",
             typeof(QuickStrokeDash), typeof(Plot2DCurve),
             new PropertyMetadata(QuickStrokeDash.Solid,
             OnQuickStrokeDashPropertyChanged));
 
         public static readonly DependencyProperty TitleProperty =
-            DependencyProperty.Register("TitleProperty",
+            DependencyProperty.Register("Title",
             typeof(string), typeof(Plot2DCurve),
             new PropertyMetadata(String.Empty));
 
         public static readonly DependencyProperty AnnotationPositionProperty =
-            DependencyProperty.Register("AnnotationPositionProperty",
+            DependencyProperty.Register("AnnotationPosition",
             typeof(Point), typeof(Plot2DCurve),
             new PropertyMetadata(new Point(Double.NaN, Double.NaN),
                 OnAnnotationPositionChanged));
 
         public static readonly DependencyProperty AnnotationEnabledProperty =
-            DependencyProperty.Register("AnnotationEnabledProperty",
+            DependencyProperty.Register("AnnotationEnabled",
             typeof(bool), typeof(Plot2DCurve),
             new PropertyMetadata(true,
                 OnAnnotationEnabledChanged));
 
         public static readonly DependencyProperty UseDirect2DProperty =
-            DependencyProperty.Register("UseDirect2DProperty",
+            DependencyProperty.Register("UseDirect2D",
             typeof(bool), typeof(Plot2DCurve),
             new PropertyMetadata(false, OnUseDirect2DChanged));
 
@@ -267,7 +267,7 @@ namespace IronPlot
                 AddElements();
                 curve.Transform(xAxis.GraphTransform, yAxis.GraphTransform);
                 // Add binding:
-                bindingDirect2D = new Binding("UseDirect2DProperty") { Source = host, Mode = BindingMode.OneWay };
+                bindingDirect2D = new Binding("UseDirect2D") { Source = host, Mode = BindingMode.OneWay };
                 BindingOperations.SetBinding(this, Plot2DCurve.UseDirect2DProperty, bindingDirect2D);
             }
             SetBounds();
@@ -346,7 +346,7 @@ namespace IronPlot
             legendItem = CreateLegendItem();
             //
             // Name binding
-            Binding titleBinding = new Binding("TitleProperty") { Source = this, Mode = BindingMode.OneWay };
+            Binding titleBinding = new Binding("Title") { Source = this, Mode = BindingMode.OneWay };
             legendItem.SetBinding(LegendItem.TitleProperty, titleBinding);
             // Other bindings:
             BindToThis(line, false, true);
@@ -565,18 +565,18 @@ namespace IronPlot
         protected void BindToThis(PlotPath target, bool includeFill, bool includeDotDash)
         {
             // Set Stroke property to apply to both the Line and Markers
-            Binding strokeBinding = new Binding("StrokeProperty") { Source = this, Mode = BindingMode.OneWay };
+            Binding strokeBinding = new Binding("Stroke") { Source = this, Mode = BindingMode.OneWay };
             target.SetBinding(PlotPath.StrokeProperty, strokeBinding);
             // Set StrokeThickness property also to apply to both the Line and Markers
-            Binding strokeThicknessBinding = new Binding("StrokeThicknessProperty") { Source = this, Mode = BindingMode.OneWay };
+            Binding strokeThicknessBinding = new Binding("StrokeThickness") { Source = this, Mode = BindingMode.OneWay };
             target.SetBinding(PlotPath.StrokeThicknessProperty, strokeThicknessBinding);
             // Fill binding
-            Binding fillBinding = new Binding("MarkersFillProperty") { Source = this, Mode = BindingMode.OneWay };
+            Binding fillBinding = new Binding("MarkersFill") { Source = this, Mode = BindingMode.OneWay };
             if (includeFill) target.SetBinding(PlotPath.FillProperty, fillBinding);
             // Dot-dash of line
             if (includeDotDash)
             {
-                Binding dashBinding = new Binding("QuickStrokeDashProperty") { Source = this, Mode = BindingMode.OneWay };
+                Binding dashBinding = new Binding("QuickStrokeDash") { Source = this, Mode = BindingMode.OneWay };
                 target.SetBinding(PlotPath.QuickStrokeDashProperty, dashBinding);
             }     
         }
@@ -584,18 +584,18 @@ namespace IronPlot
         protected void BindToThis(DirectPath target, bool includeFill, bool includeDotDash)
         {
             // Set Stroke property to apply to both the Line and Markers
-            Binding strokeBinding = new Binding("StrokeProperty") { Source = this, Mode = BindingMode.OneWay };
+            Binding strokeBinding = new Binding("Stroke") { Source = this, Mode = BindingMode.OneWay };
             target.SetBinding(DirectPath.StrokeProperty, strokeBinding);
             // Set StrokeThickness property also to apply to both the Line and Markers
-            Binding strokeThicknessBinding = new Binding("StrokeThicknessProperty") { Source = this, Mode = BindingMode.OneWay };
+            Binding strokeThicknessBinding = new Binding("StrokeThickness") { Source = this, Mode = BindingMode.OneWay };
             target.SetBinding(DirectPath.StrokeThicknessProperty, strokeThicknessBinding);
             // Fill binding
-            Binding fillBinding = new Binding("MarkersFillProperty") { Source = this, Mode = BindingMode.OneWay };
+            Binding fillBinding = new Binding("MarkersFill") { Source = this, Mode = BindingMode.OneWay };
             if (includeFill) target.SetBinding(DirectPath.FillProperty, fillBinding);
             // Dot-dash of line
             if (includeDotDash)
             {
-                Binding dashBinding = new Binding("QuickStrokeDashProperty") { Source = this, Mode = BindingMode.OneWay };
+                Binding dashBinding = new Binding("QuickStrokeDash") { Source = this, Mode = BindingMode.OneWay };
                 target.SetBinding(DirectPath.QuickStrokeDashProperty, dashBinding);
             }
         }

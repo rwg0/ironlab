@@ -21,6 +21,19 @@ namespace IronPlot.Plotting3D
     /// </summary>
     public partial class Plot3D : UserControl
     {
+        #region DependencyProperties
+        public static readonly DependencyProperty ProjectionTypeProperty =
+            DependencyProperty.Register("ProjectionType",
+            typeof(ProjectionType), typeof(Plot3D),
+            new FrameworkPropertyMetadata(ProjectionType.Perspective));
+
+        public ProjectionType ProjectionType
+        {
+            set { SetValue(ProjectionTypeProperty, value); }
+            get { return (ProjectionType)GetValue(ProjectionTypeProperty); }
+        }
+        #endregion
+
         public Plot3D()
         {
             InitializeComponent();

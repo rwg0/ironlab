@@ -18,22 +18,22 @@ namespace IronPlot
     public class DirectPath : FrameworkElement, IDisposable
     {
         public static readonly DependencyProperty FillProperty =
-            DependencyProperty.Register("FillProperty",
+            DependencyProperty.Register("Fill",
             typeof(System.Windows.Media.Brush), typeof(DirectPath),
             new PropertyMetadata(Brushes.Transparent));
 
         public static readonly DependencyProperty StrokeProperty =
-            DependencyProperty.Register("StrokeProperty",
+            DependencyProperty.Register("Stroke",
             typeof(System.Windows.Media.Brush), typeof(DirectPath),
             new PropertyMetadata(Brushes.Black, OnStrokePropertyChanged));
 
         public static readonly DependencyProperty StrokeThicknessProperty =
-            DependencyProperty.Register("StrokeThicknessProperty",
+            DependencyProperty.Register("StrokeThickness",
             typeof(double), typeof(DirectPath),
             new PropertyMetadata(1.0));
 
         public static readonly DependencyProperty QuickStrokeDashProperty =
-            DependencyProperty.Register("QuickStrokeDashProperty",
+            DependencyProperty.Register("QuickStrokeDash",
             typeof(QuickStrokeDash), typeof(DirectPath),
             new PropertyMetadata(QuickStrokeDash.Solid));
 
