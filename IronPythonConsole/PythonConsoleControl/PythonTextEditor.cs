@@ -230,7 +230,7 @@ namespace PythonConsoleControl
         {
             get
             {
-                return textArea.Selection.IsMultiline(textArea.Document);
+                return textArea.Selection.IsMultiline;
             }
         }
 

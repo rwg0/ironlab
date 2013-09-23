@@ -128,7 +128,7 @@ namespace IronPythonConsole
         {
             string statementsToRun = "";
             if (textEditor.TextArea.Selection.Length > 0)
-                statementsToRun = textEditor.TextArea.Selection.GetText(textEditor.TextArea.Document);
+                statementsToRun = textEditor.TextArea.Selection.GetText();
             else
                 statementsToRun = textEditor.TextArea.Document.Text;
             console.Pad.Console.RunStatements(statementsToRun);
