@@ -58,9 +58,6 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\packages\IronPython.2.7.4\lib\Net40\IronPython.Modules.dll</HintPath>
     </Reference>
-    <Reference Include="IronPython.SQLite">
-      <HintPath>..\..\packages\IronPython.2.7.4\lib\Net40\IronPython.SQLite.dll</HintPath>
-    </Reference>
     <Reference Include="IronPython.Wpf">
       <HintPath>..\..\packages\IronPython.2.7.4\lib\Net40\IronPython.Wpf.dll</HintPath>
     </Reference>
