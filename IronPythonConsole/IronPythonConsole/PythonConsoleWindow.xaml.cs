@@ -27,16 +27,18 @@ namespace IronPythonConsole
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class PythonConsoleWindow : Window
     {
+        public event EventHandler<EventArgs> ConsoleInitialized;
+
         ConsoleOptions consoleOptionsProvider;
         
-        public MainWindow()
+        public PythonConsoleWindow()
 		{
             Initialized += new EventHandler(MainWindow_Initialized);
             // Load our custom highlighting definition:
             IHighlightingDefinition pythonHighlighting;
-            using (Stream s = typeof(MainWindow).Assembly.GetManifestResourceStream("IronPythonConsole.Resources.Python.xshd"))
+            using (Stream s = typeof(PythonConsoleWindow).Assembly.GetManifestResourceStream("IronPythonConsole.Resources.Python.xshd"))
             {
                 if (s == null)
                     throw new InvalidOperationException("Could not find embedded resource");
@@ -64,6 +66,11 @@ namespace IronPythonConsole
             console.Pad.Host.ConsoleCreated +=new PythonConsoleControl.ConsoleCreatedEventHandler(Host_ConsoleCreated);
 		}
 
+        public ScriptScope PythonScope
+        {
+            get { return console.Pad.Console.ScriptScope; }
+        }
+
 		string currentFileName;
 
         void Host_ConsoleCreated(object sender, EventArgs e)
@@ -73,6 +80,9 @@ namespace IronPythonConsole
 
         void Console_ConsoleInitialized(object sender, EventArgs e)
         {
+            if (ConsoleInitialized != null)
+                ConsoleInitialized(this, new EventArgs());
+
             string startupScipt = "import IronPythonConsole";
             ScriptSource scriptSource = console.Pad.Console.ScriptScope.Engine.CreateScriptSourceFromString(startupScipt, SourceCodeKind.Statements);
             try
