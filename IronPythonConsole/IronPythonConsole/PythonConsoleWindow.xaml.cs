@@ -21,6 +21,7 @@ using System.Resources;
 using System.Windows.Controls.WpfPropertyGrid;
 using Microsoft.Scripting;
 using Microsoft.Scripting.Hosting;
+using PythonConsoleControl;
 
 namespace IronPythonConsole
 {
@@ -69,6 +70,21 @@ namespace IronPythonConsole
         public ScriptScope PythonScope
         {
             get { return console.Pad.Console.ScriptScope; }
+        }
+
+        public PythonConsole PythonConsole
+        {
+            get { return console.Pad.Console;  }
+        }
+
+        public PythonConsolePad ConsolePad
+        {
+            get { return console.Pad; }
+        }
+
+        public IronPythonConsoleControl PythonConsoleControl
+        {
+            get { return console; }
         }
 
 		string currentFileName;
