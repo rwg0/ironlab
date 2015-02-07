@@ -27,10 +27,10 @@ namespace WpfApplication
 
         private void WOnConsoleInitialized(object sender, EventArgs eventArgs)
         {
-            PythonConsoleWindow pcw = (PythonConsoleWindow) sender;
-            pcw.PythonScope.SetVariable("Window", pcw);
-            ScriptSource  script = pcw.PythonScope.Engine.CreateScriptSourceFromString("print 2*3", SourceCodeKind.Statements);
-            script.Execute();
+            //PythonConsoleWindow pcw = (PythonConsoleWindow) sender;
+            //pcw.PythonScope.SetVariable("Window", pcw);
+            //ScriptSource  script = pcw.PythonScope.Engine.CreateScriptSourceFromString("print 2*3", SourceCodeKind.Statements);
+            //script.Execute();
         }
     }
 }

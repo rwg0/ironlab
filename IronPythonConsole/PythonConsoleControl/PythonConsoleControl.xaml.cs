@@ -55,6 +55,9 @@ namespace PythonConsoleControl
             {
                 if (transformers[i] is HighlightingColorizer) transformers[i] = new PythonConsoleHighlightingColorizer(pythonHighlighting.MainRuleSet, pad.Control.Document);
             }
+
+            pad.Control.Loaded += (sender, args) => pad.Control.Focus();
+
         }
 
         /// <summary>
