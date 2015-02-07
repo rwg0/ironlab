@@ -6,8 +6,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using IronPythonConsole;
-using Microsoft.Scripting;
-using Microsoft.Scripting.Hosting;
 
 namespace WpfApplication
 {
