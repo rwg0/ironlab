@@ -78,7 +78,6 @@ namespace PythonConsoleControl
         Window dispatcherWindow;
         Dispatcher dispatcher;
 
-        string scriptText = String.Empty;
         bool consoleInitialized = false;
         string prompt;
       
@@ -289,11 +288,7 @@ namespace PythonConsoleControl
 
                 if (commands.Length > 1)
                 {
-                    lock (this.scriptText)
-                    {
-                        this.scriptText = scriptText;
-                    }
-                    dispatcherWindow.Dispatcher.BeginInvoke(new Action(delegate() { ExecuteStatements(); }));
+                    dispatcherWindow.Dispatcher.BeginInvoke(new Action(delegate() { ExecuteStatements(scriptText); }));
                 }
             }
         }
@@ -330,17 +325,25 @@ namespace PythonConsoleControl
         public void RunStatements(string statements)
         {
             MoveToHomePosition();
-            lock (this.scriptText)
-            {
-                this.scriptText = statements;
-            }
-            dispatcher.BeginInvoke(new Action(delegate() { ExecuteStatements(); }));
+           
+            dispatcher.BeginInvoke(new Action(delegate() { ExecuteStatements(statements); }));
+        }
+
+        /// <summary>
+        /// Run externally provided statements in the Console Engine. 
+        /// </summary>
+        /// <param name="statements"></param>
+        public void RunStatementsSync(string statements)
+        {
+            MoveToHomePosition();
+      
+            dispatcher.Invoke(new Action(delegate() { ExecuteStatements(statements); }));
         }
 
         /// <summary>
         /// Run on the statement execution thread. 
         /// </summary>
-        void ExecuteStatements()
+        void ExecuteStatements(string scriptText)
         {
             lock (scriptText)
             {
