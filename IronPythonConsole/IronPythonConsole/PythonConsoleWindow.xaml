@@ -73,6 +73,9 @@
                 <Button Click="runClick">
                     <Image Source="Images/Run.png" Height="16"/>
                 </Button>
+                <Button Click="stopClick">
+                    <Image Source="Images/Stop.png" Height="16" ToolTip="Stop any running script"/>
+                </Button>
             </ToolBar>
             <Grid DockPanel.Dock="Bottom">
                 <avalonEdit:TextEditor

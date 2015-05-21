@@ -162,6 +162,7 @@
     <Resource Include="python.ico" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="Images\Stop.png" />
     <Content Include="IronPythonConsole.py">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

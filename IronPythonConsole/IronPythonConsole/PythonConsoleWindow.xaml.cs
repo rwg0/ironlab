@@ -179,6 +179,10 @@ namespace IronPythonConsole
         {
             propertyGridComboBoxSelectionChanged(sender, e);
         }
-		
+
+        private void stopClick(object sender, RoutedEventArgs e)
+        {
+            console.Pad.Console.AbortRunningScript();
+        }
     }
 }
