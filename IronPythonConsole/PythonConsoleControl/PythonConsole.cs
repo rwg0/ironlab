@@ -305,10 +305,16 @@ namespace PythonConsoleControl
                     //textEditor.Column = GetLastTextEditorLine().Length + 1;
                     //textEditor.Write(Environment.NewLine);
                 //}
-                dispatcherThread.Abort(new Microsoft.Scripting.KeyboardInterruptException(""));
+                AbortRunningScript();
                 args.Handled = true;
             }
             else PythonEditingCommandHandler.OnCopy(target, args);
+        }
+
+        public void AbortRunningScript()
+        {
+            if (executing)
+                dispatcherThread.Abort(new KeyboardInterruptException(""));
         }
 
         const string LineSelectedType = "MSDEVLineSelect";  // This is the type VS 2003 and 2005 use for flagging a whole line copy
