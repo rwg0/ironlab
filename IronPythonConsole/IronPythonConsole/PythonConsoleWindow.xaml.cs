@@ -99,6 +99,9 @@ namespace IronPythonConsole
             if (ConsoleInitialized != null)
                 ConsoleInitialized(this, new EventArgs());
 
+            console.Pad.Console.ScriptStarting += ConsoleOnScriptStarting;
+            console.Pad.Console.ScriptFinished += ConsoleOnScriptFinished;
+
             string startupScipt = "import IronPythonConsole";
             ScriptSource scriptSource = console.Pad.Console.ScriptScope.Engine.CreateScriptSourceFromString(startupScipt, SourceCodeKind.Statements);
             try
@@ -108,6 +111,24 @@ namespace IronPythonConsole
             catch {}
             //double[] test = new double[] { 1.2, 4.6 };
             //console.Pad.Console.ScriptScope.SetVariable("test", test);
+        }
+
+        private void ConsoleOnScriptFinished(object sender, EventArgs eventArgs)
+        {
+            Dispatcher.Invoke(new Action(() =>
+                    {
+                        btnRun.IsEnabled = true;
+                        btnStop.IsEnabled = false;
+                    }));
+        }
+
+        private void ConsoleOnScriptStarting(object sender, EventArgs eventArgs)
+        {
+            Dispatcher.Invoke(new Action(() =>
+            {
+                btnRun.IsEnabled = false;
+                btnStop.IsEnabled = true;
+            }));
         }
 
         void MainWindow_Initialized(object sender, EventArgs e)

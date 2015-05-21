@@ -71,7 +71,7 @@ namespace PythonConsoleControl
         CommandLine commandLine;
         CommandLineHistory commandLineHistory = new CommandLineHistory();
 
-        volatile bool executing = false;
+        volatile bool _executing = false;
 
         // This is the thread upon which all commands execute unless the dipatcher is overridden.
         Thread dispatcherThread;
@@ -82,6 +82,8 @@ namespace PythonConsoleControl
         string prompt;
       
         public event ConsoleInitializedEventHandler ConsoleInitialized;
+        public event EventHandler<EventArgs> ScriptStarting;
+        public event EventHandler<EventArgs> ScriptFinished;
 
         public ScriptScope ScriptScope
         {
@@ -145,14 +147,14 @@ namespace PythonConsoleControl
             if (command != null)
             {
                 // Slightly involved form to enable keyboard interrupt to work.
-                executing = true;
+                Executing = true;
                 var operation = dispatcher.BeginInvoke(DispatcherPriority.Normal, command);
-                while (executing)
+                while (Executing)
                 {
                     if (operation.Status != DispatcherOperationStatus.Completed) 
                         operation.Wait(TimeSpan.FromSeconds(1));
                     if (operation.Status == DispatcherOperationStatus.Completed)
-                        executing = false;
+                        Executing = false;
                 }
             }
         }
@@ -172,7 +174,7 @@ namespace PythonConsoleControl
                     if (tae.ExceptionState is Microsoft.Scripting.KeyboardInterruptException)
                     {
                         Thread.ResetAbort();
-                        executing = false;
+                        Executing = false;
                     }
                 }
             }
@@ -296,7 +298,7 @@ namespace PythonConsoleControl
         protected void OnCopy(object target, ExecutedRoutedEventArgs args)
         {
             if (target != textEditor.textArea) return;
-            if (textEditor.SelectionLength == 0 && executing)
+            if (textEditor.SelectionLength == 0 && Executing)
             {
                 // Send the 'Ctrl-C' abort 
                 //if (!IsInReadOnlyRegion)
@@ -313,7 +315,7 @@ namespace PythonConsoleControl
 
         public void AbortRunningScript()
         {
-            if (executing)
+            if (Executing)
                 dispatcherThread.Abort(new KeyboardInterruptException(""));
         }
 
@@ -358,7 +360,7 @@ namespace PythonConsoleControl
                 string error = "";
                 try
                 {
-                    executing = true;
+                    Executing = true;
                     scriptSource.Execute(commandLine.ScriptScope);
                 }
                 catch (ThreadAbortException tae)
@@ -378,7 +380,7 @@ namespace PythonConsoleControl
                     eo = commandLine.ScriptScope.Engine.GetService<ExceptionOperations>();
                     error = eo.FormatException(exception) + System.Environment.NewLine;
                 }
-                executing = false;
+                Executing = false;
                 if (error != "") textEditor.Write(error);
                 textEditor.Write(prompt);
             }
@@ -646,6 +648,19 @@ namespace PythonConsoleControl
                     && !IsCurrentLineReadOnly
                     && (textEditor.SelectionStartColumn - promptLength - 1 >= 0)
                     && (textEditor.SelectionEndColumn - promptLength - 1 >= 0));
+            }
+        }
+
+        public bool Executing
+        {
+            get { return _executing; }
+            set
+            {
+                if (value && !_executing && ScriptStarting != null)
+                    ScriptStarting(this, null);
+                if (!value && _executing && ScriptFinished != null)
+                    ScriptFinished(this, null);
+                _executing = value;
             }
         }
 

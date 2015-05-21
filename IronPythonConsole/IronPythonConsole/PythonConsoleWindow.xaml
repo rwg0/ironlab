@@ -70,10 +70,10 @@
                     <TextBlock Width="16" TextAlignment="Center">¶</TextBlock>
                 </CheckBox>
                 <Separator/>
-                <Button Click="runClick">
+                <Button Click="runClick" Name="btnRun">
                     <Image Source="Images/Run.png" Height="16"/>
                 </Button>
-                <Button Click="stopClick">
+                <Button Click="stopClick" Name="btnStop" IsEnabled="False">
                     <Image Source="Images/Stop.png" Height="16" ToolTip="Stop any running script"/>
                 </Button>
             </ToolBar>
