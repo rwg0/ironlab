@@ -344,8 +344,32 @@ namespace PythonConsoleControl
         public void RunStatementsSync(string statements)
         {
             MoveToHomePosition();
-      
-            dispatcher.Invoke(new Action(delegate() { ExecuteStatements(statements); }));
+
+            using (var evt = new AutoResetEvent(false))
+            {
+                
+
+                dispatcher.BeginInvoke(new Action(delegate()
+                {
+                    try
+                    {
+                        ExecuteStatements(statements);
+                    }
+                    finally
+                    {
+                        evt.Set();
+                    }
+                }));
+
+                while (true)
+                {
+                    if (evt.WaitOne(1))
+                        break;
+
+                    System.Windows.Forms.Application.DoEvents();
+                }
+
+            }
         }
 
         /// <summary>
