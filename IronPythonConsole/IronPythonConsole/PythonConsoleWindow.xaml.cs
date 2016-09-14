@@ -18,6 +18,7 @@ using ICSharpCode.AvalonEdit.Folding;
 using ICSharpCode.AvalonEdit.Highlighting;
 using Microsoft.Win32;
 using System.Resources;
+using System.Threading.Tasks;
 using System.Windows.Controls.WpfPropertyGrid;
 using Microsoft.Scripting;
 using Microsoft.Scripting.Hosting;
@@ -203,7 +204,7 @@ namespace IronPythonConsole
 
         private void stopClick(object sender, RoutedEventArgs e)
         {
-            console.Pad.Console.AbortRunningScript();
+            Task.Factory.StartNew(() => console.Pad.Console.AbortRunningScript());
         }
     }
 }
