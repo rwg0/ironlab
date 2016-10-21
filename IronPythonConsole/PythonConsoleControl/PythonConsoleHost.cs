@@ -126,6 +126,13 @@ namespace PythonConsoleControl
 
         protected override void ExecuteInternal()
         {
+            if (PythonConfig.SearchPaths?.Any() ?? false)
+            {
+                var paths = Engine.GetSearchPaths().ToList();
+                paths.AddRange(PythonConfig.SearchPaths);
+                Engine.SetSearchPaths(paths);
+            }
+
             var pc = HostingHelpers.GetLanguageContext(Engine) as PythonContext;
             pc.SetModuleState(typeof(ScriptEngine), Engine);
             base.ExecuteInternal();
