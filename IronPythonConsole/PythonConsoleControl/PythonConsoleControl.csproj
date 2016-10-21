@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>PythonConsoleControl</RootNamespace>
     <AssemblyName>PythonConsoleControl</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
@@ -27,6 +27,7 @@
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -36,6 +37,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -44,6 +46,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="ICSharpCode.AvalonEdit, Version=5.0.3.0, Culture=neutral, PublicKeyToken=9cc39be672370310, processorArchitecture=MSIL">
@@ -51,35 +54,35 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="IronPython, Version=2.7.6.3, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\IronPython.2.7.6-final3\lib\Net40\IronPython.dll</HintPath>
+      <HintPath>..\..\packages\IronPython.2.7.6-final3\lib\Net45\IronPython.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="IronPython.Modules, Version=2.7.6.3, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\IronPython.2.7.6-final3\lib\Net40\IronPython.Modules.dll</HintPath>
+      <HintPath>..\..\packages\IronPython.2.7.6-final3\lib\Net45\IronPython.Modules.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="IronPython.SQLite, Version=2.7.6.3, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\IronPython.2.7.6-final3\lib\Net40\IronPython.SQLite.dll</HintPath>
+      <HintPath>..\..\packages\IronPython.2.7.6-final3\lib\Net45\IronPython.SQLite.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="IronPython.Wpf, Version=2.7.6.3, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\IronPython.2.7.6-final3\lib\Net40\IronPython.Wpf.dll</HintPath>
+      <HintPath>..\..\packages\IronPython.2.7.6-final3\lib\Net45\IronPython.Wpf.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.Dynamic, Version=1.1.1.21, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\DynamicLanguageRuntime.1.1.1-final1\lib\Net40\Microsoft.Dynamic.dll</HintPath>
+      <HintPath>..\..\packages\DynamicLanguageRuntime.1.1.1-final1\lib\Net45\Microsoft.Dynamic.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.Scripting, Version=1.1.1.21, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\DynamicLanguageRuntime.1.1.1-final1\lib\Net40\Microsoft.Scripting.dll</HintPath>
+      <HintPath>..\..\packages\DynamicLanguageRuntime.1.1.1-final1\lib\Net45\Microsoft.Scripting.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.Scripting.AspNet, Version=1.1.1.21, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\DynamicLanguageRuntime.1.1.1-final1\lib\Net40\Microsoft.Scripting.AspNet.dll</HintPath>
+      <HintPath>..\..\packages\DynamicLanguageRuntime.1.1.1-final1\lib\Net45\Microsoft.Scripting.AspNet.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.Scripting.Metadata, Version=1.1.1.21, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\DynamicLanguageRuntime.1.1.1-final1\lib\Net40\Microsoft.Scripting.Metadata.dll</HintPath>
+      <HintPath>..\..\packages\DynamicLanguageRuntime.1.1.1-final1\lib\Net45\Microsoft.Scripting.Metadata.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="PresentationCore" />
@@ -98,6 +101,7 @@
   <ItemGroup>
     <Compile Include="CommandLineHistory.cs" />
     <Compile Include="PythonCompletionData.cs" />
+    <Compile Include="PythonConfig.cs" />
     <Compile Include="PythonConsoleCompletionDataProvider.cs" />
     <Compile Include="PythonConsole.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
