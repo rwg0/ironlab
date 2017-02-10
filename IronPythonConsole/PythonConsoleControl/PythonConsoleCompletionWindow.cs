@@ -54,7 +54,7 @@ namespace PythonConsoleControl
             this.CloseAutomatically = true;
             this.SizeToContent = SizeToContent.Height;
             this.MaxHeight = 300;
-            this.Width = 175;
+            this.Width = 250;
             this.Content = completionList;
             // prevent user from resizing window to 0x0
             this.MinHeight = 15;

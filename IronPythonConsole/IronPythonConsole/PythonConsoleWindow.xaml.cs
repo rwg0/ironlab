@@ -138,10 +138,9 @@ namespace IronPythonConsole
         }
 		
 		void openFileClick(object sender, RoutedEventArgs e)
-		{   
-            OpenFileDialog dlg = new OpenFileDialog();
-			dlg.CheckFileExists = true;
-			if (dlg.ShowDialog() ?? false) {
+		{
+		    OpenFileDialog dlg = new OpenFileDialog {CheckFileExists = true, DefaultExt = ".py", Filter = "Python Script File|*.py|Plain Text|*.txt|All Files|*.*", FilterIndex = 0 };
+		    if (dlg.ShowDialog() ?? false) {
 				currentFileName = dlg.FileName;
 				textEditor.Load(currentFileName);
 				//textEditor.SyntaxHighlighting = HighlightingManager.Instance.GetDefinitionByExtension(Path.GetExtension(currentFileName));
@@ -151,9 +150,8 @@ namespace IronPythonConsole
 		void saveFileClick(object sender, EventArgs e)
 		{
 			if (currentFileName == null) {
-				SaveFileDialog dlg = new SaveFileDialog();
-				dlg.DefaultExt = ".txt";
-				if (dlg.ShowDialog() ?? false) {
+			    SaveFileDialog dlg = new SaveFileDialog {DefaultExt = ".py", Filter = "Python Script File|*.py|Plain Text|*.txt|All Files|*.*", FilterIndex = 0};
+			    if (dlg.ShowDialog() ?? false) {
 					currentFileName = dlg.FileName;
 				} else {
 					return;
