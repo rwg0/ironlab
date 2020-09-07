@@ -8,6 +8,8 @@ namespace PythonConsoleControl
 {
     public class PythonOutputStream : Stream
     {
+        public event EventHandler TextWritten;
+
         PythonTextEditor textEditor;
 
         public PythonOutputStream(PythonTextEditor textEditor)
@@ -66,6 +68,14 @@ namespace PythonConsoleControl
         {
             string text = UTF8Encoding.UTF8.GetString(buffer, offset, count);
             textEditor.Write(text);
+            if (!string.IsNullOrEmpty(text))
+                OnTextWritten();
+            
+        }
+
+        protected virtual void OnTextWritten()
+        {
+            TextWritten?.Invoke(this, EventArgs.Empty);
         }
     }
 }

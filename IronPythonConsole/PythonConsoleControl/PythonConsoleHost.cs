@@ -83,8 +83,10 @@ namespace PythonConsoleControl
         /// </remarks>
         protected override IConsole CreateConsole(ScriptEngine engine, CommandLine commandLine, ConsoleOptions options)
         {
-            SetOutput(new PythonOutputStream(textEditor));
+            var pythonOutputStream = new PythonOutputStream(textEditor);
+            SetOutput(pythonOutputStream);
             pythonConsole = new PythonConsole(textEditor, commandLine);
+            pythonOutputStream.TextWritten += pythonConsole.OutputWritten;
             if (ConsoleCreated != null) ConsoleCreated(this, EventArgs.Empty);
             return pythonConsole;
         }

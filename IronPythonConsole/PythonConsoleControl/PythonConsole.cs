@@ -16,6 +16,7 @@ using Microsoft.Scripting.Hosting.Providers;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
 using System.Windows.Documents;
@@ -80,7 +81,9 @@ namespace PythonConsoleControl
 
         bool consoleInitialized = false;
         string prompt;
-      
+        private DateTime _lastWrite;
+        private Style _lastStyle;
+
         public event ConsoleInitializedEventHandler ConsoleInitialized;
         public event EventHandler<EventArgs> ScriptStarting;
         public event EventHandler<EventArgs> ScriptFinished;
@@ -446,6 +449,18 @@ namespace PythonConsoleControl
                     if (ConsoleInitialized != null) ConsoleInitialized(this, EventArgs.Empty);
                 }
             }
+
+
+            _lastStyle = style;
+        }
+
+        private void AddPrompt()
+        {
+            if ((DateTime.UtcNow - _lastWrite).TotalSeconds > 1)
+            {
+                textEditor.Write(prompt);
+                _lastWrite = DateTime.UtcNow;
+            }
         }
 
         /// <summary>
@@ -730,6 +745,19 @@ namespace PythonConsoleControl
 
             // Put cursor at end.
             textEditor.Column = promptLength + text.Length + 1;
+        }
+
+        public void OutputWritten(object sender, EventArgs e)
+        {
+            if (!Executing )
+            {
+                _lastWrite = DateTime.UtcNow;
+                Task.Run(async () =>
+                {
+                    await Task.Delay(1100);
+                    await dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(AddPrompt));
+                });
+            }
         }
     }
 }
