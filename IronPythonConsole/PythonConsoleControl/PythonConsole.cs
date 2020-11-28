@@ -26,6 +26,18 @@ using ICSharpCode.AvalonEdit.Highlighting;
 using ICSharpCode.AvalonEdit.Utils;
 using Style = Microsoft.Scripting.Hosting.Shell.Style;
 
+public class TextEventArgs : EventArgs
+{
+    public TextEventArgs(string text)
+    {
+        Text = text;
+    }
+
+    public string Text { get;  }
+
+}
+
+
 namespace PythonConsoleControl
 {
     public delegate void ConsoleInitializedEventHandler(object sender, EventArgs e);
