@@ -87,6 +87,7 @@ namespace PythonConsoleControl
         public event ConsoleInitializedEventHandler ConsoleInitialized;
         public event EventHandler<EventArgs> ScriptStarting;
         public event EventHandler<EventArgs> ScriptFinished;
+        public event EventHandler<TextEventArgs> Error;
 
         public ScriptScope ScriptScope
         {
@@ -408,7 +409,11 @@ namespace PythonConsoleControl
                     error = eo.FormatException(exception) + System.Environment.NewLine;
                 }
                 Executing = false;
-                if (error != "") textEditor.Write(error);
+                if (error != "")
+                {
+                    textEditor.Write(error);
+                    OnError(new TextEventArgs(error));
+                }
                 textEditor.Write(prompt);
             }
         }
@@ -758,6 +763,11 @@ namespace PythonConsoleControl
                     await dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(AddPrompt));
                 });
             }
+        }
+
+        protected virtual void OnError(TextEventArgs e)
+        {
+            Error?.Invoke(this, e);
         }
     }
 }
