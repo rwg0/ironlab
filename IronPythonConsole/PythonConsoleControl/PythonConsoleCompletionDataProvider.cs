@@ -163,6 +163,7 @@ namespace PythonConsoleControl
                     else docCommand = stub + "." + item + ".__doc__";
                     object value = commandLine.ScriptScope.Engine.CreateScriptSourceFromString(docCommand, SourceCodeKind.Expression).Execute(commandLine.ScriptScope);
                     description = (string)value;
+                    description = description?.Replace($"){item}", $")\r\n{item}");
                     AutocompletionInProgress = false;
                 }
                 catch (ThreadAbortException tae)
