@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2010 Joe Moorhouse
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,6 +14,7 @@ using Microsoft.Scripting.Hosting;
 using Microsoft.Scripting;
 using System.Threading;
 using System.Reflection;
+using IronPython.Runtime;
 
 namespace PythonConsoleControl
 {
@@ -66,7 +68,7 @@ namespace PythonConsoleControl
                         string dirCommand = "dir(" + name + ")";
                         object value = commandLine.ScriptScope.Engine.CreateScriptSourceFromString(dirCommand, SourceCodeKind.Expression).Execute(commandLine.ScriptScope);
                         AutocompletionInProgress = false;
-                        foreach (object member in (value as IronPython.Runtime.List))
+                        foreach (object member in (PythonList) value)
                         {
                             items.Add(new PythonCompletionData((string)member, name, commandLine, false));
                         }
