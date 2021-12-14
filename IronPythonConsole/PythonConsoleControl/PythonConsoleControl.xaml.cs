@@ -62,9 +62,8 @@ namespace PythonConsoleControl
 
         private static Stream GetSyntaxHighlightingStream()
         {
-            if (PythonConfig.SyntaxHighlightingStreamSource != null)
-                return PythonConfig.SyntaxHighlightingStreamSource();
-            return typeof(IronPythonConsoleControl).Assembly.GetManifestResourceStream("PythonConsoleControl.Resources.Python.xshd");
+            var result = PythonConfig.SyntaxHighlightingStreamSource?.Invoke();
+            return result ?? typeof(IronPythonConsoleControl).Assembly.GetManifestResourceStream("PythonConsoleControl.Resources.Python.xshd");
         }
 
         /// <summary>
