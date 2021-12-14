@@ -40,7 +40,7 @@ namespace IronPythonConsole
             Initialized += new EventHandler(MainWindow_Initialized);
             // Load our custom highlighting definition:
             IHighlightingDefinition pythonHighlighting;
-            using (Stream s = typeof(PythonConsoleWindow).Assembly.GetManifestResourceStream("IronPythonConsole.Resources.Python.xshd"))
+            using (Stream s = GetSyntaxHighlightingStream())
             {
                 if (s == null)
                     throw new InvalidOperationException("Could not find embedded resource");
@@ -67,6 +67,12 @@ namespace IronPythonConsole
 
             console.Pad.Host.ConsoleCreated +=new PythonConsoleControl.ConsoleCreatedEventHandler(Host_ConsoleCreated);
 		}
+
+        private static Stream GetSyntaxHighlightingStream()
+        {
+            var result = PythonConfig.SyntaxHighlightingStreamSource?.Invoke();
+            return result ?? typeof(PythonConsoleWindow).Assembly.GetManifestResourceStream("IronPythonConsole.Resources.Python.xshd");
+        }
 
         public ScriptScope PythonScope
         {
