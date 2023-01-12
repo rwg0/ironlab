@@ -185,7 +185,7 @@ namespace PythonConsoleControl
         string GetName(string text)
         {
             text = text.Replace("\t", "   ");
-            int startIndex = text.LastIndexOf(' ');
+            int startIndex = text.LastIndexOfAny(new []{' ',',', '('});
             return text.Substring(startIndex + 1).Trim('.');
         }
 
