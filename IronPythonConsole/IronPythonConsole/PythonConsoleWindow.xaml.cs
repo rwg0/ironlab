@@ -33,8 +33,8 @@ namespace IronPythonConsole
     {
         public event EventHandler<EventArgs> ConsoleInitialized;
 
-        ConsoleOptions consoleOptionsProvider;
-        
+        public ConsoleOptions ConsoleOptionsProvider { get; }
+
         public PythonConsoleWindow()
 		{
             Initialized += new EventHandler(MainWindow_Initialized);
@@ -59,7 +59,7 @@ namespace IronPythonConsole
 
             textEditor.PreviewKeyDown += new KeyEventHandler(textEditor_PreviewKeyDown);
 
-            consoleOptionsProvider = new ConsoleOptions(console.Pad);
+            ConsoleOptionsProvider = new ConsoleOptions(console.Pad);
 
             propertyGridComboBox.SelectedIndex = 0;
 
@@ -192,7 +192,7 @@ namespace IronPythonConsole
 				return;
 			switch (propertyGridComboBox.SelectedIndex) {
 				case 0:
-                    propertyGrid.SelectedObject = consoleOptionsProvider; // not .Instance
+                    propertyGrid.SelectedObject = ConsoleOptionsProvider; // not .Instance
 					break;
 				case 1:
 					//propertyGrid.SelectedObject = textEditor.Options; (for WPF native control)
