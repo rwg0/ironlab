@@ -20,6 +20,7 @@ using Microsoft.Win32;
 using System.Resources;
 using System.Threading.Tasks;
 using System.Windows.Controls.WpfPropertyGrid;
+using ICSharpCode.AvalonEdit;
 using Microsoft.Scripting;
 using Microsoft.Scripting.Hosting;
 using PythonConsoleControl;
@@ -34,6 +35,8 @@ namespace IronPythonConsole
         public event EventHandler<EventArgs> ConsoleInitialized;
 
         public ConsoleOptions ConsoleOptionsProvider { get; }
+
+        public TextEditor PadEditor => textEditor;
 
         public PythonConsoleWindow()
 		{
