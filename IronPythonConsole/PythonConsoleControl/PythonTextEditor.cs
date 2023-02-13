@@ -267,6 +267,10 @@ namespace PythonConsoleControl
         {
             if (completionProvider.AutocompletionInProgress)
             {
+                // Thread.Abort no longer works in .NET Core
+                // If targeting .NET 7 or above, see alternative ControlledExecution https://learn.microsoft.com/en-us/dotNet/API/system.runtime.controlledexecution?view=net-7.0
+                // seems a very close equivalent implementation. Lots of warnings about not using in production code, but then the same about Thread.abort
+
                 // send Ctrl-C abort
                 completionThread.Abort(new Microsoft.Scripting.KeyboardInterruptException(""));
                 return true;

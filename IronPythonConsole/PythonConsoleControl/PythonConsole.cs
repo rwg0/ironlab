@@ -331,6 +331,9 @@ namespace PythonConsoleControl
 
         public void AbortRunningScript()
         {
+            // Thread.Abort no longer works in .NET Core
+            // If targeting .NET 7 or above, see alternative ControlledExecution https://learn.microsoft.com/en-us/dotNet/API/system.runtime.controlledexecution?view=net-7.0
+            // seems a very close equivalent implementation. Lots of warnings about not using in production code, but then the same about Thread.abort
             if (Executing)
                 dispatcherThread.Abort(new KeyboardInterruptException(""));
         }
