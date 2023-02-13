@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.IO;
@@ -158,7 +159,7 @@ namespace IronPythonConsole
 		
 		void saveFileClick(object sender, EventArgs e)
 		{
-			if (currentFileName == null) {
+			if (currentFileName == null || Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) {
 			    SaveFileDialog dlg = new SaveFileDialog {DefaultExt = ".py", Filter = "Python Script File|*.py|Plain Text|*.txt|All Files|*.*", FilterIndex = 0};
 			    if (dlg.ShowDialog() ?? false) {
 					currentFileName = dlg.FileName;
@@ -171,6 +172,24 @@ namespace IronPythonConsole
 
         void runClick(object sender, EventArgs e)
         {
+            if (!string.IsNullOrEmpty(currentFileName) && textEditor.IsModified)
+            {
+                try
+                {
+                    var autoSaveFileName = Path.ChangeExtension(currentFileName, ".autosave.py");
+                    if (File.Exists(autoSaveFileName))
+                    {
+                        File.Delete(autoSaveFileName);
+                    }
+                    textEditor.Save(autoSaveFileName);
+                    textEditor.IsModified = true; // restore modified state
+                }
+                catch (Exception exception)
+                {
+                    Trace.WriteLine("Autosave failed : " + exception);
+                }
+            }
+
             RunStatements();
         }
 

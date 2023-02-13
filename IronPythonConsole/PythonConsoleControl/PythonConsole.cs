@@ -183,11 +183,11 @@ namespace PythonConsoleControl
             {
                 try
                 {
-                    System.Windows.Threading.Dispatcher.Run();
+                    Dispatcher.Run();
                 }
                 catch (ThreadAbortException tae)
                 {
-                    if (tae.ExceptionState is Microsoft.Scripting.KeyboardInterruptException)
+                    if (tae.ExceptionState is KeyboardInterruptException)
                     {
                         Thread.ResetAbort();
                         Executing = false;
