@@ -15,6 +15,7 @@ using Microsoft.Scripting.Hosting;
 using Microsoft.Scripting.Hosting.Providers;
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
@@ -33,7 +34,7 @@ public class TextEventArgs : EventArgs
         Text = text;
     }
 
-    public string Text { get;  }
+    public string Text { get; }
 
 }
 
@@ -41,7 +42,7 @@ public class TextEventArgs : EventArgs
 namespace PythonConsoleControl
 {
     public delegate void ConsoleInitializedEventHandler(object sender, EventArgs e);
-    
+
     /// <summary>
     /// Custom IronPython console. The command dispacher runs on a separate UI thread from the REPL
     /// and also from the WPF control.
@@ -59,10 +60,10 @@ namespace PythonConsoleControl
         public bool DisableAutocompletionForCallables
         {
             get { return disableAutocompletionForCallables; }
-            set 
+            set
             {
                 if (textEditor.CompletionProvider != null) textEditor.CompletionProvider.ExcludeCallables = value;
-                disableAutocompletionForCallables = value; 
+                disableAutocompletionForCallables = value;
             }
         }
 
@@ -72,7 +73,7 @@ namespace PythonConsoleControl
             get { return allowCtrlSpaceAutocompletion; }
             set { allowCtrlSpaceAutocompletion = value; }
         }
-        
+
         PythonTextEditor textEditor;
         int lineReceivedEventIndex = 0; // The index into the waitHandles array where the lineReceivedEvent is stored.
         ManualResetEvent lineReceivedEvent = new ManualResetEvent(false);
@@ -95,6 +96,7 @@ namespace PythonConsoleControl
         string prompt;
         private DateTime _lastWrite;
         private Style _lastStyle;
+        private CancellationTokenSource _ctsExecute;
 
         public event ConsoleInitializedEventHandler ConsoleInitialized;
         public event EventHandler<EventArgs> ScriptStarting;
@@ -107,7 +109,7 @@ namespace PythonConsoleControl
         }
 
         public PythonConsole(PythonTextEditor textEditor, CommandLine commandLine)
-        {   
+        {
             waitHandles = new WaitHandle[] { lineReceivedEvent, disposedEvent };
 
             this.commandLine = commandLine;
@@ -124,7 +126,7 @@ namespace PythonConsoleControl
             prompt = ">>> ";
 
             // Set commands:
-            this.textEditor.textArea.Dispatcher.Invoke(new Action(delegate()
+            this.textEditor.textArea.Dispatcher.Invoke(new Action(delegate ()
             {
                 CommandBinding pasteBinding = null;
                 CommandBinding copyBinding = null;
@@ -151,7 +153,7 @@ namespace PythonConsoleControl
                 this.textEditor.textArea.CommandBindings.Add(new CommandBinding(ApplicationCommands.Cut, PythonEditingCommandHandler.OnCut, CanCut));
                 this.textEditor.textArea.CommandBindings.Add(new CommandBinding(ApplicationCommands.Undo, OnUndo, CanUndo));
                 this.textEditor.textArea.CommandBindings.Add(new CommandBinding(ApplicationCommands.Delete, PythonEditingCommandHandler.OnDelete(ApplicationCommands.NotACommand), CanDeleteCommand));
-			
+
             }));
             CodeContext codeContext = DefaultContext.Default;
             // Set dispatcher to run on a UI thread independent of both the Control UI thread and thread running the REPL.
@@ -164,13 +166,40 @@ namespace PythonConsoleControl
             {
                 // Slightly involved form to enable keyboard interrupt to work.
                 Executing = true;
-                var operation = dispatcher.BeginInvoke(DispatcherPriority.Normal, command);
+                var operation = dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() => ControlExecution(command)));
                 while (Executing)
                 {
-                    if (operation.Status != DispatcherOperationStatus.Completed) 
+                    if (operation.Status != DispatcherOperationStatus.Completed)
                         operation.Wait(TimeSpan.FromSeconds(1));
                     if (operation.Status == DispatcherOperationStatus.Completed)
                         Executing = false;
+                }
+            }
+        }
+
+        private void ControlExecution(Delegate command)
+        {
+            using (_ctsExecute = new CancellationTokenSource())
+            {
+                try
+                {
+                    ControlledExecution.Run(() => { command.DynamicInvoke(); }, _ctsExecute.Token);
+                }
+                catch (Exception e)
+                {
+                    if (e.InnerException is OperationCanceledException || e.InnerException is ThreadAbortException)
+                    {
+                        textEditor.Write("KeyboardInterrupt" + System.Environment.NewLine);
+                        Executing = false;
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+                finally
+                {
+                    _ctsExecute = null;
                 }
             }
         }
@@ -185,13 +214,9 @@ namespace PythonConsoleControl
                 {
                     Dispatcher.Run();
                 }
-                catch (ThreadAbortException tae)
+                catch (OperationCanceledException)
                 {
-                    if (tae.ExceptionState is KeyboardInterruptException)
-                    {
-                        Thread.ResetAbort();
-                        Executing = false;
-                    }
+                    Executing = false;
                 }
             }
         }
@@ -267,7 +292,7 @@ namespace PythonConsoleControl
                 // convert text back to correct newlines for this document
                 string newLine = TextUtilities.GetNewLineFromDocument(textArea.Document, textArea.Caret.Line);
                 string text = TextUtilities.NormalizeNewLines(Clipboard.GetText(), newLine);
-                string[] commands = text.Split(new String[] {newLine}, StringSplitOptions.None);
+                string[] commands = text.Split(new String[] { newLine }, StringSplitOptions.None);
                 string scriptText = "";
                 if (commands.Length > 1)
                 {
@@ -306,7 +331,7 @@ namespace PythonConsoleControl
 
                 if (commands.Length > 1)
                 {
-                    dispatcherWindow.Dispatcher.BeginInvoke(new Action(delegate() { ExecuteStatements(scriptText); }));
+                    dispatcherWindow.Dispatcher.BeginInvoke(new Action(delegate () { ExecuteStatements(scriptText); }));
                 }
             }
         }
@@ -319,9 +344,9 @@ namespace PythonConsoleControl
                 // Send the 'Ctrl-C' abort 
                 //if (!IsInReadOnlyRegion)
                 //{
-                    MoveToHomePosition();
-                    //textEditor.Column = GetLastTextEditorLine().Length + 1;
-                    //textEditor.Write(Environment.NewLine);
+                MoveToHomePosition();
+                //textEditor.Column = GetLastTextEditorLine().Length + 1;
+                //textEditor.Write(Environment.NewLine);
                 //}
                 AbortRunningScript();
                 args.Handled = true;
@@ -335,7 +360,15 @@ namespace PythonConsoleControl
             // If targeting .NET 7 or above, see alternative ControlledExecution https://learn.microsoft.com/en-us/dotNet/API/system.runtime.controlledexecution?view=net-7.0
             // seems a very close equivalent implementation. Lots of warnings about not using in production code, but then the same about Thread.abort
             if (Executing)
-                dispatcherThread.Abort(new KeyboardInterruptException(""));
+            {
+                try
+                {
+                    _ctsExecute?.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+            }
         }
 
         const string LineSelectedType = "MSDEVLineSelect";  // This is the type VS 2003 and 2005 use for flagging a whole line copy
@@ -352,8 +385,8 @@ namespace PythonConsoleControl
         public void RunStatements(string statements)
         {
             MoveToHomePosition();
-           
-            dispatcher.BeginInvoke(new Action(delegate() { ExecuteStatements(statements); }));
+
+            dispatcher.BeginInvoke(new Action(delegate () { ExecuteStatements(statements); }));
         }
 
         /// <summary>
@@ -366,9 +399,9 @@ namespace PythonConsoleControl
 
             using (var evt = new AutoResetEvent(false))
             {
-                
 
-                dispatcher.BeginInvoke(new Action(delegate()
+
+                dispatcher.BeginInvoke(new Action(delegate ()
                 {
                     try
                     {
@@ -403,12 +436,17 @@ namespace PythonConsoleControl
                 string error = "";
                 try
                 {
-                    Executing = true;
-                    scriptSource.Execute(commandLine.ScriptScope);
+                    using (_ctsExecute = new CancellationTokenSource())
+                    {
+                        ControlledExecution.Run(() =>
+                        {
+                            Executing = true;
+                            scriptSource.Execute(commandLine.ScriptScope);
+                        }, _ctsExecute.Token);
+                    }
                 }
-                catch (ThreadAbortException tae)
+                catch (OperationCanceledException)
                 {
-                    if (tae.ExceptionState is Microsoft.Scripting.KeyboardInterruptException) Thread.ResetAbort();
                     error = "KeyboardInterrupt" + System.Environment.NewLine;
                 }
                 catch (Microsoft.Scripting.SyntaxErrorException exception)
@@ -422,6 +460,10 @@ namespace PythonConsoleControl
                     ExceptionOperations eo;
                     eo = commandLine.ScriptScope.Engine.GetService<ExceptionOperations>();
                     error = eo.FormatException(exception) + System.Environment.NewLine;
+                }
+                finally
+                {
+                    _ctsExecute = null;
                 }
                 Executing = false;
                 if (error != "")
@@ -459,6 +501,11 @@ namespace PythonConsoleControl
         /// </summary>
         public void Write(string text, Style style)
         {
+            if (_ctsExecute is { IsCancellationRequested: true })
+            {
+                if (!string.IsNullOrEmpty(text) && text.Contains("SystemError"))
+                    text = text.Substring(0, text.IndexOf("SystemError"));
+            }
             textEditor.Write(text);
             if (style == Style.Prompt)
             {
@@ -769,7 +816,7 @@ namespace PythonConsoleControl
 
         public void OutputWritten(object sender, EventArgs e)
         {
-            if (!Executing )
+            if (!Executing)
             {
                 _lastWrite = DateTime.UtcNow;
                 Task.Run(async () =>

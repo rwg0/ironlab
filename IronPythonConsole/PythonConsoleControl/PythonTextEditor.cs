@@ -14,6 +14,7 @@ using System.Windows.Threading;
 using System.Windows.Input;
 using System.Threading;
 using System.Diagnostics;
+using System.Runtime;
 
 namespace PythonConsoleControl
 {
@@ -63,6 +64,7 @@ namespace PythonConsoleControl
         }
 
         Stopwatch sw;
+        private CancellationTokenSource _completionCts;
 
         public void Write(string text, bool allowSynchronous)
         {
@@ -271,8 +273,16 @@ namespace PythonConsoleControl
                 // If targeting .NET 7 or above, see alternative ControlledExecution https://learn.microsoft.com/en-us/dotNet/API/system.runtime.controlledexecution?view=net-7.0
                 // seems a very close equivalent implementation. Lots of warnings about not using in production code, but then the same about Thread.abort
 
-                // send Ctrl-C abort
-                completionThread.Abort(new Microsoft.Scripting.KeyboardInterruptException(""));
+                // send Ctrl-C abort  
+
+                try
+                {
+                    _completionCts?.Cancel();
+                }
+                catch (ObjectDisposedException )
+                {
+                }
+
                 return true;
             }
             return false;
@@ -301,14 +311,29 @@ namespace PythonConsoleControl
             while (true)
             {
                 int action = WaitHandle.WaitAny(completionWaitHandles);
-                if (action == completionEventIndex && completionProvider != null) BackgroundShowCompletionWindow();
-                if (action == descriptionEventIndex && completionProvider != null && completionWindow != null) BackgroundUpdateCompletionDescription();
+                try
+                {
+                    using (_completionCts = new CancellationTokenSource())
+                    {
+                        ControlledExecution.Run(() =>
+                        {
+                            if (action == completionEventIndex && completionProvider != null) BackgroundShowCompletionWindow();
+                            if (action == descriptionEventIndex && completionProvider != null && completionWindow != null) BackgroundUpdateCompletionDescription();
+                        }, _completionCts.Token);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                }
+
+
             }
         }
 
         /// <summary>
         /// Obtain completions (this runs in its own thread)
         /// </summary>
+        /// <param name="completionCtsToken"></param>
         internal void BackgroundShowCompletionWindow() //ICompletionItemProvider
         {
 			// provide AvalonEdit with the data:

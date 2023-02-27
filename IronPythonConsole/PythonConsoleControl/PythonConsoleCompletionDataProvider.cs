@@ -72,9 +72,9 @@ namespace PythonConsoleControl
                         }
                     }
                 }
-                catch (ThreadAbortException tae)
+                catch (OperationCanceledException)
                 {
-                    if (tae.ExceptionState is Microsoft.Scripting.KeyboardInterruptException) Thread.ResetAbort();
+                    
                 }
                 catch
                 {
@@ -94,9 +94,9 @@ namespace PythonConsoleControl
             {
                 type = commandLine.ScriptScope.Engine.CreateScriptSourceFromString(tryGetType, SourceCodeKind.Expression).Execute(commandLine.ScriptScope);
             }
-            catch (ThreadAbortException tae)
+            catch (OperationCanceledException)
             {
-                if (tae.ExceptionState is Microsoft.Scripting.KeyboardInterruptException) Thread.ResetAbort();
+                // do nothing
             }
             catch
             {
@@ -166,9 +166,8 @@ namespace PythonConsoleControl
                     description = description?.Replace($"){item}", $")\r\n{item}");
                     AutocompletionInProgress = false;
                 }
-                catch (ThreadAbortException tae)
+                catch (OperationCanceledException)
                 {
-                    if (tae.ExceptionState is Microsoft.Scripting.KeyboardInterruptException) Thread.ResetAbort();
                     AutocompletionInProgress = false;
                 }
                 catch
