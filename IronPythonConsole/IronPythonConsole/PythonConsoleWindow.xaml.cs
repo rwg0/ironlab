@@ -205,6 +205,9 @@ namespace IronPythonConsole
                 statementsToRun = textEditor.TextArea.Selection.GetText();
             else
                 statementsToRun = textEditor.TextArea.Document.Text;
+
+            statementsToRun = $"__file__ = '{currentFileName.Replace("\\", "\\\\").Replace("'", "\\'")}'\r\n" + statementsToRun;
+
             console.Pad.Console.RunStatements(statementsToRun);
         }
 		
