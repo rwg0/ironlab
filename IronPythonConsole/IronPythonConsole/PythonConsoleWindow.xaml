@@ -94,7 +94,7 @@
                     <ComboBoxItem>Console</ComboBoxItem>
                     <ComboBoxItem>Pad</ComboBoxItem>
                 </ComboBox>
-                <pg:PropertyGrid Name="propertyGrid">
+                <pg:PropertyGrid Name="propertyGrid" Background="#E0E0E0">
                 </pg:PropertyGrid>
                 <!--
                 <wpg:PropertyGrid x:Name="propertyGrid" /> 
