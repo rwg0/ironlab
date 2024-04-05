@@ -66,7 +66,7 @@ namespace PythonConsoleControl
         /// </summary>
         public override void Write(byte[] buffer, int offset, int count)
         {
-            string text = UTF8Encoding.UTF8.GetString(buffer, offset, count);
+            string text = Encoding.Unicode.GetString(buffer, offset, count);
             textEditor.Write(text);
             if (!string.IsNullOrEmpty(text))
                 OnTextWritten();

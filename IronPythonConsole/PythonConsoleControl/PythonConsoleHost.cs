@@ -93,7 +93,7 @@ namespace PythonConsoleControl
 
         protected virtual void SetOutput(PythonOutputStream stream)
         {
-            Runtime.IO.SetOutput(stream, Encoding.UTF8);
+            Runtime.IO.SetOutput(stream, Encoding.Unicode);
         }
 
         /// <summary>
