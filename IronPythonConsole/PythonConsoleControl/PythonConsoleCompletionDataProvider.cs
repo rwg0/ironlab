@@ -107,6 +107,31 @@ namespace PythonConsoleControl
 
         protected void PopulateFromCLRType(List<PythonCompletionData> items, Type type, string name)
         {
+            if (type.IsPublic)
+                PopulateFromClrTypeImpl(items, type, name);
+            else
+            {
+                foreach (var inter in type.GetInterfaces())
+                {
+                    if (inter.IsPublic)
+                        PopulateFromCLRType(items, inter, name);
+                }
+
+                var baseType = type.BaseType;
+                while (baseType != null)
+                {
+                    if (baseType.IsPublic)
+                    {
+                        PopulateFromCLRType(items, baseType, name);
+                        break;
+                    }
+                    baseType = baseType.BaseType;
+                }
+            }
+        }
+
+        private void PopulateFromClrTypeImpl(List<PythonCompletionData> items, Type type, string name)
+        {
             List<string> completionsList = new List<string>();
             MethodInfo[] methodInfo = type.GetMethods();
             PropertyInfo[] propertyInfo = type.GetProperties();
