@@ -83,7 +83,7 @@ namespace PythonConsoleControl
                 commandLine.ScriptScope.Engine.Runtime.IO.SetOutput(stream, Encoding.UTF8);
                 AutocompletionInProgress = false;
             }
-            return items.ToArray();
+            return items.OrderBy( x=> x.Text).OfType<ICompletionData>().ToArray();
         }
 
         protected Type TryGetType(string name)
