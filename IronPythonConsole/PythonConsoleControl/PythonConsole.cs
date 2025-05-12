@@ -431,8 +431,16 @@ namespace PythonConsoleControl
         {
             lock (scriptText)
             {
-                textEditor.Write("\r\n");
-                ScriptSource scriptSource = commandLine.ScriptScope.Engine.CreateScriptSourceFromString(scriptText, SourceCodeKind.Statements);
+                var editor = textEditor;
+                if (editor == null)
+                    throw new InvalidOperationException("TextEditor is null");
+                editor.Write("\r\n");
+                var engine = commandLine.ScriptScope.Engine;
+                if (engine == null)
+                    throw new InvalidOperationException("ScriptScope.Engine is null");
+                ScriptSource scriptSource = engine.CreateScriptSourceFromString(scriptText, SourceCodeKind.Statements);
+                if (scriptSource == null)
+                    throw new InvalidOperationException("ScriptSource is null");
                 string error = "";
                 try
                 {
@@ -451,14 +459,16 @@ namespace PythonConsoleControl
                 }
                 catch (Microsoft.Scripting.SyntaxErrorException exception)
                 {
-                    ExceptionOperations eo;
-                    eo = commandLine.ScriptScope.Engine.GetService<ExceptionOperations>();
+                    var eo = engine.GetService<ExceptionOperations>();
+                    if (eo == null)
+                        throw new InvalidOperationException("ExceptionOperations is null");
                     error = eo.FormatException(exception);
                 }
                 catch (Exception exception)
                 {
-                    ExceptionOperations eo;
-                    eo = commandLine.ScriptScope.Engine.GetService<ExceptionOperations>();
+                    var eo = engine.GetService<ExceptionOperations>();
+                    if (eo == null)
+                        throw new InvalidOperationException("ExceptionOperations is null");
                     error = eo.FormatException(exception) + System.Environment.NewLine;
                 }
                 finally
@@ -468,10 +478,10 @@ namespace PythonConsoleControl
                 Executing = false;
                 if (error != "")
                 {
-                    textEditor.Write(error);
+                    editor.Write(error);
                     OnError(new TextEventArgs(error));
                 }
-                textEditor.Write(prompt);
+                editor.Write(prompt);
             }
         }
 
