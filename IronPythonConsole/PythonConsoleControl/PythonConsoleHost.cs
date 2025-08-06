@@ -22,10 +22,19 @@ namespace PythonConsoleControl
         protected override void RuntimeAttached()
         {
             base.RuntimeAttached();
-            Runtime.IO.SetInput(new PythonInputStream((PythonTextEditor)Runtime.Setup.Options["pythonconsole.texteditor"], Encoding.UTF8) , Encoding.UTF8);
+            var pythonConsole = (PythonConsoleProxy)Runtime.Setup.Options["pythonconsole.texteditor"];
+            Runtime.IO.SetInput(new PythonInputStream(pythonConsole, Encoding.UTF8) , Encoding.UTF8);
         }
     }
 
+
+    class PythonConsoleProxy(PythonConsoleHost pythonConsoleHost)
+    {
+        public string ReadLine()
+        {
+            return pythonConsoleHost.Console.ReadInputLine();
+        }
+    }
 
     /// <summary>
     /// Hosts the python console.
@@ -126,8 +135,8 @@ namespace PythonConsoleControl
                 }
             }
 
-            srs.Options["pythonconsole.texteditor"] = textEditor;
-//            srs.HostType = typeof(MyHost);
+            srs.Options["pythonconsole.texteditor"] = new PythonConsoleProxy(this);
+            srs.HostType = typeof(MyHost);
             return srs;
         }
 

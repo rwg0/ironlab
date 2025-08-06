@@ -6,15 +6,15 @@ namespace PythonConsoleControl;
 
 internal class PythonInputStream : Stream
 {
-    private readonly PythonTextEditor _textEditor;
+    private readonly PythonConsoleProxy _console;
     private readonly Encoding _encoding;
     private byte[] _buffer;
     private int _bufferPos;
 
 
-    public PythonInputStream(PythonTextEditor textEditor, Encoding encoding)
+    public PythonInputStream(PythonConsoleProxy console, Encoding encoding)
     {
-        _textEditor = textEditor;
+        _console = console;
         _encoding = encoding;
     }
 
@@ -29,7 +29,7 @@ internal class PythonInputStream : Stream
         {
             _buffer = null;
             _bufferPos = 0;
-            var text = _textEditor.GetInput();
+            var text = _console.ReadLine()+"\n";
             _buffer = _encoding.GetBytes(text);
         }
 

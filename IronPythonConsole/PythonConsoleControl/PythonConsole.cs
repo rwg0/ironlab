@@ -485,6 +485,21 @@ namespace PythonConsoleControl
             }
         }
 
+        public string ReadInputLine()
+        {
+            try
+            {
+                IsInInput = true;
+                return ReadLine(0);
+            }
+            finally
+            {
+                IsInInput = false;
+            }
+        }
+
+        public bool IsInInput { get; set; }
+
         /// <summary>
         /// Returns the next line typed in by the console user. If no line is available this method
         /// will block.
@@ -501,6 +516,8 @@ namespace PythonConsoleControl
             string line = ReadLineFromTextEditor();
             if (line != null)
             {
+                if (IsInInput)
+                    return line;
                 return indent + line;
             }
             return null;
@@ -577,6 +594,8 @@ namespace PythonConsoleControl
         public string GetCurrentLine()
         {
             string fullLine = GetLastTextEditorLine();
+            if (IsInInput)
+                return fullLine;
             return fullLine.Substring(promptLength);
         }
 
@@ -709,7 +728,7 @@ namespace PythonConsoleControl
         /// </summary>
         bool IsInReadOnlyRegion
         {
-            get { return IsCurrentLineReadOnly || IsInPrompt; }
+            get { return (IsCurrentLineReadOnly || IsInPrompt) && !IsInInput; }
         }
 
         /// <summary>
