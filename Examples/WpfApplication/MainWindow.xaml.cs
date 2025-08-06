@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PythonConsoleControl;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,7 +12,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
-using System.Windows.Shapes;
+using System.IO;
 
 namespace WpfApplication
 {
@@ -22,7 +23,9 @@ namespace WpfApplication
     {
         public MainWindow()
         {
+
             InitializeComponent();
+
         }
     }
 }

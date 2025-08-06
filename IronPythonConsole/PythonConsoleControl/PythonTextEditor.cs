@@ -375,6 +375,10 @@ namespace PythonConsoleControl
             StopCompletion();
         }
 
+        public string GetInput()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
 

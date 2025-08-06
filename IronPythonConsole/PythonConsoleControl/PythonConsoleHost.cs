@@ -16,6 +16,17 @@ namespace PythonConsoleControl
 {
     public delegate void ConsoleCreatedEventHandler(object sender, EventArgs e);
 
+
+    class MyHost : ScriptHost
+    {
+        protected override void RuntimeAttached()
+        {
+            base.RuntimeAttached();
+            Runtime.IO.SetInput(new PythonInputStream((PythonTextEditor)Runtime.Setup.Options["pythonconsole.texteditor"], Encoding.UTF8) , Encoding.UTF8);
+        }
+    }
+
+
     /// <summary>
     /// Hosts the python console.
     /// </summary>
@@ -114,6 +125,9 @@ namespace PythonConsoleControl
                     langSetup.Options["SearchPaths"] = new string[0];
                 }
             }
+
+            srs.Options["pythonconsole.texteditor"] = textEditor;
+//            srs.HostType = typeof(MyHost);
             return srs;
         }
 
@@ -124,6 +138,12 @@ namespace PythonConsoleControl
             {
                 Options.IgnoredArgs.Add(s);
             }
+        }
+
+        public string FormatException(Exception e)
+        {
+            var pc = HostingHelpers.GetLanguageContext(Engine) as PythonContext;
+            return pc?.FormatException(e);
         }
 
         protected override void ExecuteInternal()
@@ -139,5 +159,6 @@ namespace PythonConsoleControl
             pc.SetModuleState(typeof(ScriptEngine), Engine);
             base.ExecuteInternal();
         }
+
     }
 }

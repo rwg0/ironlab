@@ -60,6 +60,11 @@ namespace PythonConsoleControl
 
         }
 
+        public string FormatException(Exception e)
+        {
+            return pad.Host.FormatException(e);
+        }
+
         private static Stream GetSyntaxHighlightingStream()
         {
             var result = PythonConfig.SyntaxHighlightingStreamSource?.Invoke();

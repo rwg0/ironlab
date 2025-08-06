@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using IronPythonConsole;
+using PythonConsoleControl;
 
 namespace WpfApplication
 {
@@ -17,6 +19,8 @@ namespace WpfApplication
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
+            var packagezip = Path.Combine(@"C:\Program Files\SharpCap 4.1 (64 bit)", "PythonLib.zip");
+            PythonConfig.SearchPaths = new[] { packagezip, packagezip + "\\site-packages" };
             PythonConsoleWindow w = new PythonConsoleWindow();
             w.ConsoleInitialized += WOnConsoleInitialized;
             MainWindow = w;
