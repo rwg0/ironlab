@@ -25,6 +25,7 @@ using ICSharpCode.AvalonEdit.Editing;
 using ICSharpCode.AvalonEdit.Document;
 using ICSharpCode.AvalonEdit.Highlighting;
 using ICSharpCode.AvalonEdit.Utils;
+using IronPython.Runtime.Exceptions;
 using Style = Microsoft.Scripting.Hosting.Shell.Style;
 
 public class TextEventArgs : EventArgs
@@ -97,6 +98,7 @@ namespace PythonConsoleControl
         private DateTime _lastWrite;
         private Style _lastStyle;
         private CancellationTokenSource _ctsExecute;
+        private CancellationTokenSource _ctsControlled;
 
         public event ConsoleInitializedEventHandler ConsoleInitialized;
         public event EventHandler<EventArgs> ScriptStarting;
@@ -179,11 +181,11 @@ namespace PythonConsoleControl
 
         private void ControlExecution(Delegate command)
         {
-            using (_ctsExecute = new CancellationTokenSource())
+            ExecuteCancellable(() =>
             {
                 try
                 {
-                    ControlledExecution.Run(() => { command.DynamicInvoke(); }, _ctsExecute.Token);
+                    command.DynamicInvoke();
                 }
                 catch (Exception e)
                 {
@@ -197,11 +199,7 @@ namespace PythonConsoleControl
                         throw;
                     }
                 }
-                finally
-                {
-                    _ctsExecute = null;
-                }
-            }
+            });
         }
 
         private void DispatcherThreadStartingPoint()
@@ -363,7 +361,15 @@ namespace PythonConsoleControl
             {
                 try
                 {
-                    _ctsExecute?.Cancel();
+                    _ctsExecute?.Cancel(); // first we try cooperative cancellation - this will cancel between python script statements via the trace function
+                    SpinWait.SpinUntil(() => !Executing, TimeSpan.FromMilliseconds(1100));
+                    if (Executing)
+                    {
+                        dispatcherThread.Interrupt(); // next we interrupt the dispatcher thread - this will interrupt sleep() calls
+                        SpinWait.SpinUntil(() => !Executing, TimeSpan.FromMilliseconds(1100));
+                        if (Executing)
+                            _ctsControlled?.Cancel(); // still not stopped - try cancelling the controlled execution
+                    }
                 }
                 catch (ObjectDisposedException)
                 {
@@ -424,6 +430,50 @@ namespace PythonConsoleControl
             }
         }
 
+        void ExecuteCancellable(Action a)
+        {
+            var engine = commandLine.ScriptScope.Engine;
+            try
+            {
+                using (_ctsExecute = new CancellationTokenSource())
+                {
+                    var token = _ctsExecute.Token;
+
+                    TracebackDelegate tbd = null;
+
+                    TracebackDelegate TraceFunc(TraceBackFrame frame, string result, object payload)
+                    {
+                        if (result == "line")
+                        {
+                            Console.WriteLine($"Executing: {frame.f_code.co_filename} | Line: {frame.f_lineno}");
+                        }
+
+                        if (token.IsCancellationRequested)
+                            throw new OperationCanceledException(token);
+                        return tbd; // Continue execution
+                    }
+
+                    tbd = TraceFunc;
+
+                    engine.SetTrace(tbd);
+
+                    Executing = true;
+
+                    using (_ctsControlled = new CancellationTokenSource())
+                    {
+                        ControlledExecution.Run(a, _ctsControlled.Token);
+                    }
+                }
+            }
+            finally
+            {
+                _ctsExecute = null;
+                _ctsControlled = null;
+                engine.SetTrace(null);
+                Executing = false;
+            }
+        }
+
         /// <summary>
         /// Run on the statement execution thread. 
         /// </summary>
@@ -444,14 +494,7 @@ namespace PythonConsoleControl
                 string error = "";
                 try
                 {
-                    using (_ctsExecute = new CancellationTokenSource())
-                    {
-                        ControlledExecution.Run(() =>
-                        {
-                            Executing = true;
-                            scriptSource.Execute(commandLine.ScriptScope);
-                        }, _ctsExecute.Token);
-                    }
+                    ExecuteCancellable(() => scriptSource.Execute(commandLine.ScriptScope));
                 }
                 catch (OperationCanceledException)
                 {
@@ -473,9 +516,7 @@ namespace PythonConsoleControl
                 }
                 finally
                 {
-                    _ctsExecute = null;
                 }
-                Executing = false;
                 if (error != "")
                 {
                     editor.Write(error);
