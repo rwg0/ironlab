@@ -1,9 +1,5 @@
 ﻿// Copyright (c) 2010 Joe Moorhouse
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using ICSharpCode.AvalonEdit;
 using System.Windows.Media;
 
@@ -11,9 +7,9 @@ namespace PythonConsoleControl
 {   
     public class PythonConsolePad 
     {
-        PythonTextEditor pythonTextEditor;
-        TextEditor textEditor;
-        PythonConsoleHost host;
+        readonly PythonTextEditor pythonTextEditor;
+        readonly TextEditor textEditor;
+        readonly PythonConsoleHost host;
 
         public PythonConsolePad()
         {

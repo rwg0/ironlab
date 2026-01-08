@@ -1,22 +1,15 @@
 ﻿// Copyright (c) 2010 Joe Moorhouse
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Reflection;
 
 using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Document;
 using ICSharpCode.AvalonEdit.Highlighting;
-using ICSharpCode.AvalonEdit.Utils;
 using ICSharpCode.AvalonEdit.Editing;
 
 namespace PythonConsoleControl
@@ -158,7 +151,7 @@ namespace PythonConsoleControl
                             TextViewPosition oldCaretPosition = textArea.Caret.Position;
                             selectingCommand.Execute(args.Parameter, textArea);
                             bool hasSomethingDeletable = false;
-                            foreach (ISegment s in textArea.Selection.Segments)
+                            foreach (var s in textArea.Selection.Segments)
                             {
                                 method = textAreaType.GetMethod("GetDeletableSegments", BindingFlags.Instance | BindingFlags.NonPublic); 
                                 //textArea.GetDeletableSegments(s).Length > 0)

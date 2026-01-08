@@ -1,17 +1,7 @@
 ﻿// Copyright (c) 2010 Joe Moorhouse
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Diagnostics;
-using System.Windows;
-using System.Windows.Media;
-using System.Windows.Threading;
-
-using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Rendering;
 using ICSharpCode.AvalonEdit.Highlighting;
 
 namespace PythonConsoleControl
@@ -21,7 +11,7 @@ namespace PythonConsoleControl
     /// </summary>
     public class PythonConsoleHighlightingColorizer : HighlightingColorizer
     {
-        TextDocument document;
+        readonly TextDocument document;
 
         /// <summary>
         /// Creates a new HighlightingColorizer instance.

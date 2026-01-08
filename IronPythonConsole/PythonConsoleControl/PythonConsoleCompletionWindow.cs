@@ -1,14 +1,9 @@
 ﻿// Copyright (c) 2010 Joe Moorhouse
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Threading;
 using ICSharpCode.AvalonEdit.Document;
@@ -16,7 +11,6 @@ using ICSharpCode.AvalonEdit.Editing;
 using ICSharpCode.AvalonEdit.Rendering;
 using ICSharpCode.AvalonEdit.CodeCompletion;
 using System.Reflection;
-using System.ComponentModel;
 
 namespace PythonConsoleControl
 {
@@ -29,10 +23,10 @@ namespace PythonConsoleControl
     {
         readonly CompletionList completionList = new CompletionList();
         ToolTip toolTip = new ToolTip();
-        DispatcherTimer updateDescription;
-        TimeSpan updateDescriptionInterval;
-        PythonTextEditor textEditor;
-        PythonConsoleCompletionDataProvider completionDataProvider;
+        readonly DispatcherTimer updateDescription;
+        readonly TimeSpan updateDescriptionInterval;
+        readonly PythonTextEditor textEditor;
+        readonly PythonConsoleCompletionDataProvider completionDataProvider;
 
         /// <summary>
         /// Gets the completion list used in this completion window.
@@ -69,11 +63,11 @@ namespace PythonConsoleControl
             AttachEvents();
 
             updateDescription = new DispatcherTimer();
-            updateDescription.Tick += new EventHandler(completionList_UpdateDescription);
+            updateDescription.Tick += completionList_UpdateDescription;
             updateDescriptionInterval = TimeSpan.FromSeconds(0.3);
 
             EventInfo eventInfo = typeof(TextView).GetEvent("ScrollOffsetChanged");
-            Delegate methodDelegate = Delegate.CreateDelegate(eventInfo.EventHandlerType, (this as CompletionWindowBase), "TextViewScrollOffsetChanged");
+            Delegate methodDelegate = Delegate.CreateDelegate(eventInfo.EventHandlerType, this, "TextViewScrollOffsetChanged");
             eventInfo.RemoveEventHandler(this.TextArea.TextView, methodDelegate);
         }
 
@@ -93,7 +87,6 @@ namespace PythonConsoleControl
             if (item == null)
             {
                 updateDescription.Stop();
-                return;
             }
             else
             {
@@ -122,7 +115,7 @@ namespace PythonConsoleControl
             string stub = "";
             string item = "";
             bool isInstance = false;
-            textEditor.textEditor.Dispatcher.Invoke(new Action(delegate()
+            textEditor.textEditor.Dispatcher.Invoke(delegate()
             {
                 PythonCompletionData data = (completionList.SelectedItem as PythonCompletionData);
                 if (data == null || toolTip == null)
@@ -130,14 +123,14 @@ namespace PythonConsoleControl
                 stub = data.Stub;
                 item = data.Text;
                 isInstance = data.IsInstance;
-            }));
+            });
             // Send to the completion thread to generate the description, providing callback.
             completionDataProvider.GenerateDescription(stub, item, completionList_WriteDescription, isInstance);
         }
 
         void completionList_WriteDescription(string description)
         {
-            textEditor.textEditor.Dispatcher.Invoke(new Action(delegate() {
+            textEditor.textEditor.Dispatcher.Invoke(delegate() {
                 if (toolTip != null)
                 {
                     if (description != null)
@@ -150,7 +143,7 @@ namespace PythonConsoleControl
                         toolTip.IsOpen = false;
                     }
                 }
-            }));
+            });
         }
 
         #endregion

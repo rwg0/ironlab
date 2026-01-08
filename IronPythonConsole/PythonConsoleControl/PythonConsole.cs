@@ -2,8 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.IO;
 using System.Threading;
 using Microsoft.Scripting.Hosting.Shell;
@@ -12,19 +10,13 @@ using Microsoft.Scripting;
 using IronPython.Hosting;
 using IronPython.Runtime;
 using Microsoft.Scripting.Hosting;
-using Microsoft.Scripting.Hosting.Providers;
 using System.Diagnostics;
-using System.Globalization;
 using System.Runtime;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
-using System.Windows.Documents;
 using ICSharpCode.AvalonEdit.Editing;
 using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Highlighting;
-using ICSharpCode.AvalonEdit.Utils;
 using IronPython.Runtime.Exceptions;
 using Style = Microsoft.Scripting.Hosting.Shell.Style;
 
@@ -68,33 +60,33 @@ namespace PythonConsoleControl
             }
         }
 
-        bool allowCtrlSpaceAutocompletion = false;
+        bool allowCtrlSpaceAutocompletion;
         public bool AllowCtrlSpaceAutocompletion
         {
             get { return allowCtrlSpaceAutocompletion; }
             set { allowCtrlSpaceAutocompletion = value; }
         }
 
-        PythonTextEditor textEditor;
-        int lineReceivedEventIndex = 0; // The index into the waitHandles array where the lineReceivedEvent is stored.
-        ManualResetEvent lineReceivedEvent = new ManualResetEvent(false);
-        ManualResetEvent disposedEvent = new ManualResetEvent(false);
+        readonly PythonTextEditor textEditor;
+        readonly int lineReceivedEventIndex = 0; // The index into the waitHandles array where the lineReceivedEvent is stored.
+        readonly ManualResetEvent lineReceivedEvent = new ManualResetEvent(false);
+        readonly ManualResetEvent disposedEvent = new ManualResetEvent(false);
         AutoResetEvent statementsExecutionRequestedEvent = new AutoResetEvent(false);
-        WaitHandle[] waitHandles;
+        readonly WaitHandle[] waitHandles;
         int promptLength = 4;
-        List<string> previousLines = new List<string>();
-        CommandLine commandLine;
-        CommandLineHistory commandLineHistory = new CommandLineHistory();
+        readonly List<string> previousLines = new List<string>();
+        readonly CommandLine commandLine;
+        readonly CommandLineHistory commandLineHistory = new CommandLineHistory();
 
-        volatile bool _executing = false;
+        volatile bool _executing;
 
         // This is the thread upon which all commands execute unless the dipatcher is overridden.
-        Thread dispatcherThread;
+        readonly Thread dispatcherThread;
         Window dispatcherWindow;
         Dispatcher dispatcher;
 
-        bool consoleInitialized = false;
-        string prompt;
+        bool consoleInitialized;
+        readonly string prompt;
         private DateTime _lastWrite;
         private Style _lastStyle;
         private CancellationTokenSource _ctsExecute;
@@ -119,7 +111,7 @@ namespace PythonConsoleControl
             textEditor.CompletionProvider = new PythonConsoleCompletionDataProvider(commandLine) { ExcludeCallables = disableAutocompletionForCallables };
             textEditor.PreviewKeyDown += textEditor_PreviewKeyDown;
             textEditor.TextEntering += textEditor_TextEntering;
-            dispatcherThread = new Thread(new ThreadStart(DispatcherThreadStartingPoint));
+            dispatcherThread = new Thread(DispatcherThreadStartingPoint);
             dispatcherThread.SetApartmentState(ApartmentState.STA);
             dispatcherThread.IsBackground = true;
             dispatcherThread.Start();
@@ -128,7 +120,7 @@ namespace PythonConsoleControl
             prompt = ">>> ";
 
             // Set commands:
-            this.textEditor.textArea.Dispatcher.Invoke(new Action(delegate ()
+            this.textEditor.textArea.Dispatcher.Invoke(delegate ()
             {
                 CommandBinding pasteBinding = null;
                 CommandBinding copyBinding = null;
@@ -156,7 +148,7 @@ namespace PythonConsoleControl
                 this.textEditor.textArea.CommandBindings.Add(new CommandBinding(ApplicationCommands.Undo, OnUndo, CanUndo));
                 this.textEditor.textArea.CommandBindings.Add(new CommandBinding(ApplicationCommands.Delete, PythonEditingCommandHandler.OnDelete(ApplicationCommands.NotACommand), CanDeleteCommand));
 
-            }));
+            });
             CodeContext codeContext = DefaultContext.Default;
             // Set dispatcher to run on a UI thread independent of both the Control UI thread and thread running the REPL.
             ClrModule.SetCommandDispatcher(codeContext, DispatchCommand);
@@ -191,7 +183,7 @@ namespace PythonConsoleControl
                 {
                     if (e.InnerException is OperationCanceledException || e.InnerException is ThreadAbortException)
                     {
-                        textEditor.Write("KeyboardInterrupt" + System.Environment.NewLine);
+                        textEditor.Write("KeyboardInterrupt" + Environment.NewLine);
                         Executing = false;
                     }
                     else
@@ -246,12 +238,7 @@ namespace PythonConsoleControl
         #region CommandHandling
         protected void CanPaste(object target, CanExecuteRoutedEventArgs args)
         {
-            if (IsInReadOnlyRegion)
-            {
-                args.CanExecute = false;
-            }
-            else
-                args.CanExecute = true;
+            args.CanExecute = !IsInReadOnlyRegion;
         }
 
         protected void CanCut(object target, CanExecuteRoutedEventArgs args)
@@ -500,9 +487,9 @@ namespace PythonConsoleControl
                 }
                 catch (OperationCanceledException)
                 {
-                    error = "KeyboardInterrupt" + System.Environment.NewLine;
+                    error = "KeyboardInterrupt" + Environment.NewLine;
                 }
-                catch (Microsoft.Scripting.SyntaxErrorException exception)
+                catch (SyntaxErrorException exception)
                 {
                     var eo = engine.GetService<ExceptionOperations>();
                     if (eo == null)
@@ -514,10 +501,7 @@ namespace PythonConsoleControl
                     var eo = engine.GetService<ExceptionOperations>();
                     if (eo == null)
                         throw new InvalidOperationException("ExceptionOperations is null");
-                    error = eo.FormatException(exception) + System.Environment.NewLine;
-                }
-                finally
-                {
+                    error = eo.FormatException(exception) + Environment.NewLine;
                 }
                 if (error != "")
                 {
@@ -648,7 +632,8 @@ namespace PythonConsoleControl
         /// </summary>
         public string[] GetUnreadLines()
         {
-            return previousLines.ToArray();
+            lock (previousLines)
+                return previousLines.ToArray();
         }
 
         string GetLastTextEditorLine()

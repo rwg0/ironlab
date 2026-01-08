@@ -5,13 +5,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using ICSharpCode.AvalonEdit.CodeCompletion;
-using ICSharpCode.AvalonEdit;
-using ICSharpCode.AvalonEdit.Editing;
-using ICSharpCode.AvalonEdit.Document;
 using Microsoft.Scripting.Hosting.Shell;
-using Microsoft.Scripting.Hosting;
 using Microsoft.Scripting;
-using System.Threading;
 using System.Reflection;
 
 namespace PythonConsoleControl
@@ -21,8 +16,8 @@ namespace PythonConsoleControl
     /// </summary>
     public class PythonConsoleCompletionDataProvider 
     {
-        CommandLine commandLine;
-        internal volatile bool AutocompletionInProgress = false;
+        readonly CommandLine commandLine;
+        internal volatile bool AutocompletionInProgress;
 
         bool excludeCallables;
         public bool ExcludeCallables { get { return excludeCallables; } set { excludeCallables = value; } }

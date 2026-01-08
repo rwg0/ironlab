@@ -1,26 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.IO;
 using System.Xml;
 using System.Windows;
-using System.Windows.Threading;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using ICSharpCode.AvalonEdit.CodeCompletion;
-using ICSharpCode.AvalonEdit.Folding;
 using ICSharpCode.AvalonEdit.Highlighting;
 using Microsoft.Win32;
-using System.Resources;
 using System.Threading.Tasks;
-using System.Windows.Controls.WpfPropertyGrid;
 using ICSharpCode.AvalonEdit;
 using Microsoft.Scripting;
 using Microsoft.Scripting.Hosting;
@@ -41,7 +27,7 @@ namespace IronPythonConsole
 
         public PythonConsoleWindow()
 		{
-            Initialized += new EventHandler(MainWindow_Initialized);
+            Initialized += MainWindow_Initialized;
             // Load our custom highlighting definition:
             IHighlightingDefinition pythonHighlighting;
             using (Stream s = GetSyntaxHighlightingStream())
@@ -61,15 +47,15 @@ namespace IronPythonConsole
 
             textEditor.SyntaxHighlighting = pythonHighlighting;
 
-            textEditor.PreviewKeyDown += new KeyEventHandler(textEditor_PreviewKeyDown);
+            textEditor.PreviewKeyDown += textEditor_PreviewKeyDown;
 
             ConsoleOptionsProvider = new ConsoleOptions(console.Pad);
 
             propertyGridComboBox.SelectedIndex = 0;
 
-            expander.Expanded += new RoutedEventHandler(expander_Expanded);
+            expander.Expanded += expander_Expanded;
 
-            console.Pad.Host.ConsoleCreated +=new PythonConsoleControl.ConsoleCreatedEventHandler(Host_ConsoleCreated);
+            console.Pad.Host.ConsoleCreated +=Host_ConsoleCreated;
 		}
 
         private static Stream GetSyntaxHighlightingStream()
@@ -102,13 +88,13 @@ namespace IronPythonConsole
 
         void Host_ConsoleCreated(object sender, EventArgs e)
         {
-            console.Pad.Console.ConsoleInitialized += new PythonConsoleControl.ConsoleInitializedEventHandler(Console_ConsoleInitialized);
+            console.Pad.Console.ConsoleInitialized += Console_ConsoleInitialized;
         }
 
         void Console_ConsoleInitialized(object sender, EventArgs e)
         {
             if (ConsoleInitialized != null)
-                ConsoleInitialized(this, new EventArgs());
+                ConsoleInitialized(this, EventArgs.Empty);
 
             console.Pad.Console.ScriptStarting += ConsoleOnScriptStarting;
             console.Pad.Console.ScriptFinished += ConsoleOnScriptFinished;
@@ -126,20 +112,20 @@ namespace IronPythonConsole
 
         private void ConsoleOnScriptFinished(object sender, EventArgs eventArgs)
         {
-            Dispatcher.Invoke(new Action(() =>
-                    {
-                        btnRun.IsEnabled = true;
-                        btnStop.IsEnabled = false;
-                    }));
+            Dispatcher.Invoke(() =>
+            {
+                btnRun.IsEnabled = true;
+                btnStop.IsEnabled = false;
+            });
         }
 
         private void ConsoleOnScriptStarting(object sender, EventArgs eventArgs)
         {
-            Dispatcher.Invoke(new Action(() =>
+            Dispatcher.Invoke(() =>
             {
                 btnRun.IsEnabled = false;
                 btnStop.IsEnabled = true;
-            }));
+            });
         }
 
         void MainWindow_Initialized(object sender, EventArgs e)
@@ -200,11 +186,7 @@ namespace IronPythonConsole
 
         void RunStatements()
         {
-            string statementsToRun = "";
-            if (textEditor.TextArea.Selection.Length > 0)
-                statementsToRun = textEditor.TextArea.Selection.GetText();
-            else
-                statementsToRun = textEditor.TextArea.Document.Text;
+            string statementsToRun = textEditor.TextArea.Selection.Length > 0 ? textEditor.TextArea.Selection.GetText() : textEditor.TextArea.Document.Text;
 
             var filename = string.IsNullOrEmpty(currentFileName) ? "None" : (currentFileName).Replace("\\", "\\\\").Replace("'", "\\'");
             statementsToRun = $"__file__ = '{filename}'\r\n" + statementsToRun;

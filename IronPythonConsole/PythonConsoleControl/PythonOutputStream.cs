@@ -10,7 +10,7 @@ namespace PythonConsoleControl
     {
         public event EventHandler TextWritten;
 
-        PythonTextEditor textEditor;
+        private readonly PythonTextEditor textEditor;
 
         public PythonOutputStream(PythonTextEditor textEditor)
         {

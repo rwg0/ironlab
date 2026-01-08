@@ -1,10 +1,8 @@
 ﻿// Copyright (c) 2010 Joe Moorhouse
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Windows;
 using System.Threading;
 using IronPython.Hosting;
 using IronPython.Runtime;
@@ -42,7 +40,7 @@ namespace PythonConsoleControl
     public class PythonConsoleHost : ConsoleHost, IDisposable
     {
         Thread thread;
-        PythonTextEditor textEditor;
+        readonly PythonTextEditor textEditor;
         PythonConsole pythonConsole;
 
         public event ConsoleCreatedEventHandler ConsoleCreated;
@@ -131,7 +129,7 @@ namespace PythonConsoleControl
             {
                 if (langSetup.FileExtensions.Contains(".py"))
                 {
-                    langSetup.Options["SearchPaths"] = new string[0];
+                    langSetup.Options["SearchPaths"] = Array.Empty<string>();
                 }
             }
 

@@ -1,24 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.IO;
-using System.Windows.Threading;
 using System.Xml;
-using ICSharpCode.AvalonEdit.CodeCompletion;
-using ICSharpCode.AvalonEdit.Folding;
 using ICSharpCode.AvalonEdit.Highlighting;
 using ICSharpCode.AvalonEdit.Rendering;
-using Microsoft.Win32;
 
 
 namespace PythonConsoleControl
@@ -28,7 +14,7 @@ namespace PythonConsoleControl
     /// </summary>
     public partial class IronPythonConsoleControl : UserControl
     {
-        PythonConsolePad pad;
+        readonly PythonConsolePad pad;
         
         public IronPythonConsoleControl()
         {
@@ -78,14 +64,14 @@ namespace PythonConsoleControl
         public void WithHost(Action<PythonConsoleHost> hostAction)
         {
             this.hostAction = hostAction;
-            Host.ConsoleCreated += new ConsoleCreatedEventHandler(Host_ConsoleCreated);
+            Host.ConsoleCreated += Host_ConsoleCreated;
         }
 
         Action<PythonConsoleHost> hostAction;
 
         void Host_ConsoleCreated(object sender, EventArgs e)
         {
-            Console.ConsoleInitialized += new ConsoleInitializedEventHandler(Console_ConsoleInitialized);
+            Console.ConsoleInitialized += Console_ConsoleInitialized;
         }
 
         void Console_ConsoleInitialized(object sender, EventArgs e)

@@ -2,8 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace PythonConsoleControl
 {
@@ -12,7 +10,7 @@ namespace PythonConsoleControl
     /// </summary>
     public class CommandLineHistory
     {
-        List<string> lines = new List<string>();
+        readonly List<string> lines = new List<string>();
         int position;
 
         public CommandLineHistory()

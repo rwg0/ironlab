@@ -2,14 +2,11 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Editing;
 using ICSharpCode.AvalonEdit.Document;
 using ICSharpCode.AvalonEdit.CodeCompletion;
-using System.Windows;
-using System.Windows.Media;
 using System.Windows.Threading;
 using System.Windows.Input;
 using System.Threading;
@@ -25,23 +22,23 @@ namespace PythonConsoleControl
     {
         internal TextEditor textEditor;
         internal TextArea textArea;
-        StringBuilder writeBuffer = new StringBuilder();
-        volatile bool writeInProgress = false;
-        PythonConsoleCompletionWindow completionWindow = null;
-        int completionEventIndex = 0;
-        int descriptionEventIndex = 1;
-        WaitHandle[] completionWaitHandles;
-        AutoResetEvent completionRequestedEvent = new AutoResetEvent(false);
-        AutoResetEvent descriptionRequestedEvent = new AutoResetEvent(false);
-        Thread completionThread;
-        PythonConsoleCompletionDataProvider completionProvider = null;
+        readonly StringBuilder writeBuffer = new StringBuilder();
+        volatile bool writeInProgress;
+        PythonConsoleCompletionWindow completionWindow;
+        readonly int completionEventIndex = 0;
+        readonly int descriptionEventIndex = 1;
+        readonly WaitHandle[] completionWaitHandles;
+        readonly AutoResetEvent completionRequestedEvent = new AutoResetEvent(false);
+        readonly AutoResetEvent descriptionRequestedEvent = new AutoResetEvent(false);
+        readonly Thread completionThread;
+        PythonConsoleCompletionDataProvider completionProvider;
 
         public PythonTextEditor(TextEditor textEditor)
         {
             this.textEditor = textEditor;
             this.textArea = textEditor.TextArea;
             completionWaitHandles = new WaitHandle[] { completionRequestedEvent, descriptionRequestedEvent };
-            completionThread = new Thread(new ThreadStart(Completion));
+            completionThread = new Thread(Completion);
             completionThread.Priority = ThreadPriority.Lowest;
             //completionThread.SetApartmentState(ApartmentState.STA);
             completionThread.IsBackground = true;
@@ -84,7 +81,7 @@ namespace PythonConsoleControl
             if (!writeInProgress)
             {
                 writeInProgress = true;
-                ThreadPool.QueueUserWorkItem(new WaitCallback(CheckAndOutputWriteBuffer));
+                ThreadPool.QueueUserWorkItem(CheckAndOutputWriteBuffer);
                 sw = Stopwatch.StartNew();
             }
         }
@@ -92,7 +89,7 @@ namespace PythonConsoleControl
         private void CheckAndOutputWriteBuffer(Object stateInfo)
         {
             AutoResetEvent writeCompletedEvent = new AutoResetEvent(false);
-            Action action = new Action(delegate()
+            Action action = delegate
             {
                 string toWrite;
                 lock (writeBuffer)
@@ -104,7 +101,7 @@ namespace PythonConsoleControl
                 MoveToEnd();
                 PerformTextInput(toWrite);
                 writeCompletedEvent.Set();
-            });
+            };
             while (true)
             {
                 // Clear writeBuffer and write out.
@@ -176,7 +173,7 @@ namespace PythonConsoleControl
         /// </summary>
         public string GetLine(int index)
         {
-            return (string)textArea.Dispatcher.Invoke(new StringAction(delegate()
+            return (string)textArea.Dispatcher.Invoke(new StringAction(delegate
             {
                 DocumentLine line = textArea.Document.Lines[index];
                 return textArea.Document.GetText(line);
@@ -341,15 +338,15 @@ namespace PythonConsoleControl
         {
 			// provide AvalonEdit with the data:
             string itemForCompletion = "";
-            textArea.Dispatcher.Invoke(new Action(delegate()
+            textArea.Dispatcher.Invoke(delegate
             {
                 DocumentLine line = textArea.Document.Lines[textArea.Caret.Line - 1];
                 itemForCompletion = textArea.Document.GetText(line);
-            }));
+            });
 
             ICompletionData[] completions = completionProvider.GenerateCompletionData(itemForCompletion);
 
-            if (completions != null && completions.Length > 0) textArea.Dispatcher.BeginInvoke(new Action(delegate()
+            if (completions != null && completions.Length > 0) textArea.Dispatcher.BeginInvoke(new Action(delegate
             {
                 completionWindow = new PythonConsoleCompletionWindow(textArea, this);
                 IList<ICompletionData> data = completionWindow.CompletionList.CompletionData;
