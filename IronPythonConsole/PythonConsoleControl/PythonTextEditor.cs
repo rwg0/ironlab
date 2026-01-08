@@ -315,11 +315,14 @@ namespace PythonConsoleControl
                 {
                     using (_completionCts = new CancellationTokenSource())
                     {
+                        // TODO - try to use cooperative cancellation instead
+#pragma warning disable SYSLIB0046
                         ControlledExecution.Run(() =>
                         {
                             if (action == completionEventIndex && completionProvider != null) BackgroundShowCompletionWindow();
                             if (action == descriptionEventIndex && completionProvider != null && completionWindow != null) BackgroundUpdateCompletionDescription();
                         }, _completionCts.Token);
+#pragma warning restore SYSLIB0046
                     }
                 }
                 catch (OperationCanceledException)

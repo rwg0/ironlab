@@ -461,7 +461,9 @@ namespace PythonConsoleControl
 
                     using (_ctsControlled = new CancellationTokenSource())
                     {
+#pragma warning disable SYSLIB0046
                         ControlledExecution.Run(a, _ctsControlled.Token);
+#pragma warning restore SYSLIB0046
                     }
                 }
             }
