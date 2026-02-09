@@ -418,6 +418,15 @@ namespace PythonConsoleControl
         }
 
         TracebackDelegate _tbd = null;
+        private CancellationToken? _token = null;
+
+        TracebackDelegate TraceFunc(TraceBackFrame frame, string result, object payload)
+        {
+            var token = _token;
+            if (token is { IsCancellationRequested: true })
+                throw new OperationCanceledException(token.Value);
+            return _tbd; // Continue execution
+        }
 
         void ExecuteCancellable(Action a)
         {
@@ -432,23 +441,11 @@ namespace PythonConsoleControl
             {
                 using (_ctsExecute = new CancellationTokenSource())
                 {
-                    var token = _ctsExecute.Token;
+                    _token = _ctsExecute.Token;
 
-                    if (_tbd == null)
-                    {
-                        TracebackDelegate TraceFunc(TraceBackFrame frame, string result, object payload)
-                        {
-
-                            if (token.IsCancellationRequested)
-                                throw new OperationCanceledException(token);
-                            return _tbd; // Continue execution
-                        }
-
-                        _tbd = TraceFunc;
-
-                        engine.SetTrace(_tbd);
-                    }
-
+                    _tbd ??= TraceFunc;
+                    engine.SetTrace(_tbd);
+                    
                     Executing = true;
 
                     using (_ctsControlled = new CancellationTokenSource())
@@ -463,6 +460,7 @@ namespace PythonConsoleControl
             {
                 _ctsExecute = null;
                 _ctsControlled = null;
+                _token = null;
                 Executing = false;
             }
         }
