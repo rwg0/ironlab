@@ -417,8 +417,16 @@ namespace PythonConsoleControl
             }
         }
 
+        TracebackDelegate _tbd = null;
+
         void ExecuteCancellable(Action a)
         {
+            if (Executing)
+            { // handle nested cases
+                a();
+                return;
+            }
+
             var engine = commandLine.ScriptScope.Engine;
             try
             {
@@ -426,23 +434,20 @@ namespace PythonConsoleControl
                 {
                     var token = _ctsExecute.Token;
 
-                    TracebackDelegate tbd = null;
-
-                    TracebackDelegate TraceFunc(TraceBackFrame frame, string result, object payload)
+                    if (_tbd == null)
                     {
-                        if (result == "line")
+                        TracebackDelegate TraceFunc(TraceBackFrame frame, string result, object payload)
                         {
-                            Console.WriteLine($"Executing: {frame.f_code.co_filename} | Line: {frame.f_lineno}");
+
+                            if (token.IsCancellationRequested)
+                                throw new OperationCanceledException(token);
+                            return _tbd; // Continue execution
                         }
 
-                        if (token.IsCancellationRequested)
-                            throw new OperationCanceledException(token);
-                        return tbd; // Continue execution
+                        _tbd = TraceFunc;
+
+                        engine.SetTrace(_tbd);
                     }
-
-                    tbd = TraceFunc;
-
-                    engine.SetTrace(tbd);
 
                     Executing = true;
 
@@ -458,7 +463,6 @@ namespace PythonConsoleControl
             {
                 _ctsExecute = null;
                 _ctsControlled = null;
-                engine.SetTrace(null);
                 Executing = false;
             }
         }
