@@ -11,6 +11,7 @@ using IronPython.Hosting;
 using IronPython.Runtime;
 using Microsoft.Scripting.Hosting;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime;
 using System.Threading.Tasks;
 using System.Windows;
@@ -181,7 +182,25 @@ namespace PythonConsoleControl
                 }
                 catch (Exception e)
                 {
-                    if (e.InnerException is OperationCanceledException || e.InnerException is ThreadAbortException)
+                    var innermost = e;
+                    while (true)
+                    {
+                        if (innermost is AggregateException agex && agex.InnerExceptions.FirstOrDefault() is { } next)
+                        {
+                            innermost = next;
+                            continue;
+                        }
+
+                        if (innermost.InnerException != null)
+                        {
+                            innermost = innermost.InnerException;
+                            continue;
+                        }
+
+                        break;
+                    }
+
+                    if (innermost is OperationCanceledException or ThreadAbortException or ThreadInterruptedException)
                     {
                         textEditor.Write("KeyboardInterrupt" + Environment.NewLine);
                         Executing = false;
